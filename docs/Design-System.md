@@ -446,12 +446,12 @@ Stitch Story Detail tham chiếu: screen `e236f699291141949fa852aa12a16553`, pro
 
 | Layer | Figma | CSS / Blazor | Flutter |
 |---|---|---|---|
-| Semantic color | `color/bg/canvas` | `var(--jl-color-bg-canvas)` | `JoyleebookColors.bgCanvas` |
-| Spacing | `space/4` | `var(--jl-space-4)` | `JoyleebookDim.space4` |
-| Radius | `radius/md` | `var(--jl-radius-md)` | `JoyleebookDim.radiusMd` |
-| Typography | `Body/Medium` | `var(--jl-type-body-md-size)` / `-leading` | `JoyleebookType.bodyMd` |
-| Elevation | `Elevation/Md` | `var(--jl-shadow-md)` | `JoyleebookElevation.md` |
-| Motion | `motion/fast` | `var(--jl-motion-fast)` | `JoyleebookMotion.fast` |
+| Semantic color | `color/bg/canvas` | `var(--jl-color-bg-canvas)` | `context.colors.bgCanvas` (`AppColors.bgCanvas`) |
+| Spacing | `space/4` | `var(--jl-space-4)` | `AppDimensions.space4` |
+| Radius | `radius/md` | `var(--jl-radius-md)` | `AppDimensions.radiusMd` |
+| Typography | `Body/Medium` | `var(--jl-type-body-md-size)` / `-leading` | `Theme.of(context).textTheme.bodyMedium` (chưa có class type riêng) |
+| Elevation | `Elevation/Md` | `var(--jl-shadow-md)` | Chưa có token; `Card` dùng `elevation: 0` + viền `borderDefault` |
+| Motion | `motion/fast` | `var(--jl-motion-fast)` | Chưa có token |
 
 ### Blazor theme strategy
 
@@ -465,11 +465,36 @@ Stitch Story Detail tham chiếu: screen `e236f699291141949fa852aa12a16553`, pro
 
 ### Flutter theme strategy
 
-- Tạo `JoyleebookColors extends ThemeExtension<JoyleebookColors>`.
-- Có `JoyleebookColors.light` và `JoyleebookColors.dark` với cùng field names.
-- Typography UI dùng `TextTheme` của Inter; reader dùng một `ReaderTextTheme` riêng với Literata.
-- Component widget dùng semantic theme qua `Theme.of(context).extension<JoyleebookColors>()`.
+Nguồn sự thật trên mobile: `lib/ui/core/themes/app_colors.dart`, `app_dimensions.dart`, `app_theme.dart`. Chi tiết triển khai: [Flutter-Mobile-Design-System.md](Flutter-Mobile-Design-System.md).
+
+- `AppColors extends ThemeExtension<AppColors>`, có `AppColors.light` và `AppColors.dark` với cùng field names, đăng ký qua `extensions: [colors]` trong `AppTheme.light` / `AppTheme.dark` (Material 3).
+- Widget đọc màu bằng extension `context.colors` (= `Theme.of(context).extension<AppColors>()`, fallback `AppColors.light`).
+- `AppDimensions` (abstract final class, hằng `double`) chứa spacing, radius và kích thước control.
 - Không đặt hex trực tiếp trong widget nghiệp vụ.
+
+Ánh xạ field `AppColors` sang semantic token:
+
+| `AppColors` | Semantic token | Ghi chú |
+|---|---|---|
+| `bgCanvas` | `color/bg/canvas` | |
+| `bgSurface` | `color/bg/surface` | |
+| `bgSurfaceSubtle` | `color/bg/surface-subtle` | |
+| `primaryBrand` | `color/bg/brand` | |
+| `primaryBrandDark` | `color/bg/brand-hover` | |
+| `accent` | `color/bg/accent` | |
+| `textPrimary` | `color/text/primary` | |
+| `textSecondary` | `color/text/secondary` | |
+| `textDisabled` | `color/text/disabled` | |
+| `textOnBrand` | `color/text/on-brand` | |
+| `borderDefault` | `color/border/default` | |
+| `borderFocus` | `color/border/focus` | |
+| `success` | `color/text/success` | Dark đang dùng `#82C9A6` (MudBlazor `Success`) thay vì `#B1E1C7` |
+| `warning` | `color/text/warning` | |
+| `danger` | `color/text/danger` | |
+
+`AppDimensions`: `space1`–`space6`, `space8` (= `space/1`–`space/8`), `radiusSm`, `radiusMd`, `radiusLg`, `radiusFull`, `controlHeight` (44 = `size/control/m`), `minTouchTarget` (48, chuẩn Material 3, lớn hơn `size/touch/min` 44).
+
+Chưa có trên mobile, bổ sung khi feature cần: các token `bg/brand-subtle`, `bg/accent-subtle`, `bg/success|warning|danger|info`, `text/muted`, `text/brand`, `text/link`, `text/info`, `border/strong`, `space/10`+, `radius/xl`, typography Inter/Literata, elevation và motion. Khi thêm field mới vào `AppColors`, cập nhật đồng thời `light`, `dark`, `copyWith`, `lerp` và bảng trên.
 
 ## 11. Definition of done (web)
 
