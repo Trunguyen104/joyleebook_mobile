@@ -1,6 +1,6 @@
 # JoyleeBook Mobile — Luồng Nghiệp vụ & Hợp đồng API (Flows & API Contracts)
 
-Tài liệu này mô tả chi tiết các luồng tương tác của **Độc giả (Reader)** trên ứng dụng di động, kết hợp với bảng đặc tả hợp đồng dữ liệu (API Contracts) qua **JoyleeBook API Gateway** (`:5081`).
+Tài liệu này mô tả chi tiết các luồng tương tác của **Độc giả (Reader)** trên ứng dụng di động, kết hợp với bảng đặc tả hợp đồng dữ liệu (API Contracts) qua **JoyleeBook API Gateway** (`https://api.joyleebook.duckdns.org`).
 
 ---
 
@@ -19,7 +19,7 @@ sequenceDiagram
     participant Repo as AuthRepository
     participant SecStore as TokenStorage (SecureStorage)
     participant Dio as ApiClient
-    participant GW as Gateway (:5081)
+    participant GW as Gateway
 
     Reader->>UI: Nhập Username & Password, bấm "Đăng nhập"
     UI->>UI: Validate Client-side (Username 3-64 ký tự, Password >=8 ký tự)
@@ -59,7 +59,7 @@ sequenceDiagram
     participant Dio as Dio Interceptor
     participant SecStore as TokenStorage
     participant Router as GoRouter
-    participant GW as Gateway (:5081)
+    participant GW as Gateway
 
     UI->>Dio: Gửi API cần xác thực (Kèm Token cũ)
     Dio->>GW: Request + Header Authorization: Bearer <expired-token>
@@ -88,7 +88,7 @@ sequenceDiagram
     participant UI as SeriesListScreen
     participant VM as SeriesListViewModel
     participant Repo as SeriesRepository
-    participant GW as Gateway (:5081)
+    participant GW as Gateway
 
     Reader->>UI: Mở màn hình Khám phá
     UI->>VM: ref.watch(seriesListViewModelProvider)
@@ -139,7 +139,7 @@ sequenceDiagram
     participant UI as SeriesDetailScreen (Icon Bookmark)
     participant VM as SeriesDetailViewModel
     participant Repo as LibraryRepository
-    participant GW as Gateway (:5081)
+    participant GW as Gateway
 
     Reader->>UI: Bấm icon Bookmark (Lưu truyện)
     UI->>VM: toggleBookmark(seriesId)
@@ -171,9 +171,9 @@ sequenceDiagram
 
 ---
 
-## 5. Bảng Đặc tả Hợp đồng API (API Contracts qua Gateway :5081)
+## 5. Bảng Đặc tả Hợp đồng API (API Contracts qua Gateway)
 
-Tất cả các lệnh gọi API đều đi qua JoyleeBook API Gateway tại địa chỉ base: `http://<host>:5081`.
+Tất cả các lệnh gọi API đều đi qua JoyleeBook API Gateway tại địa chỉ base: `https://api.joyleebook.duckdns.org` (Swagger: `https://api.joyleebook.duckdns.org/docs/authentication/swagger/index.html`, `https://api.joyleebook.duckdns.org/docs/series/swagger/index.html`).
 
 ### 5.1. Nhóm API Xác thực (Authentication)
 
@@ -256,12 +256,12 @@ Tất cả các lệnh gọi API đều đi qua JoyleeBook API Gateway tại đ�
 
 ---
 
-### 5.3. Hướng dẫn thiết lập Base URL theo Thiết bị
+### 5.3. Base URL của Gateway
 
-Để chạy ứng dụng trỏ đúng vào Gateway backend, sử dụng tham số `--dart-define=API_BASE_URL`:
+Dự án dùng chung một Gateway đã deploy qua HTTPS, không chạy backend local. `lib/config/environment.dart` mặc định trỏ tới `https://api.joyleebook.duckdns.org`, nên mọi emulator, simulator và thiết bị thật đều chạy cùng một lệnh:
 
-| Loại thiết bị chạy | Lệnh thực thi Flutter |
-| :--- | :--- |
-| **Android Emulator** | `flutter run -t lib/main_development.dart --dart-define=API_BASE_URL=http://10.0.2.2:5081` |
-| **iOS Simulator** | `flutter run -t lib/main_development.dart --dart-define=API_BASE_URL=http://127.0.0.1:5081` |
-| **Thiết bị thật (Cùng Wi-Fi máy dev)** | `flutter run -t lib/main_development.dart --dart-define=API_BASE_URL=http://<IPv4-LAN-may-dev>:5081` |
+```bash
+flutter run -t lib/main_development.dart
+```
+
+Chỉ truyền `--dart-define=API_BASE_URL=https://<gateway-khac>` khi cần trỏ sang Gateway khác. Giá trị này là gốc của Gateway, không kèm `/api/...`.

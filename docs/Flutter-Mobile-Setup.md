@@ -7,49 +7,38 @@ Tài liệu này hướng dẫn tạo ứng dụng Flutter mobile mới, dùng k
 Luồng bắt buộc là:
 
 ```text
-Flutter app -> JoyleeBook Gateway (http://<host>:5081) -> API service -> SQL Server
+Flutter app -> JoyleeBook Gateway (https://api.joyleebook.duckdns.org) -> API service -> SQL Server
 ```
 
-- Chỉ dùng base URL của Gateway; không gọi trực tiếp các cổng `5101`–`5107`, Docker DNS, hay SQL Server.
+- Chỉ dùng base URL của Gateway; không gọi trực tiếp microservice, Docker DNS, hay SQL Server.
 - Không tự gửi `X-User-Id`, `X-User-Role`, `X-User-Name`. Gateway loại bỏ các header này và chỉ tự forward danh tính sau khi kiểm JWT.
 - Lưu access token trong secure storage, gửi bằng `Authorization: Bearer <token>` cho request cần đăng nhập.
 - Không đưa `Jwt:Key`, SQL password hoặc nội dung `.env` backend vào Flutter. App mobile chỉ biết base URL công khai.
-- Luôn đặt base URL theo environment bằng `--dart-define`; không hard-code URL production trong source.
+- Base URL mặc định là Gateway dùng chung `Environment.hostedBaseUrl` trong `lib/config/environment.dart`. Có thể ghi đè bằng `--dart-define=API_BASE_URL=...` khi cần trỏ sang Gateway khác; không hard-code URL ở bất kỳ nơi nào khác.
 
-Gateway local mặc định là `http://localhost:5081`. `localhost` từ điện thoại/emulator **không phải** máy đang chạy backend, nên cần chọn URL theo thiết bị:
+Dự án **không chạy backend local**. Toàn bộ thành viên dùng chung một Gateway đã deploy qua HTTPS:
 
-| Môi trường Flutter | `API_BASE_URL` local |
+| Thông tin | Giá trị |
 | --- | --- |
-| Android emulator chuẩn | `http://10.0.2.2:5081` |
-| Genymotion | `http://10.0.3.2:5081` |
-| iOS Simulator | `http://127.0.0.1:5081` |
-| Thiết bị thật | `http://<IPv4-LAN-của-máy-dev>:5081` |
-| Backend Docker/local chạy cùng máy, app web | `http://localhost:5081` |
+| Gateway base URL | `https://api.joyleebook.duckdns.org` |
+| Health check | `https://api.joyleebook.duckdns.org/health/live` |
+| Swagger Authentication | `https://api.joyleebook.duckdns.org/docs/authentication/swagger/index.html` |
+| Swagger Series | `https://api.joyleebook.duckdns.org/docs/series/swagger/index.html` |
 
-Với thiết bị thật, điện thoại và máy dev phải cùng mạng; firewall phải cho phép cổng 5081. HTTP chỉ phù hợp Development. Staging/production phải dùng HTTPS với hostname chứng chỉ hợp lệ.
+`API_BASE_URL` chỉ là **gốc của Gateway**, không kèm `/api/...`. Các path như `/api/series` nằm trong `lib/config/api_endpoints.dart`. Vì Gateway là HTTPS công khai, cùng một URL chạy được trên Android emulator, iOS Simulator và thiết bị thật mà không cần cùng mạng LAN hay mở firewall.
 
-## 2. Chuẩn bị backend
-
-Tại root JoyleeBook, chọn một trong hai luồng chuẩn đã có trong `README.md`:
-
-```powershell
-# Chạy toàn bộ demo stack
-docker compose up
-
-# Hoặc chỉ SQL/migration rồi chạy API và Gateway bằng IDE/dotnet
-docker compose up -d --build sqlserver
-```
+## 2. Kiểm tra Gateway
 
 Kiểm tra Gateway trước khi chạy Flutter:
 
 ```powershell
-curl.exe -i http://localhost:5081/health/live
-curl.exe -i http://localhost:5081/api/series
+curl.exe -i https://api.joyleebook.duckdns.org/health/live
+curl.exe -i https://api.joyleebook.duckdns.org/api/series
 ```
 
-Kết quả health phải là `200`. `/api/series` phải đi qua Gateway; lỗi `502` thường nghĩa là Series API chưa chạy/ready. Khi dùng thiết bị thật, thay `localhost` bằng IPv4 LAN của máy dev để tự kiểm tra từ trình duyệt điện thoại.
+Kết quả health phải là `200`. `/api/series` phải đi qua Gateway; lỗi `502` thường nghĩa là Series API phía server chưa chạy/ready — báo người quản lý server thay vì tự chạy backend. Có thể mở cùng URL trên trình duyệt điện thoại để tự kiểm tra, hoặc dùng tab **Kiểm tra Gateway** trong app.
 
-> Lưu ý CORS: mobile native không bị browser CORS, nhưng Flutter Web thì bị. Gateway hiện chỉ cho `Frontend:Origin` là `http://localhost:5080`; nếu phát triển Flutter Web, thêm đúng origin Flutter Web vào cấu hình Gateway Development, không dùng `AllowAnyOrigin` cho môi trường triển khai.
+> Lưu ý CORS: mobile native không bị browser CORS, nhưng Flutter Web thì bị. Nếu phát triển Flutter Web, origin Flutter Web phải được thêm vào cấu hình CORS của Gateway đã deploy; không dùng `AllowAnyOrigin`.
 
 ## 3. Khởi tạo project và dependencies
 
@@ -91,12 +80,12 @@ Cấu trúc mã nguồn áp dụng theo **hướng dẫn kiến trúc chính th�
 joylee_book_mobile/
 ├── lib/
 │   ├── main.dart                      # Entry point Production
-│   ├── main_development.dart          # Entry point Local/Dev (gọi Gateway :5081)
+│   ├── main_development.dart          # Entry point Development (gọi Gateway dùng chung)
 │   ├── main_staging.dart              # Entry point Staging
 │   ├── app.dart                       # Root MaterialApp widget & global theme config
 │   │
 │   ├── config/                        # Cấu hình app, constants, environment
-│   │   ├── environment.dart           # Đọc --dart-define (API_BASE_URL)
+│   │   ├── environment.dart           # Gateway mặc định + ghi đè bằng --dart-define (API_BASE_URL)
 │   │   └── api_endpoints.dart         # Hằng số URL: /api/auth, /api/series...
 │   │
 │   ├── routing/                       # Điều hướng GoRouter
@@ -162,16 +151,13 @@ Tạo `lib/config/environment.dart`:
 
 ```dart
 abstract final class Environment {
-  static const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+  static const String definedBaseUrl = String.fromEnvironment('API_BASE_URL');
 
-  static Uri get gatewayUri {
-    if (apiBaseUrl.isEmpty) {
-      throw StateError(
-        'Thiếu --dart-define=API_BASE_URL (ví dụ http://10.0.2.2:5081).',
-      );
-    }
-    return Uri.parse(apiBaseUrl);
-  }
+  /// Gateway dùng chung đã deploy (HTTPS)
+  static const String hostedBaseUrl = 'https://api.joyleebook.duckdns.org';
+
+  static String get defaultBaseUrl =>
+      definedBaseUrl.isNotEmpty ? definedBaseUrl : hostedBaseUrl;
 }
 ```
 
@@ -229,29 +215,25 @@ void main() {
 }
 ```
 
-Chạy ứng dụng với Android emulator trong môi trường Development:
+Chạy ứng dụng (mọi emulator/simulator/thiết bị thật đều dùng cùng lệnh):
 
 ```powershell
-flutter run -t lib/main_development.dart --dart-define=API_BASE_URL=http://10.0.2.2:5081
+flutter run -t lib/main_development.dart
 ```
 
-Chạy trên thiết bị thật qua mạng LAN máy dev:
+Chỉ khi cần trỏ sang một Gateway khác (ví dụ môi trường staging), truyền `--dart-define`:
 
 ```powershell
-flutter run -t lib/main_development.dart --dart-define=API_BASE_URL=http://<IPv4-LAN-may-dev>:5081
+flutter run -t lib/main_development.dart --dart-define=API_BASE_URL=https://<gateway-khac>
 ```
 
-## 6. Android/iOS Development với HTTP local
+## 6. Kết nối HTTPS
 
-Android 9+ chặn clear-text HTTP mặc định. Chỉ cho phép HTTP ở bản debug bằng file `android/app/src/debug/AndroidManifest.xml`:
+Gateway chỉ phục vụ HTTPS (request `http://` được chuyển hướng `308` sang `https://`), nên app **không** cần bật clear-text HTTP:
 
-```xml
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-  <application android:usesCleartextTraffic="true" />
-</manifest>
-```
-
-Không thêm cấu hình này vào `src/main` hoặc release. Với iOS Simulator/thiết bị thật, ưu tiên dùng HTTPS dev certificate được tin cậy. Nếu buộc phải dùng HTTP local, chỉ thêm ATS exception có scope hẹp cho cấu hình Debug và gỡ trước release; không đặt `NSAllowsArbitraryLoads` cho production.
+- Android: không đặt `android:usesCleartextTraffic="true"` trong bất kỳ `AndroidManifest.xml` nào. `src/main/AndroidManifest.xml` chỉ cần quyền `INTERNET`.
+- iOS: không thêm ATS exception hay `NSAllowsArbitraryLoads`.
+- Không bypass TLS (ví dụ `badCertificateCallback` trả về `true`) để "chữa cháy" lỗi chứng chỉ.
 
 ## 7. Contract API hiện tại
 
@@ -408,20 +390,19 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
     );
     ```
     Cách này giúp test UI chạy nhanh, độc lập hoàn toàn với backend server và không phụ thuộc kết nối mạng.
-  - Integration test luồng end-to-end `sign-in -> GET /api/series -> sign-out` trực tiếp qua Gateway dev trước khi đóng gói release.
+  - Integration test luồng end-to-end `sign-in -> GET /api/series -> sign-out` trực tiếp qua Gateway dùng chung trước khi đóng gói release.
 
 Checklist trước khi merge mobile:
 
 1. App gọi duy nhất `API_BASE_URL` Gateway.
 2. Không có secret/token/password trong source, log, snapshot hoặc analytics.
-3. Debug HTTP clear-text không lọt vào release; staging/production dùng HTTPS.
+3. Không bật clear-text HTTP hay bypass TLS; mọi request đi qua HTTPS.
 4. `401`, `403`, `429`, timeout, `502`, `503` đều có trạng thái UI dễ hiểu.
-5. Test trên Android emulator và ít nhất một thiết bị/thực thể mạng gần production.
-6. Đối chiếu Swagger Development tại `http://localhost:5081/docs/authentication/swagger/index.html` và `http://localhost:5081/docs/series/swagger/index.html` trước khi mở rộng contract.
+5. Test trên Android emulator và ít nhất một thiết bị thật (4G/Wi-Fi bất kỳ).
+6. Đối chiếu Swagger tại `https://api.joyleebook.duckdns.org/docs/authentication/swagger/index.html` và `https://api.joyleebook.duckdns.org/docs/series/swagger/index.html` trước khi mở rộng contract.
 
 ## 10. Các việc nên thống nhất trước production
 
-- Cung cấp HTTPS public URL cho Gateway; mobile không nên dựa vào IP LAN hay bypass TLS.
 - Quy định versioning API và error envelope thống nhất trước khi nhiều feature mobile cùng phát triển.
 - Cân nhắc refresh token/rotation, device session và cơ chế revoke phù hợp UX mobile nếu cần session dài.
 - Hoàn thiện ranh giới trusted Gateway-to-service của Series trước khi coi xác thực end-to-end là hoàn chỉnh. Đây là vấn đề backend đã được ghi nhận, không được giải quyết bằng cách mobile gửi thêm header.

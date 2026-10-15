@@ -10,7 +10,7 @@ import '../services/api_exceptions.dart';
 /// Là lớp trung gian DUY NHẤT kết nối giữa Data Service (Dio/Mạng) và Giao diện (ViewModel).
 /// 
 /// VAI TRÒ CHÍNH:
-/// 1. Gửi request mạng qua Dio tới Gateway (:5081).
+/// 1. Gửi request mạng qua Dio tới Gateway.
 /// 2. Bắt các ngoại lệ mạng (DioException) và chuyển hóa thành AppException thân thiện.
 /// 3. Chuyển đổi toàn bộ DTO thành Domain Model sạch trước khi trả về.
 class SeriesRepository {
@@ -28,7 +28,7 @@ class SeriesRepository {
         queryParams['search'] = searchQuery.trim();
       }
 
-      // Gửi HTTP GET tới API Gateway: http://<host>:5081/api/series
+      // Gửi HTTP GET tới API Gateway: <API_BASE_URL>/api/series
       final response = await _dio.get<List<dynamic>>(
         '/api/series',
         queryParameters: queryParams,

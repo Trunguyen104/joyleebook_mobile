@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../config/environment.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_button.dart';
@@ -56,7 +57,7 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Text(
-              'JoyleeBook-V3.0 Backend (:5081)',
+              'JoyleeBook-V3.0 Backend',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
             ),
           ],
@@ -134,7 +135,7 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
               const SizedBox(height: AppDimensions.space4),
 
               // 5. Hộp hướng dẫn khởi động Backend JoyleeBook-V3.0
-              _buildBackendGuideCard(context, colors),
+              _buildGatewayInfoCard(context, colors),
             ],
           ),
         ),
@@ -169,7 +170,7 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
             ),
             const SizedBox(height: AppDimensions.space1),
             Text(
-              'Gateway đóng vai trò Reverse Proxy tập trung tại cổng 5081.',
+              'Gateway là Reverse Proxy tập trung, đã deploy dùng chung qua HTTPS.',
               style: TextStyle(fontSize: 12, color: colors.textSecondary),
             ),
             const SizedBox(height: AppDimensions.space3),
@@ -182,7 +183,7 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
                     controller: _urlController,
                     decoration: InputDecoration(
                       labelText: 'Gateway Base URL',
-                      hintText: 'http://10.0.2.2:5081',
+                      hintText: Environment.hostedBaseUrl,
                       isDense: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
@@ -206,32 +207,11 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
             ),
             const SizedBox(height: AppDimensions.space3),
 
-            // Gợi ý Preset nhanh
-            Text(
-              'Chọn nhanh theo thiết bị:',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.textSecondary),
-            ),
-            const SizedBox(height: AppDimensions.space1),
-            Wrap(
-              spacing: AppDimensions.space2,
-              runSpacing: AppDimensions.space1,
-              children: [
-                ActionChip(
-                  label: const Text('Android Emulator (10.0.2.2:5081)'),
-                  avatar: const Icon(Icons.phone_android, size: 16),
-                  onPressed: () => _applyUrl('http://10.0.2.2:5081'),
-                ),
-                ActionChip(
-                  label: const Text('127.0.0.1:5081 (Desktop/Web)'),
-                  avatar: const Icon(Icons.desktop_windows, size: 16),
-                  onPressed: () => _applyUrl('http://127.0.0.1:5081'),
-                ),
-                ActionChip(
-                  label: const Text('localhost:5081 (iOS/ADB)'),
-                  avatar: const Icon(Icons.devices, size: 16),
-                  onPressed: () => _applyUrl('http://localhost:5081'),
-                ),
-              ],
+            // Khôi phục nhanh về Gateway dùng chung
+            ActionChip(
+              label: const Text('Server dùng chung (HTTPS)'),
+              avatar: const Icon(Icons.cloud_outlined, size: 16),
+              onPressed: () => _applyUrl(Environment.hostedBaseUrl),
             ),
           ],
         ),
@@ -433,7 +413,7 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
     );
   }
 
-  Widget _buildBackendGuideCard(BuildContext context, AppColors colors) {
+  Widget _buildGatewayInfoCard(BuildContext context, AppColors colors) {
     return Card(
       color: colors.bgSurfaceSubtle,
       child: Padding(
@@ -446,7 +426,7 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
                 Icon(Icons.info_outline, color: colors.accent, size: 20),
                 const SizedBox(width: AppDimensions.space2),
                 Text(
-                  'Hướng dẫn Bật Backend JoyleeBook-V3.0',
+                  'Thông tin Gateway JoyleeBook',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -457,7 +437,7 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
             ),
             const SizedBox(height: AppDimensions.space2),
             Text(
-              'Để kết nối thành công, hãy khởi chạy backend trên máy tính tại thư mục JoyleeBook-V3.0:',
+              'Backend được deploy dùng chung cho cả nhóm; không cần chạy backend trên máy. Swagger để đối chiếu contract:',
               style: TextStyle(fontSize: 12, color: colors.textSecondary),
             ),
             const SizedBox(height: AppDimensions.space2),
@@ -470,10 +450,8 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
                 border: Border.all(color: colors.borderDefault),
               ),
               child: const SelectableText(
-                '# Cách 1: Chạy toàn bộ hệ thống bằng Docker\n'
-                'docker compose up\n\n'
-                '# Cách 2: Chạy riêng Gateway (Port 5081)\n'
-                'dotnet run --project gateway/JoyleeBook.Gateway',
+                '${Environment.hostedBaseUrl}/docs/authentication/swagger/index.html\n'
+                '${Environment.hostedBaseUrl}/docs/series/swagger/index.html',
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 11,
@@ -483,9 +461,8 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
             ),
             const SizedBox(height: AppDimensions.space2),
             Text(
-              '• Cổng Gateway: :5081\n'
-              '• Microservices: Series (:5107), Auth (:5101), Chapters (:5103)\n'
-              '• Trên Android Emulator, cổng 5081 máy tính được ánh xạ thành 10.0.2.2:5081.',
+              '• Mọi request đều đi qua Gateway, không gọi trực tiếp microservice.\n'
+              '• HTTP 502: Gateway đang chạy nhưng microservice đích chưa sẵn sàng.',
               style: TextStyle(fontSize: 11, color: colors.textSecondary),
             ),
           ],

@@ -39,7 +39,7 @@ Yêu cầu ứng dụng phải thể hiện đầy đủ các thành phần kỹ
 - Áp dụng các component chuẩn: `Scaffold`, `AppBar`, `NavigationBar` (Bottom Navigation), `Card`, `SnackBar`, `AlertDialog`, `ModalBottomSheet`.
 
 ### 1.4. Gọi API & Xử lý mạng (API Calls)
-- **Tập trung qua Gateway**: Tất cả request đều đi qua JoyleeBook Gateway (`http://<host>:5081`). Không bao giờ hard-code IP/port của từng microservice con (`5101`–`5107`).
+- **Tập trung qua Gateway**: Tất cả request đều đi qua JoyleeBook Gateway dùng chung (`https://api.joyleebook.duckdns.org`, khai báo duy nhất tại `Environment.hostedBaseUrl`). Không bao giờ hard-code IP/port của từng microservice con.
 - **HTTP Client chuyên dụng**: Sử dụng `Dio` cấu hình:
   - `connectTimeout`: 10 giây; `receiveTimeout`: 20 giây.
   - `Interceptors`: Tự động đính kèm `Authorization: Bearer <token>` vào header request nếu đã đăng nhập; tự động bắt mã `401` để logout.

@@ -55,17 +55,17 @@ class GatewayTestViewModel extends Notifier<GatewayTestState> {
       GatewayCheckResult(
         endpoint: ApiEndpoints.healthLive,
         name: 'Gateway Health (Live)',
-        description: 'Kiểm tra trực tiếp cổng :5081 của JoyleeBook.Gateway (trả về status: Healthy).',
+        description: 'Kiểm tra trực tiếp JoyleeBook.Gateway (trả về status: Healthy).',
       ),
       GatewayCheckResult(
         endpoint: ApiEndpoints.series,
         name: 'Series Service (Downstream Proxy)',
-        description: 'Kiểm tra Gateway chuyển tiếp YARP thành công sang Series Microservice (:5107).',
+        description: 'Kiểm tra Gateway chuyển tiếp YARP thành công sang Series Microservice.',
       ),
       GatewayCheckResult(
         endpoint: ApiEndpoints.notificationsHealth,
         name: 'Notification Health (Downstream Proxy)',
-        description: 'Kiểm tra Gateway chuyển tiếp YARP sang Notification Service (:5106).',
+        description: 'Kiểm tra Gateway chuyển tiếp YARP sang Notification Service.',
       ),
     ];
   }
@@ -136,7 +136,7 @@ class GatewayTestViewModel extends Notifier<GatewayTestState> {
       String? errorMsg;
       if (!isSuccess) {
         if (statusCode == 502) {
-          errorMsg = 'HTTP 502 Bad Gateway: Gateway :5081 đang chạy nhưng microservice đích chưa được khởi động!';
+          errorMsg = 'HTTP 502 Bad Gateway: Gateway đang chạy nhưng microservice đích chưa được khởi động!';
         } else if (statusCode == 404) {
           errorMsg = 'HTTP 404 Not Found: Đường dẫn không tồn tại hoặc chưa cấu hình route trên Gateway.';
         } else {
@@ -166,7 +166,7 @@ class GatewayTestViewModel extends Notifier<GatewayTestState> {
           break;
         case DioExceptionType.connectionError:
           errorMsg = 'Lỗi kết nối (Connection Refused): Không tìm thấy máy chủ tại ${state.baseUrl}.\n'
-              'Hãy đảm bảo bạn đã khởi động JoyleeBook.Gateway (cổng 5081) hoặc kiểm tra lại địa chỉ IP.';
+              'Hãy kiểm tra kết nối mạng hoặc địa chỉ Gateway.';
           break;
         default:
           errorMsg = e.message ?? 'Lỗi mạng không xác định: ${e.toString()}';

@@ -23,12 +23,12 @@ flowchart TD
     end
 
     subgraph BackendInfrastructure["Hạ tầng Backend JoyleeBook"]
-        Gateway["JoyleeBook API Gateway\n(:5081)\n• Rate Limiting\n• Auth Verification\n• Reverse Proxy"]
+        Gateway["JoyleeBook API Gateway\n(api.joyleebook.duckdns.org)\n• Rate Limiting\n• Auth Verification\n• Reverse Proxy"]
         
-        AuthService["Authentication API\n(:5101)"]
-        SeriesService["Series API\n(:5102)"]
-        ChapterService["Chapters API\n(:5103)"]
-        LibraryService["Library API\n(:5104)"]
+        AuthService["Authentication API"]
+        SeriesService["Series API"]
+        ChapterService["Chapters API"]
+        LibraryService["Library API"]
         Database[("SQL Server / Database")]
         
         Gateway -->|Reverse Proxy| AuthService
@@ -145,7 +145,7 @@ sequenceDiagram
     participant VM as ViewModel (SeriesListViewModel)
     participant Repo as SeriesRepository
     participant Client as ApiClient (Dio)
-    participant GW as JoyleeBook Gateway (:5081)
+    participant GW as JoyleeBook Gateway
 
     Reader->>UI: Mở màn hình Khám phá
     UI->>VM: ref.watch(seriesListViewModelProvider)
