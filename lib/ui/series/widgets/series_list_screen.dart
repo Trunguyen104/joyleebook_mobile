@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:joyleebook_mobile/ui/core/themes/theme_provider.dart';
+
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_empty_state.dart';
@@ -10,7 +12,7 @@ import 'series_card.dart';
 /// MÀN HÌNH KHÁM PHÁ TRUYỆN (SeriesListScreen)
 /// Bước 5 trong kiến trúc Compass App:
 /// Màn hình mẫu dành riêng cho Actor Reader (Độc giả).
-/// 
+///
 /// 4 NGUYÊN TẮC BẮT BUỘC ĐƯỢC ÁP DỤNG TRONG MÃ NGUỒN:
 /// 1. Bộ 4 Trạng thái (4 States): Loading -> Error -> Empty -> Data.
 /// 2. Riverpod State Consumer: ref.watch() để đọc dữ liệu, ref.read() để gọi sự kiện.
@@ -54,6 +56,17 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: Icon(
+              ref.watch(themeModeProvider) == ThemeMode.dark
+                  ? Icons.light_mode_rounded
+                  : Icons.dark_mode_rounded,
+            ),
+            tooltip: 'Đổi giao diện Sáng / Tối',
+            onPressed: () {
+              ref.read(themeModeProvider.notifier).toggleTheme();
+            },
+          ),
           // Nút làm mới thủ công trên AppBar
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
