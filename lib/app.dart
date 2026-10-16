@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
 import 'ui/core/themes/app_theme.dart';
 import 'ui/gateway_test/widgets/gateway_test_screen.dart';
 import 'ui/series/widgets/series_list_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'ui/core/themes/theme_provider.dart';
 
 /// LỚP GỐC CỦA ỨNG DỤNG FLUTTER (JoyleeBookApp)
 /// Cấu hình giao diện Material Design 3, màu sắc Warm Editorial,
 /// và thanh điều hướng chuyển đổi giữa Trang Khám Phá Truyện và Trang Chẩn Đoán Gateway.
-class JoyleeBookApp extends StatefulWidget {
+class JoyleeBookApp extends ConsumerStatefulWidget {
   const JoyleeBookApp({super.key});
 
   @override
-  State<JoyleeBookApp> createState() => _JoyleeBookAppState();
+  ConsumerState<JoyleeBookApp> createState() => _JoyleeBookAppState();
 }
 
-class _JoyleeBookAppState extends State<JoyleeBookApp> {
+class _JoyleeBookAppState extends ConsumerState<JoyleeBookApp> {
   // Chỉ số tab đang chọn: 0 = Kho Truyện, 1 = Chẩn Đoán Gateway
   int _currentTabIndex = 0;
 
@@ -25,13 +27,17 @@ class _JoyleeBookAppState extends State<JoyleeBookApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Lang nghe trang thai themeMode tu Riverpod
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp(
       title: 'JoyleeBook Mobile',
       debugShowCheckedModeBanner: false,
       // Áp dụng bộ màu chuẩn Warm Editorial cho cả chế độ Sáng và Tối
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
+      themeAnimationDuration: Duration.zero,
       home: Scaffold(
         body: IndexedStack(
           index: _currentTabIndex,
