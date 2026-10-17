@@ -7,6 +7,7 @@ import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../view_models/series_list_view_model.dart';
+import '../../chapter/widgets/chapter_list_screen.dart';
 import 'series_card.dart';
 
 /// MÀN HÌNH KHÁM PHÁ TRUYỆN (SeriesListScreen)
@@ -148,11 +149,13 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
                 return SeriesCard(
                   series: item,
                   onTap: () {
-                    // Xem chi tiết truyện (Reader chỉ xem, không sửa/xóa)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Đang mở tác phẩm: ${item.title}'),
-                        duration: const Duration(seconds: 1),
+                    // Chuyển sang màn hình danh sách chương của bộ truyện
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => ChapterListScreen(
+                          seriesId: item.id,
+                          seriesTitle: item.title,
+                        ),
                       ),
                     );
                   },
