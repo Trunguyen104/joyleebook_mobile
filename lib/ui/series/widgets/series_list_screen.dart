@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:joyleebook_mobile/ui/core/themes/theme_provider.dart';
+import 'package:joyleebook_mobile/ui/series/widgets/series_detail_screen.dart';
 
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
@@ -148,11 +149,9 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
                 return SeriesCard(
                   series: item,
                   onTap: () {
-                    // Xem chi tiết truyện (Reader chỉ xem, không sửa/xóa)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Đang mở tác phẩm: ${item.title}'),
-                        duration: const Duration(seconds: 1),
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => SeriesDetailScreen(initialSeries: item),
                       ),
                     );
                   },
