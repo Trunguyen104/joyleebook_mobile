@@ -20,7 +20,7 @@ class ProfileRepository {
           ApiEndpoints.libraryStats,
           queryParameters: {
             'days': 30,
-            'utcOffSetMinutes': DateTime.now().timeZoneOffset.inMinutes,
+            'utcOffsetMinutes': DateTime.now().timeZoneOffset.inMinutes,
           },
         ),
       ]);
@@ -50,6 +50,9 @@ class ProfileRepository {
           currentStreakDays: stats.currentStreakDays,
           longestStreakDays: stats.longestStreakDays,
           lastReadAt: stats.lastReadAtUtc?.toLocal(),
+          periodDays: stats.periodDays,
+          chaptersCompletedInPeriod: stats.chaptersCompletedInPeriod,
+          activeDaysInPeriod: stats.activeDaysInPeriod,
         ),
       );
 }
