@@ -36,7 +36,11 @@ class ProfileScreen extends ConsumerWidget {
                 message: 'Đăng nhập để xem hồ sơ và thống kê đọc của bạn.',
                 actionLabel: 'Đăng nhập',
                 onAction: () {
-                  // TODO: điều hướng tới /sign-in khi có màn Đăng nhập
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Vui lòng đăng nhập từ thanh điều hướng.'),
+                    ),
+                  );
                 },
               );
             }

@@ -6,6 +6,7 @@ import '../../../domain/models/chapter_detail.dart';
 final chapterDetailViewModelProvider = AsyncNotifierProvider.family<
     ChapterDetailViewModel, ChapterDetail, String>(
   ChapterDetailViewModel.new,
+  retry: (retryCount, error) => null,
 );
 
 /// VIEWMODEL - Quản lý tải và hiển thị nội dung chương

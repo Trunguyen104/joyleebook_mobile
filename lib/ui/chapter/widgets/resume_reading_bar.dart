@@ -20,8 +20,8 @@ class ResumeReadingBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final label = progressPercentage != null
-        ? 'Resume $title ($progressPercentage%)'
-        : 'Resume $title';
+        ? 'Đọc tiếp $title ($progressPercentage%)'
+        : 'Đọc tiếp $title';
 
     return Positioned(
       left: AppDimensions.space4,

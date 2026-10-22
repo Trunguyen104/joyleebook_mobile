@@ -9,6 +9,7 @@ import 'series_list_view_model.dart';
 final seriesDetailViewModelProvider =
     AsyncNotifierProvider.family<SeriesDetailViewModel, Series, String>(
   SeriesDetailViewModel.new,
+  retry: (retryCount, error) => null,
 );
 
 /// VIEWMODEL - Quản lý trạng thái và nghiệp vụ màn hình Chi tiết truyện (SeriesDetailScreen)

@@ -46,3 +46,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+CHECKLIST_CHAPTER_READER.md
+CHECKLIST_CODE_REVIEW.md
+
+CHECKLIST_SERIES_DETAIL.md

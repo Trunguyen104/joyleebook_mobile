@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../data/services/reading_preferences_service.dart';
 import '../../../domain/models/chapter.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
@@ -7,10 +8,11 @@ import '../../core/themes/theme_provider.dart';
 import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../view_models/chapter_detail_view_model.dart';
+import '../view_models/chapter_list_view_model.dart';
 
 /// MÀN HÌNH ĐỌC TRUYỆN / NỘI DUNG CHƯƠNG (ChapterDetailScreen)
 /// Thiết kế chuẩn Warm Editorial tối ưu cho trải nghiệm đọc lâu dài:
-/// - Chỉnh cỡ chữ linh hoạt (A- / A+)
+/// - Chỉnh cỡ chữ linh hoạt (A- / A+) và tự động lưu vào SharedPreferences
 /// - Đổi giao diện Sáng / Tối trực tiếp
 /// - Điều hướng chuyển Chương trước / Chương sau mượt mà
 /// - Đảm bảo đủ 4 trạng thái: Loading, Error, Empty, Data
@@ -38,30 +40,49 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
   final ScrollController _scrollController = ScrollController();
 
   @override
+  void initState() {
+    super.initState();
+    _loadSavedFontSize();
+  }
+
+  @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
   }
 
+  /// Nạp cỡ chữ đã lưu từ SharedPreferences
+  Future<void> _loadSavedFontSize() async {
+    final savedSize =
+        await ref.read(readingPreferencesServiceProvider).getFontSize();
+    if (mounted) {
+      setState(() => _fontSize = savedSize);
+    }
+  }
+
   void _increaseFontSize() {
     if (_fontSize < 25.0) {
-      setState(() => _fontSize += 1.5);
+      final newSize = _fontSize + 1.5;
+      setState(() => _fontSize = newSize);
+      ref.read(readingPreferencesServiceProvider).setFontSize(newSize);
     }
   }
 
   void _decreaseFontSize() {
     if (_fontSize > 13.0) {
-      setState(() => _fontSize -= 1.5);
+      final newSize = _fontSize - 1.5;
+      setState(() => _fontSize = newSize);
+      ref.read(readingPreferencesServiceProvider).setFontSize(newSize);
     }
   }
 
-  void _navigateToChapter(Chapter chapter) {
+  void _navigateToChapter(Chapter chapter, List<Chapter> chaptersList) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => ChapterDetailScreen(
           chapterId: chapter.id,
           seriesTitle: widget.seriesTitle,
-          allChapters: widget.allChapters,
+          allChapters: chaptersList,
         ),
       ),
     );
@@ -107,18 +128,26 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
           ],
         ),
         actions: [
-          // Nút giảm cỡ chữ
+          // Nút giảm cỡ chữ (A-)
           IconButton(
-            icon: const Icon(Icons.text_decrease_rounded),
+            icon: const Text(
+              'A-',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
             tooltip: 'Giảm cỡ chữ',
-            onPressed: _decreaseFontSize,
+            onPressed: _fontSize > 13.0 ? _decreaseFontSize : null,
           ),
-          // Nút tăng cỡ chữ
+
+          // Nút tăng cỡ chữ (A+)
           IconButton(
-            icon: const Icon(Icons.text_increase_rounded),
+            icon: const Text(
+              'A+',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             tooltip: 'Tăng cỡ chữ',
-            onPressed: _increaseFontSize,
+            onPressed: _fontSize < 25.0 ? _increaseFontSize : null,
           ),
+
           // Nút đổi theme Sáng / Tối
           IconButton(
             icon: Icon(
@@ -161,6 +190,14 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
             );
           }
 
+          // Tự động lưu tiến độ đọc chương gần nhất vào Local Storage
+          ref.read(readingPreferencesServiceProvider).saveReadingProgress(
+            seriesId: detail.seriesId,
+            chapterId: detail.id,
+            sortOrder: detail.sortOrder,
+            readPercentage: 1.0,
+          );
+
           // Tách nội dung thành từng đoạn văn
           final paragraphs = detail.content
               .split('\n')
@@ -168,11 +205,17 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
               .where((p) => p.isNotEmpty)
               .toList();
 
-          // Tìm chương trước và chương sau từ danh sách widget.allChapters
+          // Lấy danh sách chương từ widget.allChapters hoặc fallback từ chapterListViewModelProvider
+          final chaptersList = widget.allChapters.isNotEmpty
+              ? widget.allChapters
+              : (ref.watch(chapterListViewModelProvider(detail.seriesId)).value ??
+                  []);
+
+          // Tìm chương trước và chương sau an toàn
           Chapter? previousChapter;
           Chapter? nextChapter;
-          if (widget.allChapters.isNotEmpty) {
-            for (final c in widget.allChapters) {
+          if (chaptersList.isNotEmpty) {
+            for (final c in chaptersList) {
               if (c.sortOrder == detail.sortOrder - 1) {
                 previousChapter = c;
               } else if (c.sortOrder == detail.sortOrder + 1) {
@@ -184,7 +227,7 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
           return SafeArea(
             child: Column(
               children: [
-                // Phần thân nội dung đọc (Cuộn mượt mà)
+                // Khung đọc nội dung cuộn mượt mà
                 Expanded(
                   child: SingleChildScrollView(
                     controller: _scrollController,
@@ -240,7 +283,9 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
                           ],
                         ),
                         const SizedBox(height: AppDimensions.space3),
-                        Divider(color: colors.borderDefault.withValues(alpha: 0.5)),
+                        Divider(
+                          color: colors.borderDefault.withValues(alpha: 0.5),
+                        ),
                         const SizedBox(height: AppDimensions.space3),
 
                         // Nội dung từng đoạn văn bản
@@ -296,9 +341,15 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
                       // Nút Chương trước
                       TextButton.icon(
                         onPressed: previousChapter != null
-                            ? () => _navigateToChapter(previousChapter!)
+                            ? () => _navigateToChapter(
+                                  previousChapter!,
+                                  chaptersList,
+                                )
                             : null,
-                        icon: const Icon(Icons.arrow_back_ios_rounded, size: 16),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_rounded,
+                          size: 16,
+                        ),
                         label: const Text('Chương trước'),
                         style: TextButton.styleFrom(
                           foregroundColor: colors.primaryBrand,
@@ -319,9 +370,15 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
                       // Nút Chương sau
                       TextButton.icon(
                         onPressed: nextChapter != null
-                            ? () => _navigateToChapter(nextChapter!)
+                            ? () => _navigateToChapter(
+                                  nextChapter!,
+                                  chaptersList,
+                                )
                             : null,
-                        icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                        icon: const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 16,
+                        ),
                         label: const Text('Chương sau'),
                         style: TextButton.styleFrom(
                           foregroundColor: colors.primaryBrand,

@@ -1,3 +1,4 @@
+import '../../../data/services/api_exceptions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:joyleebook_mobile/ui/core/themes/theme_provider.dart';
@@ -112,7 +113,7 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
         // TRẠNG THÁI 2: ERROR (Lỗi mạng hoặc Gateway chưa bật)
         // Hiển thị giao diện báo lỗi kèm nút "Thử lại" thân thiện
         error: (err, stack) => JoyleeErrorView(
-          message: err.toString(),
+          message: err is AppException ? err.message : 'Đã có lỗi xảy ra.',
           onRetry: () =>
               ref.read(seriesListViewModelProvider.notifier).refresh(),
         ),

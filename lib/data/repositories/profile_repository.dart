@@ -26,35 +26,16 @@ class ProfileRepository {
       ]);
 
       final profileDto = ProfileDto.fromJson(response[0].data ?? const {});
-
       final statsDto = ReadingStatsDto.fromJson(response[1].data ?? const {});
 
-      return _toDomain(profileDto, statsDto);
+      return UserProfile.fromDto(profileDto, statsDto);
     } on DioException catch (e) {
       throw AppException.fromDio(e);
+    } catch (e) {
+      if (e is AppException) rethrow;
+      throw AppException(message: 'Không thể xử lý dữ liệu hồ sơ cá nhân: $e');
     }
   }
-
-  UserProfile _toDomain(ProfileDto profile, ReadingStatsDto stats) =>
-      UserProfile(
-        id: profile.id,
-        username: profile.username,
-        displayName: profile.displayName,
-        bio: profile.bio,
-        avatarUrl: profile.avatarUrl,
-        email: profile.email,
-        role: UserRole.fromString(profile.role),
-        stats: ReadingStats(
-          seriesStarted: stats.seriesStarted,
-          chaptersCompleted: stats.chaptersCompleted,
-          currentStreakDays: stats.currentStreakDays,
-          longestStreakDays: stats.longestStreakDays,
-          lastReadAt: stats.lastReadAtUtc?.toLocal(),
-          periodDays: stats.periodDays,
-          chaptersCompletedInPeriod: stats.chaptersCompletedInPeriod,
-          activeDaysInPeriod: stats.activeDaysInPeriod,
-        ),
-      );
 }
 
 final profileRepositoryProvider = Provider<ProfileRepository>(

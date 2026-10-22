@@ -8,6 +8,7 @@ import '../../../domain/models/series.dart';
 final seriesListViewModelProvider =
     AsyncNotifierProvider<SeriesListViewModel, List<Series>>(
   SeriesListViewModel.new,
+  retry: (retryCount, error) => null,
 );
 
 /// VIEWMODEL - Quản lý trạng thái và nghiệp vụ màn hình

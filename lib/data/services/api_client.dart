@@ -38,7 +38,6 @@ Dio createApiClient(TokenStorage tokenStorage, Uri baseUri) {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
-      // validateStatus: (status) => status != null && status < 500,
     ),
   );
 
@@ -50,6 +49,13 @@ Dio createApiClient(TokenStorage tokenStorage, Uri baseUri) {
           options.headers['Authorization'] = 'Bearer $token';
         }
         handler.next(options);
+      },
+      onError: (DioException err, handler) async {
+        // Tự động thu hồi token lưu cục bộ khi phiên hết hạn hoặc không hợp lệ (401)
+        if (err.response?.statusCode == 401) {
+          await tokenStorage.clear();
+        }
+        handler.next(err);
       },
     ),
   );

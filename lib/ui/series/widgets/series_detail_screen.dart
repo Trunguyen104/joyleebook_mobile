@@ -1,3 +1,5 @@
+import '../../../data/services/api_exceptions.dart';
+import '../../core/widgets/joylee_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:joyleebook_mobile/ui/core/themes/theme_provider.dart';
@@ -106,7 +108,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
           ),
         ),
         body: JoyleeErrorView(
-          message: error.toString(),
+          message: error is AppException ? error.message : 'Đã có lỗi xảy ra.',
           onRetry: () =>
               ref.read(seriesDetailViewModelProvider(seriesId).notifier).refresh(),
         ),
@@ -308,15 +310,16 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
               ),
               const SizedBox(height: AppDimensions.space2),
 
-              // Tên tác giả
+              // Tên tác giả với JoyleeAvatar dùng chung
               Row(
                 children: [
-                  Icon(
-                    Icons.person_outline_rounded,
-                    size: 16,
-                    color: colors.textSecondary,
+                  JoyleeAvatar(
+                    initials: series.authorName.isNotEmpty
+                        ? series.authorName[0].toUpperCase()
+                        : '?',
+                    size: JoyleeAvatarSize.xs,
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       series.authorName,
