@@ -88,4 +88,18 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
       return false; // Báo về cho UI hiển thị SnackBar cảnh báo
     }
   }
+
+  /// 4. Đồng bộ trạng thái Bookmark từ màn hình chi tiết (tránh gọi API 2 lần)
+  void updateBookmarkLocally(String seriesId, bool isBookmarked) {
+    final currentList = state.value;
+    if (currentList == null) return;
+
+    final targetIndex = currentList.indexWhere((s) => s.id == seriesId);
+    if (targetIndex == -1) return;
+
+    final updatedList = List<Series>.from(currentList);
+    updatedList[targetIndex] =
+        updatedList[targetIndex].copyWith(isBookmarked: isBookmarked);
+    state = AsyncData(updatedList);
+  }
 }

@@ -67,6 +67,28 @@ class SeriesRepository {
       throw AppException.fromDio(e);
     }
   }
+
+  /// 3. Lấy thông tin chi tiết một bộ truyện theo [seriesId] từ Gateway
+  Future<Series> getSeriesById(String seriesId) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/series/',
+      );
+
+      final data = response.data;
+      if (data == null) {
+        throw AppException(message: 'Không tìm thấy thông tin tác phẩm.');
+      }
+
+      final dto = SeriesDto.fromJson(data);
+      return Series.fromDto(dto);
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    } catch (e) {
+      if (e is AppException) rethrow;
+      throw AppException(message: 'Không thể xử lý chi tiết tác phẩm: ');
+    }
+  }
 }
 
 /// RIVERPOD PROVIDER: Đăng ký SeriesRepository để các ViewModel có thể dùng lại dễ dàng

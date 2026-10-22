@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:joyleebook_mobile/ui/core/themes/theme_provider.dart';
+import 'package:joyleebook_mobile/ui/series/widgets/series_detail_screen.dart';
 
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../view_models/series_list_view_model.dart';
-import '../../chapter/widgets/chapter_list_screen.dart';
 import 'series_card.dart';
 
 /// MÀN HÌNH KHÁM PHÁ TRUYỆN (SeriesListScreen)
@@ -149,13 +149,9 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
                 return SeriesCard(
                   series: item,
                   onTap: () {
-                    // Chuyển sang màn hình danh sách chương của bộ truyện
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => ChapterListScreen(
-                          seriesId: item.id,
-                          seriesTitle: item.title,
-                        ),
+                        builder: (_) => SeriesDetailScreen(initialSeries: item),
                       ),
                     );
                   },
