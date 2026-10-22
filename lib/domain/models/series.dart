@@ -36,6 +36,7 @@ class Series {
   final SeriesStatus status;    // Trạng thái (Hoàn thành / Đang ra)
   final List<String> genres;    // Danh sách thể loại
   final bool isBookmarked;      // Đã thêm vào tủ sách hay chưa (thuộc tính của app mobile)
+  final int totalChapters;      // Tổng số chương của bộ truyện
 
   const Series({
     required this.id,
@@ -46,6 +47,7 @@ class Series {
     required this.status,
     this.genres = const [],
     this.isBookmarked = false,
+    this.totalChapters = 0,
   });
 
   /// Hàm chuyển đổi từ DTO (Data Layer) sang Domain Model (Domain Layer)
@@ -62,6 +64,7 @@ class Series {
       status: SeriesStatus.fromInt(dto.status),
       genres: dto.genreNames,
       isBookmarked: isBookmarked,
+      totalChapters: dto.totalChapters,
     );
   }
 
@@ -69,6 +72,7 @@ class Series {
   /// Rất hữu ích khi muốn đổi trạng thái isBookmarked (Optimistic UI) mà không làm thay đổi các trường khác
   Series copyWith({
     bool? isBookmarked,
+    int? totalChapters,
   }) {
     return Series(
       id: id,
@@ -79,6 +83,7 @@ class Series {
       status: status,
       genres: genres,
       isBookmarked: isBookmarked ?? this.isBookmarked,
+      totalChapters: totalChapters ?? this.totalChapters,
     );
   }
 

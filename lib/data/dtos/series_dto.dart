@@ -33,6 +33,9 @@ class SeriesDto {
   // Danh sách tên các thể loại truyện (Hành Động, Phiêu Lưu...)
   final List<String> genreNames;
 
+  // Tổng số chương (nếu API trả về)
+  final int totalChapters;
+
   const SeriesDto({
     required this.id,
     required this.title,
@@ -43,6 +46,7 @@ class SeriesDto {
     required this.status,
     this.isPublish = true,
     this.genreNames = const [],
+    this.totalChapters = 0,
   });
 
   /// Hàm khởi tạo từ Map JSON nhận từ API
@@ -82,6 +86,9 @@ class SeriesDto {
 
       // Danh sách thể loại
       genreNames: parsedGenres,
+
+      // Tổng số chương
+      totalChapters: json['totalChapters'] as int? ?? 0,
     );
   }
 
@@ -96,6 +103,7 @@ class SeriesDto {
       'coverImageUrl': coverImageUrl,
       'status': status,
       'isPublish': isPublish,
+      'totalChapters': totalChapters,
     };
   }
 }
