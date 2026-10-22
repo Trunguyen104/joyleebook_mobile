@@ -479,13 +479,17 @@ Nguồn sự thật trên mobile: `lib/ui/core/themes/app_colors.dart`, `app_dim
 | `bgCanvas` | `color/bg/canvas` | |
 | `bgSurface` | `color/bg/surface` | |
 | `bgSurfaceSubtle` | `color/bg/surface-subtle` | |
+| `bgBrandSubtle` | `color/bg/brand-subtle` | Nền avatar fallback, badge tone brand |
 | `primaryBrand` | `color/bg/brand` | |
 | `primaryBrandDark` | `color/bg/brand-hover` | |
 | `accent` | `color/bg/accent` | |
 | `textPrimary` | `color/text/primary` | |
 | `textSecondary` | `color/text/secondary` | |
+| `textMuted` | `color/text/muted` | |
 | `textDisabled` | `color/text/disabled` | |
 | `textOnBrand` | `color/text/on-brand` | |
+| `textBrand` | `color/text/brand` | |
+| `textLink` | `color/text/link` | Dùng luôn cho `color/icon/brand` |
 | `borderDefault` | `color/border/default` | |
 | `borderFocus` | `color/border/focus` | |
 | `success` | `color/text/success` | Dark đang dùng `#82C9A6` (MudBlazor `Success`) thay vì `#B1E1C7` |
@@ -494,7 +498,7 @@ Nguồn sự thật trên mobile: `lib/ui/core/themes/app_colors.dart`, `app_dim
 
 `AppDimensions`: `space1`–`space6`, `space8` (= `space/1`–`space/8`), `radiusSm`, `radiusMd`, `radiusLg`, `radiusFull`, `controlHeight` (44 = `size/control/m`), `minTouchTarget` (48, chuẩn Material 3, lớn hơn `size/touch/min` 44).
 
-Chưa có trên mobile, bổ sung khi feature cần: các token `bg/brand-subtle`, `bg/accent-subtle`, `bg/success|warning|danger|info`, `text/muted`, `text/brand`, `text/link`, `text/info`, `border/strong`, `space/10`+, `radius/xl`, typography Inter/Literata, elevation và motion. Khi thêm field mới vào `AppColors`, cập nhật đồng thời `light`, `dark`, `copyWith`, `lerp` và bảng trên.
+Chưa có trên mobile, bổ sung khi feature cần: các token `bg/surface-raised`, `bg/accent-subtle`, `bg/success|warning|danger|info`, `text/info`, `border/strong`, `space/10`+, `radius/xl`, typography Inter/Literata, elevation và motion. Khi thêm field mới vào `AppColors`, cập nhật đồng thời `light`, `dark`, `copyWith`, `lerp` và bảng trên.
 
 ## 11. Definition of done (web)
 

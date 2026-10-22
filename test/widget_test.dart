@@ -8,15 +8,30 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:joyleebook_mobile/app.dart';
+import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
+import 'package:joyleebook_mobile/data/services/api_exceptions.dart';
+
+import '../testing/fakes/fake_profile_repository.dart';
 import '../testing/fakes/fake_series_repository.dart';
 
 void main() {
-  testWidgets('JoyleeBookApp render và chuyển đổi tab thành công', (WidgetTester tester) async {
+  testWidgets('JoyleeBookApp render và chuyển đổi tab thành công', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           seriesRepositoryProvider.overrideWithValue(FakeSeriesRepository([])),
+          // IndexedStack dựng mọi tab ngay từ đầu nên tab Cá nhân cũng cần fake
+          profileRepositoryProvider.overrideWithValue(
+            FakeProfileRepository(
+              error: const AppException(
+                message: 'Chưa đăng nhập',
+                statusCode: 401,
+              ),
+            ),
+          ),
         ],
         child: const JoyleeBookApp(),
       ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:joyleebook_mobile/ui/profile/widgets/profile_screen.dart';
+
 import 'ui/core/themes/app_theme.dart';
 import 'ui/gateway_test/widgets/gateway_test_screen.dart';
 import 'ui/series/widgets/series_list_screen.dart';
@@ -21,8 +23,9 @@ class _JoyleeBookAppState extends ConsumerState<JoyleeBookApp> {
 
   // Danh sách các màn hình tương ứng với từng tab
   final List<Widget> _screens = const [
-    SeriesListScreen(),   // Trang mẫu chức năng: Khám phá danh sách truyện
-    GatewayTestScreen(),  // Trang kiểm tra: Gọi thử kết nối tới JoyleeBook Gateway
+    SeriesListScreen(), // Trang mẫu chức năng: Khám phá danh sách truyện
+    ProfileScreen(),
+    GatewayTestScreen(), // Trang kiểm tra: Gọi thử kết nối tới JoyleeBook Gateway
   ];
 
   @override
@@ -39,10 +42,7 @@ class _JoyleeBookAppState extends ConsumerState<JoyleeBookApp> {
       themeMode: themeMode,
       themeAnimationDuration: Duration.zero,
       home: Scaffold(
-        body: IndexedStack(
-          index: _currentTabIndex,
-          children: _screens,
-        ),
+        body: IndexedStack(index: _currentTabIndex, children: _screens),
         // Thanh điều hướng đáy chuẩn Material 3 (NavigationBar)
         bottomNavigationBar: NavigationBar(
           selectedIndex: _currentTabIndex,
@@ -56,6 +56,11 @@ class _JoyleeBookAppState extends ConsumerState<JoyleeBookApp> {
               icon: Icon(Icons.auto_stories_outlined),
               selectedIcon: Icon(Icons.auto_stories_rounded),
               label: 'Kho Truyện',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Cá nhân',
             ),
             NavigationDestination(
               icon: Icon(Icons.router_outlined),
