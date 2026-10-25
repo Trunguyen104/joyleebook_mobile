@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../../data/services/reading_preferences_service.dart';
 import '../../../domain/models/chapter.dart';
+import '../../../routing/app_paths.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 import '../../core/themes/theme_provider.dart';
@@ -19,17 +22,18 @@ import '../view_models/chapter_list_view_model.dart';
 class ChapterDetailScreen extends ConsumerStatefulWidget {
   const ChapterDetailScreen({
     super.key,
+    required this.seriesId,
     required this.chapterId,
     required this.seriesTitle,
-    this.allChapters = const [],
   });
 
+  final String seriesId;
   final String chapterId;
   final String seriesTitle;
-  final List<Chapter> allChapters;
 
   @override
-  ConsumerState<ChapterDetailScreen> createState() => _ChapterDetailScreenState();
+  ConsumerState<ChapterDetailScreen> createState() =>
+      _ChapterDetailScreenState();
 }
 
 class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
@@ -53,8 +57,9 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
 
   /// Nạp cỡ chữ đã lưu từ SharedPreferences
   Future<void> _loadSavedFontSize() async {
-    final savedSize =
-        await ref.read(readingPreferencesServiceProvider).getFontSize();
+    final savedSize = await ref
+        .read(readingPreferencesServiceProvider)
+        .getFontSize();
     if (mounted) {
       setState(() => _fontSize = savedSize);
     }
@@ -76,15 +81,11 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
     }
   }
 
-  void _navigateToChapter(Chapter chapter, List<Chapter> chaptersList) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => ChapterDetailScreen(
-          chapterId: chapter.id,
-          seriesTitle: widget.seriesTitle,
-          allChapters: chaptersList,
-        ),
-      ),
+  /// Đổi sang chương khác: thay trang hiện tại để nút Back vẫn về màn trước đó
+  void _navigateToChapter(Chapter chapter) {
+    context.pushReplacement(
+      AppPaths.chapterReader(widget.seriesId, chapter.id),
+      extra: widget.seriesTitle,
     );
   }
 
@@ -112,17 +113,11 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
             state.maybeWhen(
               data: (detail) => Text(
                 'Chương ${detail.sortOrder} / ${detail.totalChapters}',
-                style: TextStyle(
-                  color: colors.textSecondary,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: colors.textSecondary, fontSize: 12),
               ),
               orElse: () => Text(
                 'Đang tải...',
-                style: TextStyle(
-                  color: colors.textSecondary,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: colors.textSecondary, fontSize: 12),
               ),
             ),
           ],
@@ -185,18 +180,22 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
               message: 'Tác giả chưa cập nhật nội dung cho chương này.',
               actionLabel: 'Tải lại',
               onAction: () => ref
-                  .read(chapterDetailViewModelProvider(widget.chapterId).notifier)
+                  .read(
+                    chapterDetailViewModelProvider(widget.chapterId).notifier,
+                  )
                   .refresh(),
             );
           }
 
           // Tự động lưu tiến độ đọc chương gần nhất vào Local Storage
-          ref.read(readingPreferencesServiceProvider).saveReadingProgress(
-            seriesId: detail.seriesId,
-            chapterId: detail.id,
-            sortOrder: detail.sortOrder,
-            readPercentage: 1.0,
-          );
+          ref
+              .read(readingPreferencesServiceProvider)
+              .saveReadingProgress(
+                seriesId: detail.seriesId,
+                chapterId: detail.id,
+                sortOrder: detail.sortOrder,
+                readPercentage: 1.0,
+              );
 
           // Tách nội dung thành từng đoạn văn
           final paragraphs = detail.content
@@ -205,11 +204,10 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
               .where((p) => p.isNotEmpty)
               .toList();
 
-          // Lấy danh sách chương từ widget.allChapters hoặc fallback từ chapterListViewModelProvider
-          final chaptersList = widget.allChapters.isNotEmpty
-              ? widget.allChapters
-              : (ref.watch(chapterListViewModelProvider(detail.seriesId)).value ??
-                  []);
+          // Danh sách chương lấy từ ViewModel (đã được tải sẵn ở màn trước)
+          final chaptersList =
+              ref.watch(chapterListViewModelProvider(widget.seriesId)).value ??
+              <Chapter>[];
 
           // Tìm chương trước và chương sau an toàn
           Chapter? previousChapter;
@@ -289,20 +287,23 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
                         const SizedBox(height: AppDimensions.space3),
 
                         // Nội dung từng đoạn văn bản
-                        ...paragraphs.map((p) => Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: AppDimensions.space4,
+                        ...paragraphs.map(
+                          (p) => Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppDimensions.space4,
+                            ),
+                            child: Text(
+                              p,
+                              style: TextStyle(
+                                fontSize: _fontSize,
+                                height:
+                                    1.85, // Giãn dòng rộng rãi chống mỏi mắt
+                                color: colors.textPrimary,
+                                letterSpacing: 0.2,
                               ),
-                              child: Text(
-                                p,
-                                style: TextStyle(
-                                  fontSize: _fontSize,
-                                  height: 1.85, // Giãn dòng rộng rãi chống mỏi mắt
-                                  color: colors.textPrimary,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            )),
+                            ),
+                          ),
+                        ),
 
                         const SizedBox(height: AppDimensions.space6),
                         Center(
@@ -341,10 +342,7 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
                       // Nút Chương trước
                       TextButton.icon(
                         onPressed: previousChapter != null
-                            ? () => _navigateToChapter(
-                                  previousChapter!,
-                                  chaptersList,
-                                )
+                            ? () => _navigateToChapter(previousChapter!)
                             : null,
                         icon: const Icon(
                           Icons.arrow_back_ios_rounded,
@@ -370,10 +368,7 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
                       // Nút Chương sau
                       TextButton.icon(
                         onPressed: nextChapter != null
-                            ? () => _navigateToChapter(
-                                  nextChapter!,
-                                  chaptersList,
-                                )
+                            ? () => _navigateToChapter(nextChapter!)
                             : null,
                         icon: const Icon(
                           Icons.arrow_forward_ios_rounded,

@@ -1,19 +1,20 @@
 import '../../../data/services/api_exceptions.dart';
 import '../../core/widgets/joylee_avatar.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:joyleebook_mobile/ui/core/themes/theme_provider.dart';
 
 import '../../../domain/models/chapter.dart';
 import '../../../domain/models/series.dart';
 import '../../chapter/view_models/chapter_list_view_model.dart';
-import '../../chapter/widgets/chapter_detail_screen.dart';
 import '../../chapter/widgets/chapter_item.dart';
-import '../../chapter/widgets/chapter_list_screen.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_button.dart';
 import '../../core/widgets/joylee_error_view.dart';
+import '../../../routing/app_paths.dart';
 import '../view_models/series_detail_view_model.dart';
 
 /// MÀN HÌNH CHI TIẾT TÁC PHẨM (SeriesDetailScreen)
@@ -27,14 +28,11 @@ import '../view_models/series_detail_view_model.dart';
 /// 5. Read-Only tuyệt đối: Không hiển thị bất kỳ nút tác vụ quản trị nào (Sửa, Xóa, Thêm chương).
 /// 6. Tích hợp liền mạch với Chapter Reader: Nút "Đọc ngay / Đọc tiếp" mở thẳng chương tương ứng.
 class SeriesDetailScreen extends ConsumerStatefulWidget {
-  const SeriesDetailScreen({
-    super.key,
-    this.initialSeries,
-    this.seriesId,
-  }) : assert(
-          initialSeries != null || seriesId != null,
-          'Phải cung cấp initialSeries hoặc seriesId để khởi tạo màn hình.',
-        );
+  const SeriesDetailScreen({super.key, this.initialSeries, this.seriesId})
+    : assert(
+        initialSeries != null || seriesId != null,
+        'Phải cung cấp initialSeries hoặc seriesId để khởi tạo màn hình.',
+      );
 
   final Series? initialSeries;
   final String? seriesId;
@@ -109,8 +107,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         ),
         body: JoyleeErrorView(
           message: error is AppException ? error.message : 'Đã có lỗi xảy ra.',
-          onRetry: () =>
-              ref.read(seriesDetailViewModelProvider(seriesId).notifier).refresh(),
+          onRetry: () => ref
+              .read(seriesDetailViewModelProvider(seriesId).notifier)
+              .refresh(),
         ),
       ),
 
@@ -236,12 +235,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                 const SizedBox(height: AppDimensions.space5),
 
                 // 5. KHỐI DANH SÁCH CHƯƠNG (Chapter Preview & Navigation)
-                _buildChaptersSection(
-                  context,
-                  colors,
-                  series,
-                  chaptersAsync,
-                ),
+                _buildChaptersSection(context, colors, series, chaptersAsync),
                 const SizedBox(height: AppDimensions.space6),
               ],
             ),
@@ -252,7 +246,11 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
   }
 
   /// 1. Khối Header: Bìa sách chuẩn 2:3, Tiêu đề, Tác giả và Trạng thái
-  Widget _buildHeader(AppColors colors, Series series, int loadedChaptersCount) {
+  Widget _buildHeader(
+    AppColors colors,
+    Series series,
+    int loadedChaptersCount,
+  ) {
     final displayChapterCount = loadedChaptersCount > 0
         ? loadedChaptersCount
         : (series.totalChapters > 0 ? series.totalChapters : 0);
@@ -283,8 +281,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                 ? Image.network(
                     series.coverImageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) =>
-                        _buildCoverPlaceholder(colors),
+                    errorBuilder: (_, _, _) => _buildCoverPlaceholder(colors),
                   )
                 : _buildCoverPlaceholder(colors),
           ),
@@ -352,8 +349,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                       color: series.status == SeriesStatus.completed
                           ? colors.success.withValues(alpha: 0.15)
                           : colors.primaryBrand.withValues(alpha: 0.15),
-                      borderRadius:
-                          BorderRadius.circular(AppDimensions.radiusSm),
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusSm,
+                      ),
                     ),
                     child: Text(
                       series.status.label,
@@ -376,8 +374,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: colors.bgSurfaceSubtle,
-                        borderRadius:
-                            BorderRadius.circular(AppDimensions.radiusSm),
+                        borderRadius: BorderRadius.circular(
+                          AppDimensions.radiusSm,
+                        ),
                         border: Border.all(
                           color: colors.borderDefault.withValues(alpha: 0.5),
                         ),
@@ -481,12 +480,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
           child: JoyleeButton(
             label: readButtonLabel,
             icon: const Icon(Icons.menu_book_rounded, size: 18),
-            onPressed: () => _handleReadPress(
-              context,
-              series,
-              chapters,
-              activeChapter,
-            ),
+            onPressed: () =>
+                _handleReadPress(context, series, chapters, activeChapter),
           ),
         ),
         const SizedBox(width: AppDimensions.space3),
@@ -573,12 +568,15 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                 const SizedBox(width: 8),
                 if (chaptersAsync.value != null)
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: colors.bgSurfaceSubtle,
-                      borderRadius:
-                          BorderRadius.circular(AppDimensions.radiusFull),
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusFull,
+                      ),
                     ),
                     child: Text(
                       '${chaptersAsync.value!.length}',
@@ -594,16 +592,10 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
             // Nút xem toàn bộ danh sách chương nếu có nhiều hơn 5 chương
             if ((chaptersAsync.value?.length ?? 0) > 5)
               TextButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ChapterListScreen(
-                        seriesId: series.id,
-                        seriesTitle: series.title,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: () => context.push(
+                  AppPaths.chapterList(series.id),
+                  extra: series.title,
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -641,8 +633,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(colors.primaryBrand),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    colors.primaryBrand,
+                  ),
                 ),
               ),
             ),
@@ -716,17 +709,10 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
               children: previewChapters.map((ch) {
                 return ChapterItem(
                   chapter: ch,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ChapterDetailScreen(
-                          chapterId: ch.id,
-                          seriesTitle: series.title,
-                          allChapters: chapters,
-                        ),
-                      ),
-                    );
-                  },
+                  onTap: () => context.push(
+                    AppPaths.chapterReader(series.id, ch.id),
+                    extra: series.title,
+                  ),
                   onDownloadTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -765,14 +751,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     // Ưu tiên mở chương đang đọc dở, nếu không thì mở chương đầu tiên (sortOrder nhỏ nhất)
     final targetChapter = activeChapter ?? chapters.first;
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ChapterDetailScreen(
-          chapterId: targetChapter.id,
-          seriesTitle: series.title,
-          allChapters: chapters,
-        ),
-      ),
+    context.push(
+      AppPaths.chapterReader(series.id, targetChapter.id),
+      extra: series.title,
     );
   }
 
