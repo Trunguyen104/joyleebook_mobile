@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../domain/models/chapter.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
@@ -23,7 +24,9 @@ class ChapterItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return chapter.isActive ? _buildActiveCard(colors) : _buildNormalTile(colors);
+    return chapter.isActive
+        ? _buildActiveCard(colors)
+        : _buildNormalTile(colors);
   }
 
   /// 1. Giao diện Thẻ Chương Đang Đọc (Active Card)
@@ -44,10 +47,7 @@ class ChapterItem extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Vạch màu nhấn (Accent Bar) ở mép trái
-            Container(
-              width: 5,
-              color: colors.accent,
-            ),
+            Container(width: 5, color: colors.accent),
             // Phần nội dung chính của thẻ
             Expanded(
               child: Padding(
@@ -90,7 +90,9 @@ class ChapterItem extends StatelessWidget {
                                   const SizedBox(width: 6),
                                   JoyleeBadge(
                                     label: 'NOW',
-                                    backgroundColor: colors.accent.withValues(alpha: 0.2),
+                                    backgroundColor: colors.accent.withValues(
+                                      alpha: 0.2,
+                                    ),
                                     textColor: colors.accent,
                                   ),
                                 ],
@@ -99,8 +101,11 @@ class ChapterItem extends StatelessWidget {
                               Row(
                                 children: [
                                   JoyleeBadge(
-                                    label: '${(chapter.readPercentage * 100).toInt()}% read',
-                                    backgroundColor: colors.accent.withValues(alpha: 0.12),
+                                    label:
+                                        '${(chapter.readPercentage * 100).toInt()}% read',
+                                    backgroundColor: colors.accent.withValues(
+                                      alpha: 0.12,
+                                    ),
                                     textColor: colors.accent,
                                   ),
                                   const SizedBox(width: 8),
@@ -132,12 +137,18 @@ class ChapterItem extends StatelessWidget {
                     const SizedBox(height: AppDimensions.space3),
                     // Thanh tiến độ đọc (Progress Bar)
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusFull,
+                      ),
                       child: LinearProgressIndicator(
                         value: chapter.readPercentage,
                         minHeight: 4,
-                        backgroundColor: colors.borderDefault.withValues(alpha: 0.6),
-                        valueColor: AlwaysStoppedAnimation<Color>(colors.accent),
+                        backgroundColor: colors.borderDefault.withValues(
+                          alpha: 0.6,
+                        ),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          colors.accent,
+                        ),
                       ),
                     ),
                   ],
@@ -163,7 +174,11 @@ class ChapterItem extends StatelessWidget {
           children: [
             // Icon trạng thái đã đọc / chưa đọc
             chapter.isCompleted
-                ? Icon(Icons.check_circle_rounded, color: colors.accent, size: 24)
+                ? Icon(
+                    Icons.check_circle_rounded,
+                    color: colors.accent,
+                    size: 24,
+                  )
                 : Icon(
                     Icons.radio_button_unchecked_rounded,
                     color: colors.borderDefault,
@@ -191,7 +206,9 @@ class ChapterItem extends StatelessWidget {
                       if (chapter.isFree) ...[
                         JoyleeBadge(
                           label: 'Free',
-                          backgroundColor: colors.borderDefault.withValues(alpha: 0.4),
+                          backgroundColor: colors.borderDefault.withValues(
+                            alpha: 0.4,
+                          ),
                           textColor: colors.textSecondary,
                         ),
                         const SizedBox(width: 8),
@@ -210,7 +227,10 @@ class ChapterItem extends StatelessWidget {
             ),
             // Nút tải offline
             IconButton(
-              icon: Icon(Icons.file_download_outlined, color: colors.textSecondary),
+              icon: Icon(
+                Icons.file_download_outlined,
+                color: colors.textSecondary,
+              ),
               tooltip: 'Tải đọc offline',
               onPressed: onDownloadTap,
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../themes/app_colors.dart';
 import '../themes/app_dimensions.dart';
 
@@ -60,7 +61,10 @@ class JoyleeButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (icon != null) ...[icon!, const SizedBox(width: AppDimensions.space2)],
+              if (icon != null) ...[
+                icon!,
+                const SizedBox(width: AppDimensions.space2),
+              ],
               Text(
                 label,
                 style: TextStyle(

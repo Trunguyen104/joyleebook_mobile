@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../config/environment.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
@@ -68,7 +69,9 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: testState.isCheckingAll
                 ? null
-                : () => ref.read(gatewayTestViewModelProvider.notifier).checkAll(),
+                : () => ref
+                      .read(gatewayTestViewModelProvider.notifier)
+                      .checkAll(),
           ),
         ],
       ),
@@ -156,7 +159,11 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.router_outlined, color: colors.primaryBrand, size: 22),
+                Icon(
+                  Icons.router_outlined,
+                  color: colors.primaryBrand,
+                  size: 22,
+                ),
                 const SizedBox(width: AppDimensions.space2),
                 Text(
                   'Cấu hình JoyleeBook Gateway URL',
@@ -186,7 +193,9 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
                       hintText: Environment.hostedBaseUrl,
                       isDense: true,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                        borderRadius: BorderRadius.circular(
+                          AppDimensions.radiusMd,
+                        ),
                       ),
                     ),
                   ),
@@ -197,7 +206,9 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
                     backgroundColor: colors.primaryBrand,
                     foregroundColor: colors.textOnBrand,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusMd,
+                      ),
                     ),
                   ),
                   onPressed: () => _applyUrl(_urlController.text),
@@ -238,10 +249,13 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
       statusColor = colors.success;
       statusIcon = Icons.check_circle_rounded;
       statusLabel = '${result.statusCode} OK';
-    } else if (result.errorMessage != null || (result.statusCode != null && !result.isSuccess)) {
+    } else if (result.errorMessage != null ||
+        (result.statusCode != null && !result.isSuccess)) {
       statusColor = colors.danger;
       statusIcon = Icons.error_rounded;
-      statusLabel = result.statusCode != null ? '${result.statusCode}' : 'Lỗi kết nối';
+      statusLabel = result.statusCode != null
+          ? '${result.statusCode}'
+          : 'Lỗi kết nối';
     } else {
       statusColor = colors.textDisabled;
       statusIcon = Icons.radio_button_unchecked;
@@ -251,14 +265,18 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
-        initiallyExpanded: result.statusCode != null || result.errorMessage != null,
+        initiallyExpanded:
+            result.statusCode != null || result.errorMessage != null,
         leading: Icon(statusIcon, color: statusColor, size: 28),
         title: Row(
           children: [
             Expanded(
               child: Text(
                 result.name,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
             ),
             Container(
@@ -308,8 +326,8 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
           onPressed: result.isLoading
               ? null
               : () => ref
-                  .read(gatewayTestViewModelProvider.notifier)
-                  .checkSingleEndpoint(index),
+                    .read(gatewayTestViewModelProvider.notifier)
+                    .checkSingleEndpoint(index),
         ),
         children: [
           Padding(
@@ -336,8 +354,12 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
                     padding: const EdgeInsets.all(AppDimensions.space3),
                     decoration: BoxDecoration(
                       color: colors.danger.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
-                      border: Border.all(color: colors.danger.withValues(alpha: 0.3)),
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusSm,
+                      ),
+                      border: Border.all(
+                        color: colors.danger.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -391,7 +413,9 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
                     padding: const EdgeInsets.all(AppDimensions.space2),
                     decoration: BoxDecoration(
                       color: colors.bgSurfaceSubtle,
-                      borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusSm,
+                      ),
                       border: Border.all(color: colors.borderDefault),
                     ),
                     child: SingleChildScrollView(

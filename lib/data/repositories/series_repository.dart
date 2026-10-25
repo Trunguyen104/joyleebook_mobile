@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../config/api_endpoints.dart';
 import '../../domain/models/series.dart';
 import '../dtos/series_dto.dart';
@@ -30,9 +31,9 @@ class SeriesRepository {
 
       final rawList = response.data ?? [];
 
-      final dtoList = rawList
-          .cast<Map<String, dynamic>>()
-          .map(SeriesDto.fromJson);
+      final dtoList = rawList.cast<Map<String, dynamic>>().map(
+        SeriesDto.fromJson,
+      );
 
       final domainList = dtoList.map(Series.fromDto).toList(growable: false);
 
@@ -41,7 +42,9 @@ class SeriesRepository {
       throw AppException.fromDio(e);
     } catch (e) {
       if (e is AppException) rethrow;
-      throw AppException(message: 'Không thể xử lý dữ liệu danh sách truyện: $e');
+      throw AppException(
+        message: 'Không thể xử lý dữ liệu danh sách truyện: $e',
+      );
     }
   }
 
