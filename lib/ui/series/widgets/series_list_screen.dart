@@ -1,9 +1,11 @@
 import '../../../data/services/api_exceptions.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:joyleebook_mobile/ui/core/themes/theme_provider.dart';
-import 'package:joyleebook_mobile/ui/series/widgets/series_detail_screen.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../routing/app_paths.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_empty_state.dart';
@@ -149,13 +151,9 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
 
                 return SeriesCard(
                   series: item,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => SeriesDetailScreen(initialSeries: item),
-                      ),
-                    );
-                  },
+                  // Gửi kèm item để màn chi tiết hiện ngay, không phải chờ tải
+                  onTap: () =>
+                      context.push(AppPaths.seriesDetail(item.id), extra: item),
                   onBookmarkTap: () async {
                     // Gọi hàm lưu/bỏ lưu truyện (Optimistic UI)
                     final success = await ref

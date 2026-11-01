@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../config/api_endpoints.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/chapter_detail.dart';
@@ -46,26 +47,30 @@ class ChapterRepository {
         rawList = data;
       }
 
-      final dtoList = rawList
-          .cast<Map<String, dynamic>>()
-          .map(ChapterDto.fromJson);
+      final dtoList = rawList.cast<Map<String, dynamic>>().map(
+        ChapterDto.fromJson,
+      );
 
       // Đọc tiến độ gần nhất từ Local Storage (nếu có)
       final lastProgress = await _readingPrefs?.getLastReadProgress(seriesId);
 
       // Chuyển đổi sang Domain Model thực tế kèm trạng thái đang đọc (isActive)
-      final chapters = dtoList.map((dto) {
-        final isMatch = lastProgress != null &&
-            (lastProgress.chapterId == dto.id ||
-                lastProgress.sortOrder == dto.sortOrder);
-        return Chapter.fromDto(
-          dto,
-          isActive: isMatch,
-          readPercentage: isMatch ? lastProgress.readPercentage : 0.0,
-          isCompleted:
-              lastProgress != null && dto.sortOrder < lastProgress.sortOrder,
-        );
-      }).toList(growable: false);
+      final chapters = dtoList
+          .map((dto) {
+            final isMatch =
+                lastProgress != null &&
+                (lastProgress.chapterId == dto.id ||
+                    lastProgress.sortOrder == dto.sortOrder);
+            return Chapter.fromDto(
+              dto,
+              isActive: isMatch,
+              readPercentage: isMatch ? lastProgress.readPercentage : 0.0,
+              isCompleted:
+                  lastProgress != null &&
+                  dto.sortOrder < lastProgress.sortOrder,
+            );
+          })
+          .toList(growable: false);
 
       return chapters;
     } on DioException catch (e) {
@@ -79,9 +84,7 @@ class ChapterRepository {
   /// 2. Lấy nội dung chi tiết của một chương theo [chapterId]
   Future<ChapterDetail> getChapterDetail(String chapterId) async {
     try {
-      final response = await _dio.get(
-        '${ApiEndpoints.chapters}/$chapterId',
-      );
+      final response = await _dio.get('${ApiEndpoints.chapters}/$chapterId');
 
       final data = response.data as Map<String, dynamic>;
       final dto = ChapterDetailDto.fromJson(data);

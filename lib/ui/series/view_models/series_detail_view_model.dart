@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../data/repositories/series_repository.dart';
 import '../../../domain/models/series.dart';
 import 'series_list_view_model.dart';
@@ -8,9 +10,9 @@ import 'series_list_view_model.dart';
 /// Sử dụng AsyncNotifierProvider.family để truyền mã [seriesId]
 final seriesDetailViewModelProvider =
     AsyncNotifierProvider.family<SeriesDetailViewModel, Series, String>(
-  SeriesDetailViewModel.new,
-  retry: (retryCount, error) => null,
-);
+      SeriesDetailViewModel.new,
+      retry: (retryCount, error) => null,
+    );
 
 /// VIEWMODEL - Quản lý trạng thái và nghiệp vụ màn hình Chi tiết truyện (SeriesDetailScreen)
 /// Áp dụng các nguyên tắc kiến trúc:

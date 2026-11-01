@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+
 import '../../../domain/models/series.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 
 /// WIDGET THẺ TRUYỆN (SeriesCard)
 /// Thành phần giao diện con hiển thị thông tin tóm tắt của một bộ truyện trong danh sách.
-/// 
+///
 /// NGUYÊN TẮC THIẾT KẾ:
 /// 1. Chuẩn Warm Editorial: Nền thẻ bgSurface, viền nhẹ borderDefault, chữ rõ nét.
 /// 2. Touch target tối thiểu: Nút bookmark đạt diện tích bấm 48x48dp để dễ chạm trên điện thoại.
@@ -101,7 +102,9 @@ class SeriesCard extends StatelessWidget {
                         ),
 
                         // Các thẻ thể loại truyện (nếu có)
-                        ...series.genres.take(2).map(
+                        ...series.genres
+                            .take(2)
+                            .map(
                               (genre) => _buildBadge(
                                 label: genre,
                                 bgColor: colors.bgSurfaceSubtle,
@@ -155,13 +158,16 @@ class SeriesCard extends StatelessWidget {
           ? Image.network(
               series.coverImageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, error, stackTrace) => _buildPlaceholderIcon(colors),
+              errorBuilder: (_, error, stackTrace) =>
+                  _buildPlaceholderIcon(colors),
               loadingBuilder: (context, child, progress) {
                 if (progress == null) return child;
                 return Center(
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(colors.primaryBrand),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      colors.primaryBrand,
+                    ),
                   ),
                 );
               },

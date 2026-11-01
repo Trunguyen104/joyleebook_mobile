@@ -64,14 +64,22 @@ sequenceDiagram
     UI->>Dio: Gửi API cần xác thực (Kèm Token cũ)
     Dio->>GW: Request + Header Authorization: Bearer <expired-token>
     GW-->>Dio: HTTP 401 Unauthorized
-    Dio->>SecStore: clear() (Xóa access token)
-    Dio->>Router: go('/sign-in') (Chuyển người dùng về màn Đăng nhập)
-    Dio-->>UI: Hiển thị SnackBar: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+    Dio->>GW: POST /api/auth/refresh { refreshToken } (chỉ 1 lần cho mọi request đang chờ)
+    alt Refresh thành công
+        GW-->>Dio: 200 (accessToken + refreshToken mới)
+        Dio->>SecStore: saveTokens(...)
+        Dio->>GW: Gửi lại request gốc với token mới
+        GW-->>UI: Dữ liệu (người dùng không nhận ra gì)
+    else Refresh bị từ chối (401/400)
+        Dio->>SecStore: clear() (Xóa cả 2 token)
+        Dio->>Router: go('/sign-in') (Chuyển người dùng về màn Đăng nhập)
+        Dio-->>UI: Hiển thị SnackBar: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+    end
 ```
 
 > [!IMPORTANT]
 > **Quy tắc Single-Notification cho 401:**
-> Interceptor sử dụng cơ chế cờ (`_isSessionExpiredHandled`) để nếu nhiều request ngầm đồng thời nhận mã 401, hệ thống **chỉ hiển thị 1 thông báo duy nhất** và chỉ thực hiện 1 lần chuyển trang về `/sign-in`.
+> Interceptor (`lib/data/services/auth_interceptor.dart`) gom mọi request cùng bị 401 vào **một** lần gọi `/api/auth/refresh` (backend thu hồi cả phiên nếu một refreshToken bị dùng lại). Cờ `sessionExpiredProvider` (tương ứng `_isSessionExpiredHandled`) được dùng để nếu nhiều request ngầm đồng thời nhận mã 401, hệ thống **chỉ hiển thị 1 thông báo duy nhất** và chỉ thực hiện 1 lần chuyển trang về `/sign-in`.
 
 ---
 
@@ -191,12 +199,16 @@ Tất cả các lệnh gọi API đều đi qua JoyleeBook API Gateway tại đ�
   {
     "accessToken": "eyJhbGciOi...",
     "tokenType": "Bearer",
-    "expiresAtUtc": "2026-10-15T08:30:00Z"
+    "expiresAtUtc": "2026-10-15T08:30:00Z",
+    "refreshToken": "q8Zk...",
+    "refreshTokenExpiresAtUtc": "2026-10-22T08:00:00Z"
   }
   ```
+  - Access token sống 30 phút, refresh token sống 7 ngày. Response không có object user: `sub` (id), `unique_name` (username) và role (`http://schemas.microsoft.com/ws/2008/06/identity/claims/role`) nằm trong claims của JWT.
+  - `username` cũng có thể là email.
 - **Response lỗi**:
   - `400 Bad Request`: Thông tin đăng nhập không hợp lệ hoặc thiếu trường.
-  - `401 Unauthorized`: Sai tên đăng nhập hoặc mật khẩu.
+  - `401 Unauthorized`: Sai tên đăng nhập hoặc mật khẩu (body `{"message": "..."}`).
 
 #### 2. Đăng ký tài khoản độc giả (`POST /api/auth/sign-up`)
 - **Quyền truy cập**: Public.
@@ -205,24 +217,31 @@ Tất cả các lệnh gọi API đều đi qua JoyleeBook API Gateway tại đ�
   ```json
   {
     "username": "reader_new",
-    "email": "reader@example.com",
-    "password": "Password123"
+    "password": "Password123",
+    "confirmPassword": "Password123"
   }
   ```
-- **Response thành công (`200 OK` hoặc `201 Created`)**:
-  ```json
-  {
-    "message": "Đăng ký tài khoản thành công"
-  }
-  ```
+  - Không có trường email. Tài khoản mới luôn có vai trò Reader.
+- **Response thành công (`201 Created`)**: cùng dạng với Đăng nhập (có `accessToken` + `refreshToken`), nên app đăng nhập luôn sau khi đăng ký.
 - **Response lỗi**:
-  - `409 Conflict`: Tên đăng nhập hoặc email đã tồn tại trên hệ thống.
-  - `429 Too Many Requests`: Gửi yêu cầu quá nhanh, app hiển thị thông báo chờ.
+  - `400 Bad Request`: ValidationProblemDetails (`errors` theo tên trường PascalCase, thông báo tiếng Anh).
+  - `409 Conflict`: Tên đăng nhập đã tồn tại trên hệ thống.
+  - `429 Too Many Requests`: Gửi yêu cầu quá nhanh (body rỗng), app hiển thị thông báo chờ.
 
 #### 3. Đăng xuất (`POST /api/auth/sign-out`)
 - **Quyền truy cập**: Bearer Token.
 - **Headers**: `Authorization: Bearer <accessToken>`
-- **Response thành công (`200 OK` hoặc `204 No Content`)**: Token bị thu hồi trên backend; Mobile luôn xóa token cục bộ.
+- **Request Body**: không có.
+- **Response thành công (`204 No Content`)**: Access token và toàn bộ refresh token của phiên bị thu hồi trên backend. Mobile luôn xóa token cục bộ, kể cả khi nhận `401` hoặc lỗi mạng.
+
+#### 4. Làm mới token (`POST /api/auth/refresh`)
+> [!NOTE]
+> Bản backend đang deploy trên gateway (kiểm tra Swagger ngày 24/10/2026) **chưa có endpoint này** và response đăng nhập/đăng ký **chưa có `refreshToken`**. App coi `refreshToken` là tùy chọn: không có thì khi access token hết hạn (30 phút), app báo hết phiên và về `/sign-in`. Khi backend deploy bản mới, app tự dùng refresh mà không cần sửa.
+
+- **Quyền truy cập**: Public.
+- **Request Body**: `{ "refreshToken": "q8Zk..." }`
+- **Response thành công (`200 OK`)**: cùng dạng với Đăng nhập. Cả hai token đều được thay mới, app phải lưu lại refreshToken mới.
+- **Response lỗi**: `401 Unauthorized` khi refreshToken hết hạn hoặc đã bị thu hồi → phiên kết thúc.
 
 ---
 

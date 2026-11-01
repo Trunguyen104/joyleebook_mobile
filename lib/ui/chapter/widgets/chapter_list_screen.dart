@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../../domain/models/chapter.dart';
+import '../../../routing/app_paths.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../view_models/chapter_list_view_model.dart';
-import 'chapter_detail_screen.dart';
 import 'chapter_item.dart';
 import 'resume_reading_bar.dart';
 
@@ -46,10 +48,7 @@ class ChapterListScreen extends ConsumerWidget {
             ),
             Text(
               'Danh sách chương',
-              style: TextStyle(
-                color: colors.textSecondary,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: colors.textSecondary, fontSize: 12),
             ),
           ],
         ),
@@ -57,8 +56,9 @@ class ChapterListScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Làm mới',
-            onPressed: () =>
-                ref.read(chapterListViewModelProvider(seriesId).notifier).refresh(),
+            onPressed: () => ref
+                .read(chapterListViewModelProvider(seriesId).notifier)
+                .refresh(),
           ),
         ],
       ),
@@ -73,8 +73,9 @@ class ChapterListScreen extends ConsumerWidget {
         // 2. Trạng thái Error (Có nút Thử lại)
         error: (error, _) => JoyleeErrorView(
           message: error.toString(),
-          onRetry: () =>
-              ref.read(chapterListViewModelProvider(seriesId).notifier).refresh(),
+          onRetry: () => ref
+              .read(chapterListViewModelProvider(seriesId).notifier)
+              .refresh(),
         ),
 
         // 3. Trạng thái Data (Hoặc Empty nếu danh sách rỗng)
@@ -120,17 +121,10 @@ class ChapterListScreen extends ConsumerWidget {
                     final chapter = chapters[index];
                     return ChapterItem(
                       chapter: chapter,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => ChapterDetailScreen(
-                              chapterId: chapter.id,
-                              seriesTitle: seriesTitle,
-                              allChapters: chapters,
-                            ),
-                          ),
-                        );
-                      },
+                      onTap: () => context.push(
+                        AppPaths.chapterReader(seriesId, chapter.id),
+                        extra: seriesTitle,
+                      ),
                       onDownloadTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -150,19 +144,12 @@ class ChapterListScreen extends ConsumerWidget {
               if (activeChapter != null)
                 ResumeReadingBar(
                   title: 'Ch. ${activeChapter.sortOrder}',
-                  progressPercentage:
-                      (activeChapter.readPercentage * 100).toInt(),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => ChapterDetailScreen(
-                          chapterId: activeChapter!.id,
-                          seriesTitle: seriesTitle,
-                          allChapters: chapters,
-                        ),
-                      ),
-                    );
-                  },
+                  progressPercentage: (activeChapter.readPercentage * 100)
+                      .toInt(),
+                  onPressed: () => context.push(
+                    AppPaths.chapterReader(seriesId, activeChapter!.id),
+                    extra: seriesTitle,
+                  ),
                 ),
             ],
           );

@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:joyleebook_mobile/data/services/api_exceptions.dart';
 import 'package:joyleebook_mobile/domain/models/user_profile.dart';
+import 'package:joyleebook_mobile/ui/auth/view_models/auth_session_view_model.dart';
 import 'package:joyleebook_mobile/ui/core/themes/app_colors.dart';
 import 'package:joyleebook_mobile/ui/core/themes/app_dimensions.dart';
+import 'package:joyleebook_mobile/ui/core/widgets/joylee_button.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_empty_state.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_error_view.dart';
 import 'package:joyleebook_mobile/ui/profile/view_models/profile_view_model.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/profile_header.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/reading_stat_tile.dart';
+import 'package:joyleebook_mobile/routing/app_paths.dart';
 
 /// Màn hình Hồ sơ cá nhân — đủ 4 trạng thái
 class ProfileScreen extends ConsumerWidget {
@@ -20,9 +24,20 @@ class ProfileScreen extends ConsumerWidget {
     final state = ref.watch(profileViewModelProvider);
     // read: chỉ lấy notifier để gọi hàm, không theo dõi thay đổi
     final viewModel = ref.read(profileViewModelProvider.notifier);
+    final isSignedIn = ref.watch(authSessionProvider).value != null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Hồ sơ của tôi')),
+      appBar: AppBar(
+        title: const Text('Hồ sơ của tôi'),
+        actions: [
+          if (isSignedIn)
+            IconButton(
+              tooltip: 'Đăng xuất',
+              icon: const Icon(Icons.logout),
+              onPressed: () => _confirmSignOut(context, ref),
+            ),
+        ],
+      ),
       body: SafeArea(
         child: state.when(
           // 1. Đang tải
@@ -35,13 +50,8 @@ class ProfileScreen extends ConsumerWidget {
                 title: 'Bạn chưa đăng nhập',
                 message: 'Đăng nhập để xem hồ sơ và thống kê đọc của bạn.',
                 actionLabel: 'Đăng nhập',
-                onAction: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Vui lòng đăng nhập từ thanh điều hướng.'),
-                    ),
-                  );
-                },
+                onAction: () =>
+                    context.go('${AppPaths.signIn}?from=${AppPaths.profile}'),
               );
             }
             // 3. Lỗi khác (mất mạng, 502...) -> Thử lại
@@ -86,6 +96,39 @@ class ProfileScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Đăng xuất là hành động nguy hiểm -> bắt buộc hỏi lại trước khi thực hiện
+Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Đăng xuất?'),
+      content: const Text(
+        'Bạn sẽ cần đăng nhập lại để xem hồ sơ và thống kê đọc của mình.',
+      ),
+      actions: [
+        JoyleeButton(
+          label: 'Hủy',
+          variant: JoyleeButtonVariant.ghost,
+          isFullWidth: false,
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+        ),
+        JoyleeButton(
+          label: 'Đăng xuất',
+          variant: JoyleeButtonVariant.danger,
+          isFullWidth: false,
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true || !context.mounted) return;
+
+  final messenger = ScaffoldMessenger.of(context);
+  await ref.read(authSessionProvider.notifier).signOut();
+  // Không cần điều hướng: GoRouter thấy hết phiên sẽ tự chuyển sang /sign-in
+  messenger.showSnackBar(const SnackBar(content: Text('Đã đăng xuất')));
 }
 
 /// Định dạng ngày kiểu Việt Nam: 18/10/2026

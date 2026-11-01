@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+
 import '../../data/dtos/chapter_detail_dto.dart';
 
 /// PURE DOMAIN MODEL - Chi tiết nội dung một chương đọc
@@ -44,7 +45,8 @@ class ChapterDetail {
   bool get hasNext => sortOrder < totalChapters;
 
   /// Đếm số từ ước tính
-  int get wordCount => content.trim().isEmpty ? 0 : content.trim().split(RegExp(r'\s+')).length;
+  int get wordCount =>
+      content.trim().isEmpty ? 0 : content.trim().split(RegExp(r'\s+')).length;
 
   /// Thời gian đọc ước tính (khoảng 200 từ/phút)
   int get estimatedReadingMinutes {

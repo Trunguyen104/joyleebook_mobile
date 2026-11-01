@@ -55,7 +55,10 @@ class SeriesDto {
     // 1. Trích xuất danh sách thể loại từ mảng "genres" (nếu có)
     final rawGenres = json['genres'] as List<dynamic>? ?? [];
     final parsedGenres = rawGenres
-        .map((g) => (g is Map<String, dynamic>) ? (g['name'] as String? ?? '') : '')
+        .map(
+          (g) =>
+              (g is Map<String, dynamic>) ? (g['name'] as String? ?? '') : '',
+        )
         .where((name) => name.isNotEmpty)
         .toList();
 

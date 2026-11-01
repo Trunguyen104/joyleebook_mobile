@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:joyleebook_mobile/app.dart';
+import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/chapter_repository.dart';
+import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
 import 'package:joyleebook_mobile/domain/models/chapter.dart';
 import 'package:joyleebook_mobile/domain/models/series.dart';
@@ -11,7 +14,9 @@ import 'package:joyleebook_mobile/ui/core/themes/app_theme.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_error_view.dart';
 import 'package:joyleebook_mobile/ui/series/widgets/series_detail_screen.dart';
 
+import '../../testing/fakes/fake_auth_repository.dart';
 import '../../testing/fakes/fake_chapter_repository.dart';
+import '../../testing/fakes/fake_profile_repository.dart';
 import '../../testing/fakes/fake_series_repository.dart';
 
 void main() {
@@ -156,33 +161,52 @@ void main() {
   );
 
   testWidgets(
-    'Bấm nút Đọc ngay mở ChapterDetailScreen của chương đầu tiên',
+    'Bấm nút Đọc ngay mở trang đọc chương đầu tiên (toàn màn hình, qua GoRouter)',
     (tester) async {
-      final fakeSeriesRepo = FakeSeriesRepository([mockSeries]);
-      final fakeChapterRepo = FakeChapterRepository(mockChapters);
-
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            seriesRepositoryProvider.overrideWithValue(fakeSeriesRepo),
-            chapterRepositoryProvider.overrideWithValue(fakeChapterRepo),
+            seriesRepositoryProvider.overrideWithValue(
+              FakeSeriesRepository([mockSeries]),
+            ),
+            chapterRepositoryProvider.overrideWithValue(
+              FakeChapterRepository(mockChapters),
+            ),
+            profileRepositoryProvider.overrideWithValue(
+              FakeProfileRepository(),
+            ),
+            authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
           ],
-          child: MaterialApp(
-            theme: AppTheme.light,
-            home: const SeriesDetailScreen(initialSeries: mockSeries),
-          ),
+          child: const JoyleeBookApp(),
         ),
       );
-
       await tester.pumpAndSettle();
+
+      // Kho Truyện -> bấm vào truyện -> mở chi tiết, vẫn thấy thanh tab
+      await tester.tap(find.text(mockSeries.title));
+      await tester.pumpAndSettle();
+      expect(find.byType(SeriesDetailScreen), findsOneWidget);
+      expect(find.byType(NavigationBar), findsOneWidget);
 
       // Bấm nút "Đọc ngay"
       expect(find.text('Đọc ngay'), findsOneWidget);
       await tester.tap(find.text('Đọc ngay'));
       await tester.pumpAndSettle();
 
-      // Xác nhận chuyển sang ChapterDetailScreen
+      // Trang đọc mở toàn màn hình: không còn thanh tab
       expect(find.byType(ChapterDetailScreen), findsOneWidget);
+      expect(find.byType(NavigationBar), findsNothing);
+
+      // Sang chương sau: trang đọc được THAY THẾ, không chồng thêm trang mới
+      await tester.tap(find.text('Chương sau'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ChapterDetailScreen), findsOneWidget);
+
+      // Back 1 lần -> về thẳng chi tiết truyện
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.byType(ChapterDetailScreen), findsNothing);
+      expect(find.byType(SeriesDetailScreen), findsOneWidget);
     },
   );
 }
