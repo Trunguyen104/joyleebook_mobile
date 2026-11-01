@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/series_repository.dart';
 import '../../../domain/models/series.dart';
+import '../../auth/view_models/auth_session_view_model.dart';
 import 'series_list_view_model.dart';
 
 /// RIVERPOD PROVIDER: Đăng ký ViewModel cho màn hình chi tiết truyện
@@ -27,14 +28,15 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
 
   @override
   Future<Series> build() async {
-    // 1. Đọc bộ nhớ cache từ danh sách truyện nếu đã tải trước đó
-    final list = ref.read(seriesListViewModelProvider).value;
-    final cached = list?.where((s) => s.id == seriesId).firstOrNull;
-    if (cached != null) {
-      return cached;
-    }
+    // 1. Lắng nghe khi phiên đăng nhập thay đổi (đăng nhập / đăng xuất)
+    // để tự động cập nhật my-rating và điểm số mới nhất mà không block build ban đầu
+    ref.listen(authSessionProvider, (previous, next) {
+      if (previous?.value != next.value) {
+        refresh();
+      }
+    });
 
-    // 2. Nếu chưa có trong cache, gọi Repository tải từ Gateway
+    // 2. Gọi Repository tải chi tiết truyện đầy đủ (kèm my-rating và Community ratings)
     return ref.watch(seriesRepositoryProvider).getSeriesById(seriesId);
   }
 
@@ -108,6 +110,14 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
       averageRating: roundedAvg,
     ));
 
+    // Đồng bộ sang danh sách ngoài trang chủ
+    ref.read(seriesListViewModelProvider.notifier).updateRatingLocally(
+      seriesId: seriesId,
+      averageRating: roundedAvg,
+      totalRatings: newTotal,
+      userRating: score,
+    );
+
     // BƯỚC 2: Gửi request lên Gateway
     try {
       await ref
@@ -117,6 +127,12 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
     } catch (_) {
       // BƯỚC 3: Rollback khi lỗi
       state = AsyncData(original);
+      ref.read(seriesListViewModelProvider.notifier).updateRatingLocally(
+        seriesId: seriesId,
+        averageRating: original.averageRating,
+        totalRatings: original.totalRatings,
+        userRating: original.userRating,
+      );
       return false;
     }
   }

@@ -105,12 +105,38 @@ class Series {
     );
   }
 
-  /// So sánh hai đối tượng Series theo ID (dùng cho việc tìm kiếm hoặc kiểm thử)
+  /// So sánh hai đối tượng Series theo đầy đủ thuộc tính để Riverpod và UI nhận diện đúng sự thay đổi trạng thái
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Series && runtimeType == other.runtimeType && id == other.id;
+      other is Series &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          title == other.title &&
+          authorName == other.authorName &&
+          description == other.description &&
+          coverImageUrl == other.coverImageUrl &&
+          status == other.status &&
+          listEquals(genres, other.genres) &&
+          isBookmarked == other.isBookmarked &&
+          totalChapters == other.totalChapters &&
+          averageRating == other.averageRating &&
+          totalRatings == other.totalRatings &&
+          userRating == other.userRating;
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode => Object.hash(
+        id,
+        title,
+        authorName,
+        description,
+        coverImageUrl,
+        status,
+        Object.hashAll(genres),
+        isBookmarked,
+        totalChapters,
+        averageRating,
+        totalRatings,
+        userRating,
+      );
 }

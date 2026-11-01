@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:joyleebook_mobile/app.dart';
 import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/chapter_repository.dart';
+import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
 import 'package:joyleebook_mobile/domain/models/series.dart';
+import 'package:joyleebook_mobile/ui/auth/widgets/sign_in_screen.dart';
 import 'package:joyleebook_mobile/ui/core/themes/app_theme.dart';
+import 'package:joyleebook_mobile/ui/core/widgets/joylee_button.dart';
 import 'package:joyleebook_mobile/ui/series/view_models/series_detail_view_model.dart';
 import 'package:joyleebook_mobile/ui/series/widgets/series_detail_screen.dart';
 import 'package:joyleebook_mobile/ui/series/widgets/series_rating_card.dart';
 
 import '../../testing/fakes/fake_auth_repository.dart';
 import '../../testing/fakes/fake_chapter_repository.dart';
+import '../../testing/fakes/fake_profile_repository.dart';
 import '../../testing/fakes/fake_series_repository.dart';
 
 void main() {
@@ -307,6 +312,67 @@ void main() {
 
       // Xác nhận phản hồi thành công
       expect(find.text('Đã gửi đánh giá thành công! Cảm ơn bạn.'), findsOneWidget);
+    });
+
+    testWidgets('Toàn bộ luồng: Đang ở Series Detail -> bấm đánh giá -> hiện popup -> đăng nhập -> quay lại đúng Series Detail -> đánh giá trực tiếp', (tester) async {
+      final fakeSeriesRepo = FakeSeriesRepository([testSeries]);
+      final fakeChapterRepo = FakeChapterRepository([]);
+      final fakeAuthRepo = FakeAuthRepository(savedSession: null);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            seriesRepositoryProvider.overrideWithValue(fakeSeriesRepo),
+            chapterRepositoryProvider.overrideWithValue(fakeChapterRepo),
+            authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+            profileRepositoryProvider.overrideWithValue(FakeProfileRepository()),
+          ],
+          child: const JoyleeBookApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Ở Kho Truyện -> bấm vào truyện -> mở SeriesDetailScreen
+      await tester.tap(find.text(testSeries.title));
+      await tester.pumpAndSettle();
+      expect(find.byType(SeriesDetailScreen), findsOneWidget);
+
+      // Bấm vào sao 5 khi chưa đăng nhập
+      await tester.ensureVisible(find.byKey(const Key('star_button_5')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('star_button_5')));
+      await tester.pumpAndSettle();
+
+      // Thấy dialog yêu cầu đăng nhập
+      expect(find.text('Đăng nhập để đánh giá'), findsOneWidget);
+
+      // Bấm "Đăng nhập ngay" -> chuyển sang màn hình Đăng nhập
+      await tester.tap(find.text('Đăng nhập ngay'));
+      await tester.pumpAndSettle();
+      expect(find.byType(SignInScreen), findsOneWidget);
+
+      // Nhập thông tin và Đăng nhập
+      await tester.enterText(find.byType(TextField).at(0), 'demo.reader');
+      await tester.enterText(find.byType(TextField).at(1), 'DemoPassword123@');
+      await tester.tap(find.widgetWithText(JoyleeButton, 'Đăng nhập'));
+      await tester.pumpAndSettle();
+
+      // Tự động quay lại đúng màn hình SeriesDetailScreen
+      expect(find.byType(SeriesDetailScreen), findsOneWidget);
+      expect(find.byType(SignInScreen), findsNothing);
+
+      // Đã đăng nhập -> Bấm đánh giá 5 sao
+      await tester.ensureVisible(find.byKey(const Key('star_button_5')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('star_button_5')));
+      await tester.pump(); // Optimistic update
+      await tester.pumpAndSettle();
+
+      // State thay đổi trực tiếp ngay trên giao diện
+      expect(find.text('Đã gửi đánh giá thành công! Cảm ơn bạn.'), findsOneWidget);
+      expect(find.text('5 / 5 ★'), findsOneWidget);
+      expect(find.text('5.0 (1)'), findsOneWidget);
+      expect(find.text('Trung bình: 5.0 ★ (1 lượt đánh giá)'), findsOneWidget);
     });
   });
 }
