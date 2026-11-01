@@ -14,6 +14,7 @@ import '../../core/widgets/joylee_avatar.dart';
 import '../../core/widgets/joylee_button.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../view_models/series_detail_view_model.dart';
+import 'series_rating_card.dart';
 
 /// MÀN HÌNH CHI TIẾT TÁC PHẨM (SeriesDetailScreen)
 /// Dành riêng cho Actor Reader (Độc giả JoyleeBook).
@@ -488,7 +489,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                 const SizedBox(width: 10),
 
                 // Badge tổng số chương
-                if (series.totalChapters > 0)
+                if (series.totalChapters > 0) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -516,6 +517,43 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                             color: colors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+
+                // Badge điểm đánh giá trung bình
+                if (series.totalRatings > 0 || series.averageRating > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                      border: Border.all(
+                        color: Colors.amber.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.star_rounded,
+                          size: 14,
+                          color: Colors.amber[700],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${series.averageRating} (${series.totalRatings})',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.amber[900],
                           ),
                         ),
                       ],
@@ -568,6 +606,32 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                   color: colors.textSecondary,
                 ),
               ),
+            ),
+            const SizedBox(height: AppDimensions.space4),
+
+            // Khung đánh giá tác phẩm (Rate & Update Rating)
+            SeriesRatingCard(
+              userRating: series.userRating,
+              averageRating: series.averageRating,
+              totalRatings: series.totalRatings,
+              onRate: (score) async {
+                final success = await ref
+                    .read(seriesDetailViewModelProvider(series.id).notifier)
+                    .rateSeries(score);
+                if (!mounted) return success;
+                if (!success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text(
+                        'Không thể gửi đánh giá tác phẩm. Vui lòng thử lại sau.',
+                      ),
+                      backgroundColor: colors.danger,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+                return success;
+              },
             ),
             const SizedBox(height: AppDimensions.space6),
           ],

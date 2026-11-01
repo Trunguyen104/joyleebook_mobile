@@ -37,6 +37,9 @@ class Series {
   final List<String> genres;    // Danh sách thể loại
   final bool isBookmarked;      // Đã thêm vào tủ sách hay chưa (thuộc tính của app mobile)
   final int totalChapters;      // Tổng số chương của bộ truyện
+  final double averageRating;   // Điểm đánh giá trung bình (0.0 - 5.0)
+  final int totalRatings;       // Tổng số lượt độc giả đã đánh giá
+  final int? userRating;        // Điểm đánh giá của người dùng hiện tại (1 - 5, null nếu chưa đánh giá)
 
   const Series({
     required this.id,
@@ -48,6 +51,9 @@ class Series {
     this.genres = const [],
     this.isBookmarked = false,
     this.totalChapters = 0,
+    this.averageRating = 0.0,
+    this.totalRatings = 0,
+    this.userRating,
   });
 
   /// Hàm chuyển đổi từ DTO (Data Layer) sang Domain Model (Domain Layer)
@@ -65,14 +71,21 @@ class Series {
       genres: dto.genreNames,
       isBookmarked: isBookmarked,
       totalChapters: dto.totalChapters,
+      averageRating: dto.averageRating,
+      totalRatings: dto.totalRatings,
+      userRating: dto.userRating,
     );
   }
 
   /// Hàm copyWith: Tạo bản sao mới với một vài thuộc tính thay đổi
-  /// Rất hữu ích khi muốn đổi trạng thái isBookmarked (Optimistic UI) mà không làm thay đổi các trường khác
+  /// Rất hữu ích khi muốn đổi trạng thái isBookmarked, userRating (Optimistic UI) mà không làm thay đổi các trường khác
   Series copyWith({
     bool? isBookmarked,
     int? totalChapters,
+    double? averageRating,
+    int? totalRatings,
+    int? userRating,
+    bool clearUserRating = false,
   }) {
     return Series(
       id: id,
@@ -84,6 +97,9 @@ class Series {
       genres: genres,
       isBookmarked: isBookmarked ?? this.isBookmarked,
       totalChapters: totalChapters ?? this.totalChapters,
+      averageRating: averageRating ?? this.averageRating,
+      totalRatings: totalRatings ?? this.totalRatings,
+      userRating: clearUserRating ? null : (userRating ?? this.userRating),
     );
   }
 

@@ -36,6 +36,15 @@ class SeriesDto {
   // Tổng số chương (nếu API trả về)
   final int totalChapters;
 
+  // Điểm đánh giá trung bình (ví dụ: 4.8 / 5.0)
+  final double averageRating;
+
+  // Tổng số lượt độc giả đã đánh giá
+  final int totalRatings;
+
+  // Điểm đánh giá của người dùng hiện tại (1-5, null nếu chưa đánh giá)
+  final int? userRating;
+
   const SeriesDto({
     required this.id,
     required this.title,
@@ -47,6 +56,9 @@ class SeriesDto {
     this.isPublish = true,
     this.genreNames = const [],
     this.totalChapters = 0,
+    this.averageRating = 0.0,
+    this.totalRatings = 0,
+    this.userRating,
   });
 
   /// Hàm khởi tạo từ Map JSON nhận từ API
@@ -89,6 +101,19 @@ class SeriesDto {
 
       // Tổng số chương
       totalChapters: json['totalChapters'] as int? ?? 0,
+
+      // Điểm đánh giá trung bình
+      averageRating: (json['averageRating'] as num?)?.toDouble() ??
+          (json['rating'] as num?)?.toDouble() ??
+          0.0,
+
+      // Tổng số lượt đánh giá
+      totalRatings: json['totalRatings'] as int? ??
+          json['ratingCount'] as int? ??
+          0,
+
+      // Điểm đánh giá của người dùng
+      userRating: json['userRating'] as int?,
     );
   }
 
@@ -104,6 +129,9 @@ class SeriesDto {
       'status': status,
       'isPublish': isPublish,
       'totalChapters': totalChapters,
+      'averageRating': averageRating,
+      'totalRatings': totalRatings,
+      if (userRating != null) 'userRating': userRating,
     };
   }
 }

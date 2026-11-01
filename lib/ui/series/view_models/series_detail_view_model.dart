@@ -16,7 +16,7 @@ final seriesDetailViewModelProvider =
 /// Áp dụng các nguyên tắc kiến trúc:
 /// 1. Tận dụng bộ đệm (cache) từ SeriesListViewModel để hiển thị giao diện tức thì không giật lag.
 /// 2. Bắt lỗi an toàn và bọc trong AsyncValue để UI hiển thị đủ 4 trạng thái chuẩn.
-/// 3. Optimistic UI với Rollback cho tính năng Bookmark (Lưu vào tủ sách).
+/// 3. Optimistic UI với Rollback cho tính năng Bookmark (Lưu vào tủ sách) và Rating (Đánh giá).
 /// 4. Đồng bộ 2 chiều với danh sách truyện ở trang chủ.
 class SeriesDetailViewModel extends AsyncNotifier<Series> {
   final String seriesId;
@@ -73,6 +73,48 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
       ref
           .read(seriesListViewModelProvider.notifier)
           .updateBookmarkLocally(seriesId, original.isBookmarked);
+      return false;
+    }
+  }
+
+  /// Đánh giá hoặc Cập nhật đánh giá tác phẩm (Optimistic UI kèm Rollback)
+  /// Điểm đánh giá bắt buộc thuộc thang 1 - 5 sao.
+  /// Trả về true nếu thành công, false nếu có lỗi xảy ra.
+  Future<bool> rateSeries(int score) async {
+    // 1. Kiểm tra validation ranh giới (Boundary check): 1 <= score <= 5
+    if (score < 1 || score > 5) {
+      return false;
+    }
+
+    final current = state.value;
+    if (current == null) return false;
+
+    final original = current;
+    final isFirstRate = current.userRating == null;
+    final newTotal = isFirstRate ? current.totalRatings + 1 : current.totalRatings;
+    final currentSum = current.averageRating * current.totalRatings;
+    final newSum = isFirstRate
+        ? (currentSum + score)
+        : (currentSum - (current.userRating ?? 0) + score);
+    final newAvg = newTotal > 0 ? (newSum / newTotal) : score.toDouble();
+    final roundedAvg = double.parse(newAvg.toStringAsFixed(1));
+
+    // BƯỚC 1: Cập nhật Lạc quan (Optimistic Update)
+    state = AsyncData(current.copyWith(
+      userRating: score,
+      totalRatings: newTotal,
+      averageRating: roundedAvg,
+    ));
+
+    // BƯỚC 2: Gửi request lên Gateway
+    try {
+      await ref
+          .read(seriesRepositoryProvider)
+          .rateSeries(seriesId, score);
+      return true;
+    } catch (_) {
+      // BƯỚC 3: Rollback khi lỗi
+      state = AsyncData(original);
       return false;
     }
   }

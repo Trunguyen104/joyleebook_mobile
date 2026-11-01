@@ -80,6 +80,28 @@ class SeriesRepository {
       throw AppException(message: 'Không thể xử lý chi tiết tác phẩm: $e');
     }
   }
+
+  /// 4. Đánh giá hoặc cập nhật điểm đánh giá tác phẩm (Rate & Update Rating)
+  /// Điểm đánh giá phải thuộc thang 1 - 5 sao.
+  Future<void> rateSeries(String seriesId, int score) async {
+    if (score < 1 || score > 5) {
+      throw AppException(
+        message: 'Điểm đánh giá không hợp lệ. Vui lòng chọn từ 1 đến 5 sao.',
+      );
+    }
+
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        ApiEndpoints.seriesRating(seriesId),
+        data: {'score': score, 'rating': score},
+      );
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    } catch (e) {
+      if (e is AppException) rethrow;
+      throw AppException(message: 'Không thể gửi đánh giá tác phẩm: $e');
+    }
+  }
 }
 
 /// RIVERPOD PROVIDER: Đăng ký SeriesRepository để các ViewModel có thể dùng lại dễ dàng

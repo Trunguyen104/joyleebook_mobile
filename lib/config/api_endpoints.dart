@@ -5,6 +5,7 @@ abstract final class ApiEndpoints {
   // Series Microservice (via Gateway)
   static const String series = '/api/series';
   static const String genres = '/api/genres';
+  static String seriesRating(String seriesId) => '/api/series/$seriesId/ratings';
 
   // Authentication Microservice (via Gateway)
   static const String authSignIn = '/api/auth/sign-in';
