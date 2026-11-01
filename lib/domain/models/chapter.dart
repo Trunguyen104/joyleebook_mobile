@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+
 import '../../data/dtos/chapter_dto.dart';
 
 /// PURE DOMAIN MODEL - Thực thể nghiệp vụ thuần túy của một chương sách

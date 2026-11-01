@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/services/api_exceptions.dart';
 import 'package:joyleebook_mobile/domain/models/user_profile.dart';
 import 'package:joyleebook_mobile/ui/core/themes/app_theme.dart';
+import 'package:joyleebook_mobile/ui/core/widgets/joylee_button.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_empty_state.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_error_view.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/profile_screen.dart';
 
+import '../../testing/fakes/fake_auth_repository.dart';
 import '../../testing/fakes/fake_profile_repository.dart';
 
 const _profile = UserProfile(
@@ -28,10 +31,17 @@ const _profile = UserProfile(
   ),
 );
 
-Widget _buildApp(FakeProfileRepository fake) => ProviderScope(
-  overrides: [profileRepositoryProvider.overrideWithValue(fake)],
-  child: MaterialApp(theme: AppTheme.light, home: const ProfileScreen()),
-);
+// Mặc định đã đăng nhập; truyền FakeAuthRepository() để giả lập chưa đăng nhập
+Widget _buildApp(FakeProfileRepository fake, {FakeAuthRepository? auth}) =>
+    ProviderScope(
+      overrides: [
+        profileRepositoryProvider.overrideWithValue(fake),
+        authRepositoryProvider.overrideWithValue(
+          auth ?? FakeAuthRepository(savedSession: fakeSession),
+        ),
+      ],
+      child: MaterialApp(theme: AppTheme.light, home: const ProfileScreen()),
+    );
 
 void main() {
   testWidgets('Hiển thị hồ sơ và thống kê đọc khi có dữ liệu', (tester) async {
@@ -93,5 +103,56 @@ void main() {
 
     expect(fake.callCount, 2);
     expect(find.text('Phúc'), findsOneWidget);
+  });
+
+  testWidgets('Chưa đăng nhập thì không gọi API hồ sơ, hiện gợi ý đăng nhập', (
+    tester,
+  ) async {
+    final fake = FakeProfileRepository(profile: _profile);
+    await tester.pumpWidget(_buildApp(fake, auth: FakeAuthRepository()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bạn chưa đăng nhập'), findsOneWidget);
+    expect(fake.callCount, 0);
+    // Chưa đăng nhập thì không có nút đăng xuất
+    expect(find.byTooltip('Đăng xuất'), findsNothing);
+  });
+
+  testWidgets('Đăng xuất: hỏi xác nhận, bấm Hủy thì vẫn giữ phiên', (
+    tester,
+  ) async {
+    final auth = FakeAuthRepository(savedSession: fakeSession);
+    await tester.pumpWidget(
+      _buildApp(FakeProfileRepository(profile: _profile), auth: auth),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Đăng xuất'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+
+    await tester.tap(find.text('Hủy'));
+    await tester.pumpAndSettle();
+    expect(auth.signOutCallCount, 0);
+    expect(find.text('Phúc'), findsOneWidget);
+  });
+
+  testWidgets('Đăng xuất: xác nhận thì xóa phiên và hiện gợi ý đăng nhập', (
+    tester,
+  ) async {
+    final auth = FakeAuthRepository(savedSession: fakeSession);
+    await tester.pumpWidget(
+      _buildApp(FakeProfileRepository(profile: _profile), auth: auth),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Đăng xuất'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(JoyleeButton, 'Đăng xuất'));
+    await tester.pumpAndSettle();
+
+    expect(auth.signOutCallCount, 1);
+    expect(find.text('Đã đăng xuất'), findsOneWidget);
+    expect(find.text('Bạn chưa đăng nhập'), findsOneWidget);
   });
 }

@@ -1,0 +1,141 @@
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../domain/models/series.dart';
+import '../ui/auth/view_models/auth_session_view_model.dart';
+import '../ui/auth/widgets/sign_in_screen.dart';
+import '../ui/auth/widgets/sign_up_screen.dart';
+import '../ui/chapter/widgets/chapter_detail_screen.dart';
+import '../ui/chapter/widgets/chapter_list_screen.dart';
+import '../ui/gateway_test/widgets/gateway_test_screen.dart';
+import '../ui/profile/widgets/profile_screen.dart';
+import '../ui/series/widgets/series_detail_screen.dart';
+import '../ui/series/widgets/series_list_screen.dart';
+import 'app_paths.dart';
+import 'app_shell.dart';
+
+/// Các trang bắt buộc đăng nhập. Kho Truyện xem được khi chưa đăng nhập.
+const _privatePaths = {AppPaths.profile};
+const _authPaths = {AppPaths.signIn, AppPaths.signUp};
+
+/// Navigator gốc (nằm trên thanh tab). Trang nào gắn key này sẽ mở toàn màn hình.
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
+/// BỘ ĐỊNH TUYẾN CỦA APP
+/// - 3 tab (Kho Truyện, Cá nhân, Kiểm tra Gateway) giữ nguyên trạng thái khi chuyển tab.
+/// - Chi tiết truyện và danh sách chương mở bên trong tab Kho Truyện (vẫn thấy thanh tab).
+/// - Trang đọc chương, /sign-in, /sign-up mở toàn màn hình, không có thanh tab.
+/// - [redirect] là nơi DUY NHẤT quyết định "chưa đăng nhập thì đi đâu".
+///
+/// Dữ liệu truyền kèm khi mở trang (`extra`) chỉ để hiện nhanh, không bắt buộc:
+/// - Chi tiết truyện: `Series` vừa bấm, để hiện ngay trong lúc tải bản mới nhất.
+/// - Danh sách chương, trang đọc: tên bộ truyện (`String`) để hiện trên AppBar.
+final appRouterProvider = Provider<GoRouter>((ref) {
+  // Mỗi khi phiên đăng nhập thay đổi -> báo GoRouter chạy lại redirect
+  final authChanged = ValueNotifier<int>(0);
+  ref.listen(authSessionProvider, (_, _) => authChanged.value++);
+
+  final router = GoRouter(
+    navigatorKey: _rootNavigatorKey,
+    initialLocation: AppPaths.series,
+    refreshListenable: authChanged,
+    redirect: (context, state) {
+      final session = ref.read(authSessionProvider);
+      // Đang đọc token đã lưu khi mở app -> chưa quyết định gì
+      if (session.isLoading) return null;
+
+      final isSignedIn = session.value != null;
+      final path = state.matchedLocation;
+
+      if (!isSignedIn && _privatePaths.contains(path)) {
+        return '${AppPaths.signIn}?from=$path';
+      }
+      if (isSignedIn && _authPaths.contains(path)) {
+        return state.uri.queryParameters['from'] ?? AppPaths.series;
+      }
+      return null;
+    },
+    routes: [
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppPaths.series,
+                builder: (context, state) => const SeriesListScreen(),
+                routes: [
+                  // /series/:seriesId
+                  GoRoute(
+                    path: ':seriesId',
+                    builder: (context, state) => SeriesDetailScreen(
+                      seriesId: state.pathParameters['seriesId']!,
+                      initialSeries: state.extra as Series?,
+                    ),
+                    routes: [
+                      // /series/:seriesId/chapters
+                      GoRoute(
+                        path: 'chapters',
+                        builder: (context, state) => ChapterListScreen(
+                          seriesId: state.pathParameters['seriesId']!,
+                          seriesTitle: state.extra as String? ?? '',
+                        ),
+                        routes: [
+                          // /series/:seriesId/chapters/:chapterId
+                          GoRoute(
+                            path: ':chapterId',
+                            // Trang đọc mở toàn màn hình để tập trung đọc
+                            parentNavigatorKey: _rootNavigatorKey,
+                            builder: (context, state) => ChapterDetailScreen(
+                              seriesId: state.pathParameters['seriesId']!,
+                              chapterId: state.pathParameters['chapterId']!,
+                              seriesTitle: state.extra as String? ?? '',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppPaths.profile,
+                builder: (context, state) => const ProfileScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppPaths.gateway,
+                builder: (context, state) => const GatewayTestScreen(),
+              ),
+            ],
+          ),
+        ],
+      ),
+      GoRoute(
+        path: AppPaths.signIn,
+        builder: (context, state) =>
+            SignInScreen(from: state.uri.queryParameters['from']),
+      ),
+      GoRoute(
+        path: AppPaths.signUp,
+        builder: (context, state) =>
+            SignUpScreen(from: state.uri.queryParameters['from']),
+      ),
+    ],
+  );
+
+  ref.onDispose(() {
+    router.dispose();
+    authChanged.dispose();
+  });
+  return router;
+});

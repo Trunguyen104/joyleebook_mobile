@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
+
 import '../../data/dtos/series_dto.dart';
 
 /// Enum đại diện cho trạng thái của bộ truyện
 /// Giúp code dễ đọc hơn thay vì dùng số 0 hoặc 1
 enum SeriesStatus {
   completed, // Đã hoàn thành (tương ứng với số 0 trên backend)
-  ongoing;   // Đang tiến hành (tương ứng với số 1 trên backend)
+  ongoing; // Đang tiến hành (tương ứng với số 1 trên backend)
 
   /// Hàm tiện ích chuyển đổi từ số nguyên sang Enum
   static SeriesStatus fromInt(int value) =>
@@ -13,33 +14,33 @@ enum SeriesStatus {
 
   /// Nhãn hiển thị tiếng Việt trên giao diện
   String get label => switch (this) {
-        SeriesStatus.completed => 'Hoàn thành',
-        SeriesStatus.ongoing => 'Đang tiến hành',
-      };
+    SeriesStatus.completed => 'Hoàn thành',
+    SeriesStatus.ongoing => 'Đang tiến hành',
+  };
 }
 
 /// PURE DOMAIN MODEL - Thực thể nghiệp vụ thuần túy
 /// Bước 2 trong kiến trúc Compass App:
 /// Lớp này là đối tượng "sạch" mà giao diện và logic của app sẽ dùng trực tiếp.
-/// 
+///
 /// NGUYÊN TẮC VÀNG CHO NGƯỜI MỚI HỌC:
 /// 1. Tuyệt đối không import thư viện 'flutter/material.dart' hay 'dio' vào đây.
 /// 2. Thuộc tính phải là final và bất biến (@immutable) để dữ liệu không bị sửa lung tung.
 /// 3. Không để lộ các chi tiết vụn vặt của DTO lên UI.
 @immutable
 class Series {
-  final String id;              // Mã truyện
-  final String title;           // Tên truyện
-  final String authorName;      // Tên tác giả
-  final String description;     // Tóm tắt nội dung
-  final String coverImageUrl;   // Đường dẫn ảnh bìa
-  final SeriesStatus status;    // Trạng thái (Hoàn thành / Đang ra)
-  final List<String> genres;    // Danh sách thể loại
-  final bool isBookmarked;      // Đã thêm vào tủ sách hay chưa (thuộc tính của app mobile)
-  final int totalChapters;      // Tổng số chương của bộ truyện
-  final double averageRating;   // Điểm đánh giá trung bình (0.0 - 5.0)
-  final int totalRatings;       // Tổng số lượt độc giả đã đánh giá
-  final int? userRating;        // Điểm đánh giá của người dùng hiện tại (1 - 5, null nếu chưa đánh giá)
+  final String id; // Mã truyện
+  final String title; // Tên truyện
+  final String authorName; // Tên tác giả
+  final String description; // Tóm tắt nội dung
+  final String coverImageUrl; // Đường dẫn ảnh bìa
+  final SeriesStatus status; // Trạng thái (Hoàn thành / Đang ra)
+  final List<String> genres; // Danh sách thể loại
+  final bool isBookmarked; // Đã thêm vào tủ sách hay chưa (thuộc tính của app mobile)
+  final int totalChapters; // Tổng số chương của bộ truyện
+  final double averageRating; // Điểm đánh giá trung bình (0.0 - 5.0)
+  final int totalRatings; // Tổng số lượt độc giả đã đánh giá
+  final int? userRating; // Điểm đánh giá của người dùng hiện tại (1 - 5, null nếu chưa đánh giá)
 
   const Series({
     required this.id,
@@ -63,7 +64,8 @@ class Series {
       id: dto.id,
       title: dto.title,
       authorName: dto.authorName,
-      description: (dto.description != null && dto.description!.trim().isNotEmpty)
+      description:
+          (dto.description != null && dto.description!.trim().isNotEmpty)
           ? dto.description!
           : 'Chưa có tóm tắt cho tác phẩm này.',
       coverImageUrl: dto.coverImageUrl ?? '',

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+
 import '../../data/dtos/profile_dto.dart';
 import '../../data/dtos/reading_stats_dto.dart';
 
@@ -109,15 +110,15 @@ class ReadingStats {
 
   @override
   int get hashCode => Object.hash(
-        seriesStarted,
-        chaptersCompleted,
-        currentStreakDays,
-        longestStreakDays,
-        lastReadAt,
-        periodDays,
-        chaptersCompletedInPeriod,
-        activeDaysInPeriod,
-      );
+    seriesStarted,
+    chaptersCompleted,
+    currentStreakDays,
+    longestStreakDays,
+    lastReadAt,
+    periodDays,
+    chaptersCompletedInPeriod,
+    activeDaysInPeriod,
+  );
 }
 
 /// PURE DOMAIN MODEL - Hồ sơ người dùng đang đăng nhập.
@@ -210,13 +211,13 @@ class UserProfile {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        username,
-        displayName,
-        bio,
-        avatarUrl,
-        email,
-        role,
-        stats,
-      );
+    id,
+    username,
+    displayName,
+    bio,
+    avatarUrl,
+    email,
+    role,
+    stats,
+  );
 }

@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../config/api_endpoints.dart';
 import '../../../config/environment.dart';
 import '../../../data/services/api_client.dart';
@@ -36,8 +38,8 @@ class GatewayTestState {
 
 final gatewayTestViewModelProvider =
     NotifierProvider<GatewayTestViewModel, GatewayTestState>(
-  GatewayTestViewModel.new,
-);
+      GatewayTestViewModel.new,
+    );
 
 class GatewayTestViewModel extends Notifier<GatewayTestState> {
   @override
@@ -55,7 +57,8 @@ class GatewayTestViewModel extends Notifier<GatewayTestState> {
       GatewayCheckResult(
         endpoint: ApiEndpoints.healthLive,
         name: 'Gateway Health (Live)',
-        description: 'Kiểm tra trực tiếp JoyleeBook.Gateway (trả về status: Healthy).',
+        description:
+            'Kiểm tra trực tiếp JoyleeBook.Gateway (trả về status: Healthy).',
       ),
       GatewayCheckResult(
         endpoint: ApiEndpoints.series,
@@ -65,7 +68,8 @@ class GatewayTestViewModel extends Notifier<GatewayTestState> {
       GatewayCheckResult(
         endpoint: ApiEndpoints.notificationsHealth,
         name: 'Notification Health (Downstream Proxy)',
-        description: 'Kiểm tra Gateway chuyển tiếp YARP sang Notification Service.',
+        description:
+            'Kiểm tra Gateway chuyển tiếp YARP sang Notification Service.',
       ),
     ];
   }
@@ -73,14 +77,18 @@ class GatewayTestViewModel extends Notifier<GatewayTestState> {
   void updateBaseUrl(String newUrl) {
     state = state.copyWith(
       baseUrl: newUrl.trim(),
-      results: state.results.map((r) => r.copyWith(
-        statusCode: null,
-        statusMessage: null,
-        latencyMs: null,
-        isSuccess: false,
-        rawBody: null,
-        errorMessage: null,
-      )).toList(),
+      results: state.results
+          .map(
+            (r) => r.copyWith(
+              statusCode: null,
+              statusMessage: null,
+              latencyMs: null,
+              isSuccess: false,
+              rawBody: null,
+              errorMessage: null,
+            ),
+          )
+          .toList(),
     );
     ref.read(gatewayBaseUrlProvider.notifier).setUrl(newUrl.trim());
   }
@@ -92,10 +100,7 @@ class GatewayTestViewModel extends Notifier<GatewayTestState> {
     for (var i = 0; i < state.results.length; i++) {
       await checkSingleEndpoint(i);
     }
-    state = state.copyWith(
-      isCheckingAll: false,
-      lastChecked: DateTime.now(),
-    );
+    state = state.copyWith(isCheckingAll: false, lastChecked: DateTime.now());
   }
 
   Future<void> checkSingleEndpoint(int index) async {
@@ -111,13 +116,15 @@ class GatewayTestViewModel extends Notifier<GatewayTestState> {
     final stopwatch = Stopwatch()..start();
 
     try {
-      final dio = Dio(BaseOptions(
-        baseUrl: Environment.parseUri(state.baseUrl).toString(),
-        connectTimeout: const Duration(seconds: 4),
-        receiveTimeout: const Duration(seconds: 6),
-        headers: const {'Accept': 'application/json'},
-        validateStatus: (status) => true, // Đón mọi mã HTTP để phân tích
-      ));
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: Environment.parseUri(state.baseUrl).toString(),
+          connectTimeout: const Duration(seconds: 4),
+          receiveTimeout: const Duration(seconds: 6),
+          headers: const {'Accept': 'application/json'},
+          validateStatus: (status) => true, // Đón mọi mã HTTP để phân tích
+        ),
+      );
 
       final response = await dio.get<dynamic>(target.endpoint);
       stopwatch.stop();
@@ -140,7 +147,8 @@ class GatewayTestViewModel extends Notifier<GatewayTestState> {
         } else if (statusCode == 404) {
           errorMsg = 'HTTP 404 Not Found: Đường dẫn không tồn tại hoặc chưa cấu hình route trên Gateway.';
         } else {
-          errorMsg = 'HTTP $statusCode: ${response.statusMessage ?? "Yêu cầu không thành công"}';
+          errorMsg =
+              'HTTP $statusCode: ${response.statusMessage ?? "Yêu cầu không thành công"}';
         }
       }
 
@@ -162,10 +170,12 @@ class GatewayTestViewModel extends Notifier<GatewayTestState> {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:
         case DioExceptionType.receiveTimeout:
-          errorMsg = 'Quá hạn kết nối (${stopwatch.elapsedMilliseconds}ms). Gateway không phản hồi kịp thời.';
+          errorMsg =
+              'Quá hạn kết nối (${stopwatch.elapsedMilliseconds}ms). Gateway không phản hồi kịp thời.';
           break;
         case DioExceptionType.connectionError:
-          errorMsg = 'Lỗi kết nối (Connection Refused): Không tìm thấy máy chủ tại ${state.baseUrl}.\n'
+          errorMsg =
+              'Lỗi kết nối (Connection Refused): Không tìm thấy máy chủ tại ${state.baseUrl}.\n'
               'Hãy kiểm tra kết nối mạng hoặc địa chỉ Gateway.';
           break;
         default:

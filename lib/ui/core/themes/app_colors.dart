@@ -144,7 +144,11 @@ class AppColors extends ThemeExtension<AppColors> {
       bgSurfaceSubtle: Color.lerp(bgSurfaceSubtle, other.bgSurfaceSubtle, t)!,
       bgBrandSubtle: Color.lerp(bgBrandSubtle, other.bgBrandSubtle, t)!,
       primaryBrand: Color.lerp(primaryBrand, other.primaryBrand, t)!,
-      primaryBrandDark: Color.lerp(primaryBrandDark, other.primaryBrandDark, t)!,
+      primaryBrandDark: Color.lerp(
+        primaryBrandDark,
+        other.primaryBrandDark,
+        t,
+      )!,
       accent: Color.lerp(accent, other.accent, t)!,
       textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
       textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
@@ -164,5 +168,6 @@ class AppColors extends ThemeExtension<AppColors> {
 
 // Extension helper để gọi trực tiếp context.colors
 extension AppColorsBuildContextX on BuildContext {
-  AppColors get colors => Theme.of(this).extension<AppColors>() ?? AppColors.light;
+  AppColors get colors =>
+      Theme.of(this).extension<AppColors>() ?? AppColors.light;
 }

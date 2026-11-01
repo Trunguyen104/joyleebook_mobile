@@ -25,9 +25,11 @@ class FakeSeriesRepository implements SeriesRepository {
     if (searchQuery != null && searchQuery.trim().isNotEmpty) {
       final query = searchQuery.trim().toLowerCase();
       return _items
-          .where((s) =>
-              s.title.toLowerCase().contains(query) ||
-              s.authorName.toLowerCase().contains(query))
+          .where(
+            (s) =>
+                s.title.toLowerCase().contains(query) ||
+                s.authorName.toLowerCase().contains(query),
+          )
           .toList();
     }
     return List.unmodifiable(_items);

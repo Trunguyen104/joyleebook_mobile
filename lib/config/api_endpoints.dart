@@ -15,6 +15,7 @@ abstract final class ApiEndpoints {
   static const String authSignIn = '/api/auth/sign-in';
   static const String authSignUp = '/api/auth/sign-up';
   static const String authSignOut = '/api/auth/sign-out';
+  static const String authRefresh = '/api/auth/refresh';
 
   // Notifications Microservice (via Gateway)
   static const String notificationsHealth = '/api/notifications/health';

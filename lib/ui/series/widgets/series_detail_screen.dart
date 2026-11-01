@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../data/services/api_exceptions.dart';
 import '../../../domain/models/chapter.dart';
 import '../../../domain/models/series.dart';
+import '../../../routing/app_paths.dart';
 import '../../chapter/view_models/chapter_list_view_model.dart';
-import '../../chapter/widgets/chapter_detail_screen.dart';
 import '../../chapter/widgets/chapter_item.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
@@ -28,7 +29,7 @@ import 'series_rating_card.dart';
 /// 4. Optimistic UI kèm Rollback khi Bookmark truyện vào tủ sách.
 /// 5. Không RenderFlex overflow: SafeArea, NestedScrollView, maxLines & ellipsis.
 /// 6. Read-Only tuyệt đối: Không hiển thị bất kỳ nút tác vụ quản trị nào (Sửa, Xóa, Thêm chương).
-/// 7. Tích hợp liền mạch với Chapter Reader: Mở thẳng chương tương ứng kèm allChapters để next/prev.
+/// 7. Tích hợp liền mạch với Chapter Reader: Mở thẳng chương tương ứng qua GoRouter.
 class SeriesDetailScreen extends ConsumerStatefulWidget {
   const SeriesDetailScreen({
     super.key,
@@ -112,8 +113,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         ),
         body: JoyleeErrorView(
           message: error is AppException ? error.message : 'Đã có lỗi xảy ra.',
-          onRetry: () =>
-              ref.read(seriesDetailViewModelProvider(seriesId).notifier).refresh(),
+          onRetry: () => ref
+              .read(seriesDetailViewModelProvider(seriesId).notifier)
+              .refresh(),
         ),
       ),
 
@@ -140,8 +142,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       }
     }
 
-    final hasActiveChapter = activeChapter != null;
-    final readButtonLabel = hasActiveChapter
+    // Nhãn nút đọc: Nếu có chương đọc dở thì hiển thị "Đọc tiếp Ch. X", ngược lại "Đọc ngay"
+    final readButtonLabel = activeChapter != null
         ? 'Đọc tiếp Ch. ${activeChapter.sortOrder}'
         : 'Đọc ngay';
 
@@ -169,38 +171,24 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                 ref.watch(themeModeProvider) == ThemeMode.dark
                     ? Icons.light_mode_rounded
                     : Icons.dark_mode_rounded,
+                color: colors.textPrimary,
               ),
-              tooltip: 'Đổi giao diện Sáng / Tối',
-              onPressed: () {
-                ref.read(themeModeProvider.notifier).toggleTheme();
-              },
-            ),
-            // Nút Bookmark nhanh trên AppBar
-            IconButton(
-              icon: Icon(
-                series.isBookmarked
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_border_rounded,
-                color: series.isBookmarked
-                    ? colors.primaryBrand
-                    : colors.textSecondary,
-              ),
-              tooltip: series.isBookmarked ? 'Bỏ lưu tủ sách' : 'Lưu vào tủ sách',
-              onPressed: _isBookmarkInFlight
-                  ? null
-                  : () => _handleToggleBookmark(context, series, colors.danger),
+              tooltip: 'Đổi giao diện sáng/tối',
+              onPressed: () => ref.read(themeModeProvider.notifier).toggleTheme(),
             ),
           ],
         ),
         body: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
-              // 1. KHỐI THÔNG TIN BÌA & TÁC GIẢ & HÀNG NÚT HÀNH ĐỘNG
+              // 1. KHỐI THÔNG TIN CỐ ĐỊNH Ở ĐẦU (Header & Action Buttons)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimensions.space4,
-                    vertical: AppDimensions.space3,
+                  padding: const EdgeInsets.fromLTRB(
+                    AppDimensions.space4,
+                    AppDimensions.space2,
+                    AppDimensions.space4,
+                    AppDimensions.space3,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -304,8 +292,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                 ? Image.network(
                     series.coverImageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) =>
-                        _buildCoverPlaceholder(colors),
+                    errorBuilder: (_, _, _) => _buildCoverPlaceholder(colors),
                   )
                 : _buildCoverPlaceholder(colors),
           ),
@@ -406,12 +393,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
           child: JoyleeButton(
             label: readButtonLabel,
             icon: const Icon(Icons.menu_book_rounded, size: 18),
-            onPressed: () => _handleReadPress(
-              context,
-              series,
-              chapters,
-              activeChapter,
-            ),
+            onPressed: () =>
+                _handleReadPress(context, series, chapters, activeChapter),
           ),
         ),
         const SizedBox(width: AppDimensions.space3),
@@ -749,17 +732,10 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
               final chapter = allChapters[index];
               return ChapterItem(
                 chapter: chapter,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ChapterDetailScreen(
-                        chapterId: chapter.id,
-                        seriesTitle: series.title,
-                        allChapters: allChapters,
-                      ),
-                    ),
-                  );
-                },
+                onTap: () => context.push(
+                  AppPaths.chapterReader(series.id, chapter.id),
+                  extra: series.title,
+                ),
                 onDownloadTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -797,14 +773,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     // Ưu tiên mở chương đang đọc dở, nếu không thì mở chương đầu tiên (sortOrder nhỏ nhất)
     final targetChapter = activeChapter ?? chapters.first;
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ChapterDetailScreen(
-          chapterId: targetChapter.id,
-          seriesTitle: series.title,
-          allChapters: chapters,
-        ),
-      ),
+    context.push(
+      AppPaths.chapterReader(series.id, targetChapter.id),
+      extra: series.title,
     );
   }
 

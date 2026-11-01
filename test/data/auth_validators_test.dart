@@ -1,0 +1,48 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:joyleebook_mobile/ui/auth/view_models/auth_validators.dart';
+
+void main() {
+  group('validateUsername', () {
+    test('Độ dài biên: 2 và 65 ký tự bị từ chối, 3 và 64 hợp lệ', () {
+      expect(validateUsername('ab'), isNotNull);
+      expect(validateUsername('abc'), isNull);
+      expect(validateUsername('a' * 64), isNull);
+      expect(validateUsername('a' * 65), isNotNull);
+    });
+
+    test('Chỉ nhận chữ, số và . _ -', () {
+      expect(validateUsername('phuc.reader_01-x'), isNull);
+      expect(validateUsername('phuc nguyen'), isNotNull);
+      expect(validateUsername('phuc@mail'), isNotNull);
+      expect(validateUsername('phúc'), isNotNull);
+    });
+
+    test('Bỏ trống hoặc chỉ có khoảng trắng', () {
+      expect(validateUsername(''), 'Vui lòng nhập tên đăng nhập');
+      expect(validateUsername('   '), 'Vui lòng nhập tên đăng nhập');
+    });
+  });
+
+  group('validatePassword', () {
+    test('Cần tối thiểu 8 ký tự, có cả chữ và số', () {
+      expect(validatePassword('abc1234'), isNotNull); // 7 ký tự
+      expect(validatePassword('abcd1234'), isNull);
+      expect(validatePassword('abcdefgh'), isNotNull); // thiếu số
+      expect(validatePassword('12345678'), isNotNull); // thiếu chữ
+    });
+
+    test('Tối đa 128 ký tự', () {
+      expect(validatePassword('a1' * 64), isNull);
+      expect(validatePassword('${'a1' * 64}x'), isNotNull);
+    });
+  });
+
+  test('validateConfirmPassword phải trùng khớp 100%', () {
+    expect(validateConfirmPassword('abcd1234', 'abcd1234'), isNull);
+    expect(
+      validateConfirmPassword('abcd1234', 'abcd1235'),
+      'Mật khẩu xác nhận không trùng khớp',
+    );
+    expect(validateConfirmPassword('abcd1234', ''), isNotNull);
+  });
+}
