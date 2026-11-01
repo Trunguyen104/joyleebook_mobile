@@ -5,7 +5,11 @@ abstract final class ApiEndpoints {
   // Series Microservice (via Gateway)
   static const String series = '/api/series';
   static const String genres = '/api/genres';
-  static String seriesRating(String seriesId) => '/api/series/$seriesId/ratings';
+
+  // Ratings (Community Microservice via Gateway)
+  static const String ratings = '/api/ratings';
+  static String seriesRating(String seriesId) => '/api/ratings/series/$seriesId';
+  static String seriesMyRating(String seriesId) => '/api/ratings/series/$seriesId/my-rating';
 
   // Authentication Microservice (via Gateway)
   static const String authSignIn = '/api/auth/sign-in';
@@ -17,6 +21,9 @@ abstract final class ApiEndpoints {
 
   // Library Microservice (via Gateway)
   static const String library = '/api/library';
+  static const String libraryBookmarks = '/api/library/bookmarks';
+  static String libraryBookmarkStatus(String seriesId) => '/api/library/bookmarks/$seriesId/status';
+  static String libraryBookmarkDelete(String seriesId) => '/api/library/bookmarks/$seriesId';
 
   // Chapters Microservice (via Gateway)
   static const String chapters = '/api/chapters';
