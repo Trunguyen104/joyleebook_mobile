@@ -45,4 +45,25 @@ void main() {
     );
     expect(validateConfirmPassword('abcd1234', ''), isNotNull);
   });
+
+  group('validateEmail', () {
+    test('Bỏ trống hoặc chỉ có khoảng trắng', () {
+      expect(validateEmail(''), 'Vui lòng nhập địa chỉ email');
+      expect(validateEmail('   '), 'Vui lòng nhập địa chỉ email');
+    });
+
+    test('Định dạng email không hợp lệ', () {
+      expect(validateEmail('plainaddress'), 'Địa chỉ email không đúng định dạng');
+      expect(validateEmail('@missingusername.com'), 'Địa chỉ email không đúng định dạng');
+      expect(validateEmail('username@.com'), 'Địa chỉ email không đúng định dạng');
+      expect(validateEmail('username@com'), 'Địa chỉ email không đúng định dạng');
+      expect(validateEmail('user name@example.com'), 'Địa chỉ email không đúng định dạng');
+    });
+
+    test('Định dạng email hợp lệ', () {
+      expect(validateEmail('reader@joyleebook.com'), isNull);
+      expect(validateEmail('phuc.nguyen+test@gmail.com'), isNull);
+      expect(validateEmail('  user123@sub.domain.org  '), isNull);
+    });
+  });
 }
