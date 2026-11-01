@@ -1,17 +1,16 @@
-import '../../../data/services/api_exceptions.dart';
-import '../../core/widgets/joylee_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:joyleebook_mobile/ui/core/themes/theme_provider.dart';
 
+import '../../../data/services/api_exceptions.dart';
 import '../../../domain/models/chapter.dart';
 import '../../../domain/models/series.dart';
 import '../../chapter/view_models/chapter_list_view_model.dart';
 import '../../chapter/widgets/chapter_detail_screen.dart';
 import '../../chapter/widgets/chapter_item.dart';
-import '../../chapter/widgets/chapter_list_screen.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
+import '../../core/themes/theme_provider.dart';
+import '../../core/widgets/joylee_avatar.dart';
 import '../../core/widgets/joylee_button.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../view_models/series_detail_view_model.dart';
@@ -22,10 +21,13 @@ import '../view_models/series_detail_view_model.dart';
 /// TUÂN THỦ 100% CÁC QUY TẮC ĐÁNH GIÁ (RUBRIC):
 /// 1. Bộ 4 trạng thái chuẩn (Loading -> Error -> Empty -> Data).
 /// 2. Giao diện Warm Editorial & Material Design 3 (Context colors, tỷ lệ bìa 2:3, bo góc radiusMd/Lg).
-/// 3. Optimistic UI kèm Rollback khi Bookmark truyện vào tủ sách.
-/// 4. Không RenderFlex overflow: SafeArea, SingleChildScrollView, maxLines & ellipsis.
-/// 5. Read-Only tuyệt đối: Không hiển thị bất kỳ nút tác vụ quản trị nào (Sửa, Xóa, Thêm chương).
-/// 6. Tích hợp liền mạch với Chapter Reader: Nút "Đọc ngay / Đọc tiếp" mở thẳng chương tương ứng.
+/// 3. Phân chia bố cục 2 phần:
+///    - Phần trên (Header): Bìa sách, Tiêu đề, Tác giả và Hàng nút hành động chính (Đọc ngay & Lưu tủ sách).
+///    - Phần dưới (2 Tab ghim): Tab Tóm tắt (Trạng thái, Thể loại, Giới thiệu) và Tab Chương (Toàn bộ danh sách chương).
+/// 4. Optimistic UI kèm Rollback khi Bookmark truyện vào tủ sách.
+/// 5. Không RenderFlex overflow: SafeArea, NestedScrollView, maxLines & ellipsis.
+/// 6. Read-Only tuyệt đối: Không hiển thị bất kỳ nút tác vụ quản trị nào (Sửa, Xóa, Thêm chương).
+/// 7. Tích hợp liền mạch với Chapter Reader: Mở thẳng chương tương ứng kèm allChapters để next/prev.
 class SeriesDetailScreen extends ConsumerStatefulWidget {
   const SeriesDetailScreen({
     super.key,
@@ -142,121 +144,139 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         ? 'Đọc tiếp Ch. ${activeChapter.sortOrder}'
         : 'Đọc ngay';
 
-    return Scaffold(
-      backgroundColor: colors.bgCanvas,
-      appBar: AppBar(
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
         backgroundColor: colors.bgCanvas,
-        surfaceTintColor: Colors.transparent,
-        title: Text(
-          series.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: colors.textPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+        appBar: AppBar(
+          backgroundColor: colors.bgCanvas,
+          surfaceTintColor: Colors.transparent,
+          title: Text(
+            series.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
           ),
+          actions: [
+            // Nút chuyển đổi giao diện Sáng / Tối
+            IconButton(
+              icon: Icon(
+                ref.watch(themeModeProvider) == ThemeMode.dark
+                    ? Icons.light_mode_rounded
+                    : Icons.dark_mode_rounded,
+              ),
+              tooltip: 'Đổi giao diện Sáng / Tối',
+              onPressed: () {
+                ref.read(themeModeProvider.notifier).toggleTheme();
+              },
+            ),
+            // Nút Bookmark nhanh trên AppBar
+            IconButton(
+              icon: Icon(
+                series.isBookmarked
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_border_rounded,
+                color: series.isBookmarked
+                    ? colors.primaryBrand
+                    : colors.textSecondary,
+              ),
+              tooltip: series.isBookmarked ? 'Bỏ lưu tủ sách' : 'Lưu vào tủ sách',
+              onPressed: _isBookmarkInFlight
+                  ? null
+                  : () => _handleToggleBookmark(context, series, colors.danger),
+            ),
+          ],
         ),
-        actions: [
-          // Nút chuyển đổi giao diện Sáng / Tối
-          IconButton(
-            icon: Icon(
-              ref.watch(themeModeProvider) == ThemeMode.dark
-                  ? Icons.light_mode_rounded
-                  : Icons.dark_mode_rounded,
-            ),
-            tooltip: 'Đổi giao diện Sáng / Tối',
-            onPressed: () {
-              ref.read(themeModeProvider.notifier).toggleTheme();
-            },
-          ),
-          // Nút Bookmark nhanh trên AppBar
-          IconButton(
-            icon: Icon(
-              series.isBookmarked
-                  ? Icons.bookmark_rounded
-                  : Icons.bookmark_border_rounded,
-              color: series.isBookmarked
-                  ? colors.primaryBrand
-                  : colors.textSecondary,
-            ),
-            tooltip: series.isBookmarked ? 'Bỏ lưu tủ sách' : 'Lưu vào tủ sách',
-            onPressed: _isBookmarkInFlight
-                ? null
-                : () => _handleToggleBookmark(context, series, colors.danger),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        color: colors.primaryBrand,
-        backgroundColor: colors.bgSurface,
-        onRefresh: () async {
-          await Future.wait([
-            ref
-                .read(seriesDetailViewModelProvider(series.id).notifier)
-                .refresh(),
-            ref
-                .read(chapterListViewModelProvider(series.id).notifier)
-                .refresh(),
-          ]);
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppDimensions.space4,
-            vertical: AppDimensions.space3,
-          ),
-          child: SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. KHỐI THÔNG TIN BÌA & TÁC GIẢ (Header)
-                _buildHeader(colors, series, chapters.length),
-                const SizedBox(height: AppDimensions.space4),
+        body: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              // 1. KHỐI THÔNG TIN BÌA & TÁC GIẢ & HÀNG NÚT HÀNH ĐỘNG
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.space4,
+                    vertical: AppDimensions.space3,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header: Bìa sách, Tiêu đề, Tác giả
+                      _buildHeader(colors, series),
+                      const SizedBox(height: AppDimensions.space4),
 
-                // 2. DANH SÁCH TAG THỂ LOẠI (Genres)
-                if (series.genres.isNotEmpty) ...[
-                  _buildGenres(colors, series.genres),
-                  const SizedBox(height: AppDimensions.space4),
-                ],
-
-                // 3. HÀNG NÚT BẤM HÀNH ĐỘNG CHÍNH (Đọc ngay & Lưu tủ sách)
-                _buildActionButtons(
-                  context,
-                  colors,
-                  series,
-                  chapters,
-                  readButtonLabel,
-                  activeChapter,
+                      // Hàng nút bấm: Đọc ngay & Lưu tủ sách
+                      _buildActionButtons(
+                        context,
+                        colors,
+                        series,
+                        chapters,
+                        readButtonLabel,
+                        activeChapter,
+                      ),
+                      const SizedBox(height: AppDimensions.space2),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: AppDimensions.space5),
+              ),
 
-                // 4. KHỐI GIỚI THIỆU TÓM TẮT NỘI DUNG (Description)
-                _buildDescription(colors, series.description),
-                const SizedBox(height: AppDimensions.space5),
-
-                // 5. KHỐI DANH SÁCH CHƯƠNG (Chapter Preview & Navigation)
-                _buildChaptersSection(
-                  context,
-                  colors,
-                  series,
-                  chaptersAsync,
+              // 2. THANH TABBAR ĐƯỢC GHIM CỐ ĐỊNH KHI CUỘN
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _SliverTabBarDelegate(
+                  TabBar(
+                    indicatorColor: colors.primaryBrand,
+                    labelColor: colors.primaryBrand,
+                    unselectedLabelColor: colors.textSecondary,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                    indicatorWeight: 3,
+                    tabs: [
+                      const Tab(
+                        text: 'Tóm tắt',
+                      ),
+                      Tab(
+                        text: 'Chương (${chapters.length})',
+                      ),
+                    ],
+                  ),
+                  backgroundColor: colors.bgCanvas,
                 ),
-                const SizedBox(height: AppDimensions.space6),
-              ],
-            ),
+              ),
+            ];
+          },
+          // 3. NỘI DUNG 2 TAB
+          body: TabBarView(
+            children: [
+              // Tab 1: Tóm tắt thông tin tác phẩm
+              _buildOverviewTab(colors, series),
+
+              // Tab 2: Danh sách TOÀN BỘ chương
+              _buildAllChaptersTab(
+                context,
+                colors,
+                series,
+                chaptersAsync,
+                chapters,
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  /// 1. Khối Header: Bìa sách chuẩn 2:3, Tiêu đề, Tác giả và Trạng thái
-  Widget _buildHeader(AppColors colors, Series series, int loadedChaptersCount) {
-    final displayChapterCount = loadedChaptersCount > 0
-        ? loadedChaptersCount
-        : (series.totalChapters > 0 ? series.totalChapters : 0);
-
+  /// 1. Khối Header: Bìa sách chuẩn 2:3, Tiêu đề, Tác giả
+  Widget _buildHeader(AppColors colors, Series series) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -291,7 +311,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         ),
         const SizedBox(width: AppDimensions.space4),
 
-        // Cột thông tin chi tiết
+        // Cột thông tin: Tiêu đề & Tác giả
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,7 +328,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                   height: 1.25,
                 ),
               ),
-              const SizedBox(height: AppDimensions.space2),
+              const SizedBox(height: AppDimensions.space3),
 
               // Tên tác giả với JoyleeAvatar dùng chung
               Row(
@@ -332,76 +352,6 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                       ),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: AppDimensions.space3),
-
-              // Trạng thái phát hành & Số chương
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  // Badge trạng thái Hoàn thành / Đang ra
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: series.status == SeriesStatus.completed
-                          ? colors.success.withValues(alpha: 0.15)
-                          : colors.primaryBrand.withValues(alpha: 0.15),
-                      borderRadius:
-                          BorderRadius.circular(AppDimensions.radiusSm),
-                    ),
-                    child: Text(
-                      series.status.label,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: series.status == SeriesStatus.completed
-                            ? colors.success
-                            : colors.primaryBrand,
-                      ),
-                    ),
-                  ),
-
-                  // Số lượng chương
-                  if (displayChapterCount > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colors.bgSurfaceSubtle,
-                        borderRadius:
-                            BorderRadius.circular(AppDimensions.radiusSm),
-                        border: Border.all(
-                          color: colors.borderDefault.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.format_list_bulleted_rounded,
-                            size: 13,
-                            color: colors.textSecondary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '$displayChapterCount chương',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: colors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                 ],
               ),
             ],
@@ -439,33 +389,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     );
   }
 
-  /// 2. Danh sách các Tag Thể loại
-  Widget _buildGenres(AppColors colors, List<String> genres) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: genres.map((genre) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: colors.bgSurface,
-            borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-            border: Border.all(color: colors.borderDefault),
-          ),
-          child: Text(
-            genre,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: colors.textSecondary,
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  /// 3. Hàng nút bấm hành động: Đọc ngay & Lưu tủ sách
+  /// Hàng nút bấm hành động: Đọc ngay & Lưu tủ sách
   Widget _buildActionButtons(
     BuildContext context,
     AppColors colors,
@@ -511,238 +435,282 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     );
   }
 
-  /// 4. Khối Giới thiệu nội dung truyện
-  Widget _buildDescription(AppColors colors, String description) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Giới thiệu nội dung',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: colors.textPrimary,
-          ),
+  /// Tab 1: Thông tin tóm tắt & giới thiệu nội dung truyện
+  Widget _buildOverviewTab(AppColors colors, Series series) {
+    return RefreshIndicator(
+      color: colors.primaryBrand,
+      backgroundColor: colors.bgSurface,
+      onRefresh: () async {
+        await Future.wait([
+          ref
+              .read(seriesDetailViewModelProvider(series.id).notifier)
+              .refresh(),
+          ref
+              .read(chapterListViewModelProvider(series.id).notifier)
+              .refresh(),
+        ]);
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.space4,
+          vertical: AppDimensions.space3,
         ),
-        const SizedBox(height: AppDimensions.space2),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(AppDimensions.space4),
-          decoration: BoxDecoration(
-            color: colors.bgSurface,
-            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-            border: Border.all(color: colors.borderDefault),
-          ),
-          child: Text(
-            description,
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.6, // Giãn dòng 1.6 chuẩn tạp chí dễ đọc
-              color: colors.textSecondary,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Thông số tóm tắt: Trạng thái phát hành & Số chương
+            Row(
+              children: [
+                // Badge trạng thái Hoàn thành / Đang ra
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: series.status == SeriesStatus.completed
+                        ? colors.success.withValues(alpha: 0.15)
+                        : colors.primaryBrand.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                  ),
+                  child: Text(
+                    series.status.label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: series.status == SeriesStatus.completed
+                          ? colors.success
+                          : colors.primaryBrand,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+
+                // Badge tổng số chương
+                if (series.totalChapters > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.bgSurfaceSubtle,
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                      border: Border.all(
+                        color: colors.borderDefault.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.format_list_bulleted_rounded,
+                          size: 13,
+                          color: colors.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${series.totalChapters} chương',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
-          ),
+            const SizedBox(height: AppDimensions.space4),
+
+            // Danh sách thể loại (Genres)
+            if (series.genres.isNotEmpty) ...[
+              Text(
+                'Thể loại',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: colors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppDimensions.space2),
+              _buildGenres(colors, series.genres),
+              const SizedBox(height: AppDimensions.space4),
+            ],
+
+            // Giới thiệu nội dung truyện
+            Text(
+              'Giới thiệu nội dung',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: colors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppDimensions.space2),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppDimensions.space4),
+              decoration: BoxDecoration(
+                color: colors.bgSurface,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                border: Border.all(color: colors.borderDefault),
+              ),
+              child: Text(
+                series.description.isNotEmpty
+                    ? series.description
+                    : 'Chưa có thông tin tóm tắt cho tác phẩm này.',
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.6, // Giãn dòng 1.6 chuẩn tạp chí dễ đọc
+                  color: colors.textSecondary,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppDimensions.space6),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  /// 5. Khối Danh sách chương
-  Widget _buildChaptersSection(
+  /// Danh sách các Tag Thể loại
+  Widget _buildGenres(AppColors colors, List<String> genres) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: genres.map((genre) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: colors.bgSurface,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+            border: Border.all(color: colors.borderDefault),
+          ),
+          child: Text(
+            genre,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: colors.textSecondary,
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// Tab 2: Danh sách toàn bộ chương của tác phẩm
+  Widget _buildAllChaptersTab(
     BuildContext context,
     AppColors colors,
     Series series,
     AsyncValue<List<Chapter>> chaptersAsync,
+    List<Chapter> chapters,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Tiêu đề phần Danh sách chương kèm nút Xem tất cả
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Text(
-                  'Danh sách chương',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: colors.textPrimary,
+    return RefreshIndicator(
+      color: colors.primaryBrand,
+      backgroundColor: colors.bgSurface,
+      onRefresh: () async {
+        await ref
+            .read(chapterListViewModelProvider(series.id).notifier)
+            .refresh();
+      },
+      child: chaptersAsync.when(
+        // Trạng thái Loading
+        loading: () => Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(colors.primaryBrand),
+          ),
+        ),
+
+        // Trạng thái Error
+        error: (err, _) => Center(
+          child: JoyleeErrorView(
+            message: 'Không thể tải danh sách chương',
+            onRetry: () => ref
+                .read(chapterListViewModelProvider(series.id).notifier)
+                .refresh(),
+          ),
+        ),
+
+        // Trạng thái Data / Empty
+        data: (allChapters) {
+          if (allChapters.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.menu_book_rounded,
+                    size: 48,
+                    color: colors.textDisabled,
                   ),
-                ),
-                const SizedBox(width: 8),
-                if (chaptersAsync.value != null)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: colors.bgSurfaceSubtle,
-                      borderRadius:
-                          BorderRadius.circular(AppDimensions.radiusFull),
-                    ),
-                    child: Text(
-                      '${chaptersAsync.value!.length}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: colors.textSecondary,
-                      ),
+                  const SizedBox(height: AppDimensions.space2),
+                  Text(
+                    'Tác giả hiện chưa xuất bản chương nào.',
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 14,
                     ),
                   ),
-              ],
+                  const SizedBox(height: AppDimensions.space3),
+                  TextButton.icon(
+                    onPressed: () => ref
+                        .read(chapterListViewModelProvider(series.id).notifier)
+                        .refresh(),
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('Tải lại'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          // Hiển thị TOÀN BỘ danh sách chương
+          return ListView.separated(
+            padding: const EdgeInsets.symmetric(
+              vertical: AppDimensions.space2,
             ),
-            // Nút xem toàn bộ danh sách chương nếu có nhiều hơn 5 chương
-            if ((chaptersAsync.value?.length ?? 0) > 5)
-              TextButton(
-                onPressed: () {
+            itemCount: allChapters.length,
+            separatorBuilder: (_, _) => Divider(
+              height: 1,
+              indent: AppDimensions.space4,
+              endIndent: AppDimensions.space4,
+              color: colors.borderDefault.withValues(alpha: 0.3),
+            ),
+            itemBuilder: (context, index) {
+              final chapter = allChapters[index];
+              return ChapterItem(
+                chapter: chapter,
+                onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => ChapterListScreen(
-                        seriesId: series.id,
+                      builder: (_) => ChapterDetailScreen(
+                        chapterId: chapter.id,
                         seriesTitle: series.title,
+                        allChapters: allChapters,
                       ),
                     ),
                   );
                 },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Xem tất cả',
-                      style: TextStyle(
-                        color: colors.primaryBrand,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
+                onDownloadTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Đã lưu Ch. ${chapter.sortOrder} vào bộ nhớ đọc offline.',
                       ),
+                      duration: const Duration(seconds: 1),
                     ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 18,
-                      color: colors.primaryBrand,
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: AppDimensions.space2),
-
-        // Nội dung danh sách chương
-        chaptersAsync.when(
-          loading: () => Container(
-            padding: const EdgeInsets.all(AppDimensions.space4),
-            decoration: BoxDecoration(
-              color: colors.bgSurface,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-              border: Border.all(color: colors.borderDefault),
-            ),
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(colors.primaryBrand),
-                ),
-              ),
-            ),
-          ),
-          error: (err, _) => Container(
-            padding: const EdgeInsets.all(AppDimensions.space3),
-            decoration: BoxDecoration(
-              color: colors.bgSurface,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-              border: Border.all(color: colors.borderDefault),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.error_outline_rounded,
-                  color: colors.danger,
-                  size: 20,
-                ),
-                const SizedBox(width: AppDimensions.space2),
-                Expanded(
-                  child: Text(
-                    'Không thể tải danh sách chương',
-                    style: TextStyle(color: colors.textSecondary, fontSize: 13),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => ref
-                      .read(chapterListViewModelProvider(series.id).notifier)
-                      .refresh(),
-                  child: const Text('Thử lại'),
-                ),
-              ],
-            ),
-          ),
-          data: (chapters) {
-            if (chapters.isEmpty) {
-              return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(AppDimensions.space4),
-                decoration: BoxDecoration(
-                  color: colors.bgSurface,
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                  border: Border.all(color: colors.borderDefault),
-                ),
-                child: Center(
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.menu_book_rounded,
-                        size: 32,
-                        color: colors.textDisabled,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Tác giả hiện chưa xuất bản chương nào.',
-                        style: TextStyle(
-                          color: colors.textSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                  );
+                },
               );
-            }
-
-            // Hiển thị tối đa 5 chương đầu tiên trong màn hình chi tiết
-            final previewChapters = chapters.take(5).toList();
-
-            return Column(
-              children: previewChapters.map((ch) {
-                return ChapterItem(
-                  chapter: ch,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ChapterDetailScreen(
-                          chapterId: ch.id,
-                          seriesTitle: series.title,
-                          allChapters: chapters,
-                        ),
-                      ),
-                    );
-                  },
-                  onDownloadTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Đã lưu Ch. ${ch.sortOrder} vào bộ nhớ đọc offline.',
-                        ),
-                        duration: const Duration(seconds: 1),
-                      ),
-                    );
-                  },
-                );
-              }).toList(),
-            );
-          },
-        ),
-      ],
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -815,5 +783,44 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         ),
       );
     }
+  }
+}
+
+/// Delegate hỗ trợ ghim TabBar cố định khi cuộn trong NestedScrollView
+class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverTabBarDelegate(this._tabBar, {required this.backgroundColor});
+
+  final TabBar _tabBar;
+  final Color backgroundColor;
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
+            width: 1,
+          ),
+        ),
+      ),
+      child: _tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
+    return oldDelegate.backgroundColor != backgroundColor;
   }
 }

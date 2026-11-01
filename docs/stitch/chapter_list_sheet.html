@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Merriweather:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#f9f9ff;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { tertiary: "#784b00", "surface-tint": "#ac3400", "tertiary-fixed": "#ffddb8", "secondary-container": "#dae2fd", "on-tertiary-fixed-variant": "#653e00", background: "#f9f9ff", "tertiary-container": "#996100", "outline-variant": "#e1bfb5", "on-secondary-fixed": "#131b2e", "on-surface": "#111c2d", "on-primary-container": "#ffece7", "on-secondary": "#ffffff", "surface-container-lowest": "#ffffff", "tertiary-fixed-dim": "#ffb95f", "secondary-fixed-dim": "#bec6e0", error: "#ba1a1a", surface: "#f9f9ff", "inverse-on-surface": "#ecf1ff", "on-surface-variant": "#59413a", "on-primary": "#ffffff", "surface-container-high": "#dee8ff", "on-tertiary": "#ffffff", "surface-container-highest": "#d8e3fb", "on-secondary-container": "#5c647a", "surface-container-low": "#f0f3ff", "on-background": "#111c2d", "on-tertiary-fixed": "#2a1700", "surface-dim": "#cfdaf2", "surface-variant": "#d8e3fb", "inverse-primary": "#ffb59d", "on-error-container": "#93000a", primary: "#9b2f00", "error-container": "#ffdad6", outline: "#8d7168", "on-primary-fixed": "#390c00", "on-tertiary-container": "#ffeedd", "secondary-fixed": "#dae2fd", "surface-bright": "#f9f9ff", secondary: "#565e74", "surface-container": "#e7eeff", "on-primary-fixed-variant": "#832600", "primary-fixed": "#ffdbd0", "on-error": "#ffffff", "on-secondary-fixed-variant": "#3f465c", "inverse-surface": "#263143", "primary-fixed-dim": "#ffb59d", "primary-container": "#c2410c" }, borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" }, spacing: { "space-xl": "2rem", "margin-lg": "1.5rem", "space-lg": "1.5rem", "space-xs": "0.25rem", "margin-sm": "0.75rem", "space-md": "1rem", gutter: "1rem", "space-sm": "0.5rem", "gutter-sm": "0.75rem", margin: "1rem" }, fontFamily: { "title-lg": ["Inter"], "headline-md": ["Inter"], "title-sm": ["Inter"], "headline-sm": ["Inter"], "title-md": ["Inter"], "label-md": ["Inter"], "body-ui-lg": ["Inter"], "headline-lg": ["Inter"], "label-sm": ["Inter"], "label-lg": ["Inter"], "body-ui-md": ["Inter"], "body-reading-lg": ["Merriweather"], "display-lg-mobile": ["Inter"], "body-reading-md": ["Merriweather"], "display-lg": ["Inter"] }, fontSize: { "title-lg": ["18px", { lineHeight: "24px", fontWeight: "600" }], "headline-md": ["24px", { lineHeight: "32px", fontWeight: "600" }], "title-sm": ["14px", { lineHeight: "20px", fontWeight: "600" }], "headline-sm": ["20px", { lineHeight: "28px", fontWeight: "600" }], "title-md": ["16px", { lineHeight: "22px", fontWeight: "600" }], "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "500" }], "body-ui-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }], "headline-lg": ["30px", { lineHeight: "38px", fontWeight: "700" }], "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.04em", fontWeight: "600" }], "label-lg": ["14px", { lineHeight: "20px", fontWeight: "500" }], "body-ui-md": ["14px", { lineHeight: "20px", fontWeight: "400" }], "body-reading-lg": ["19px", { lineHeight: "34px", letterSpacing: "0.01em", fontWeight: "400" }], "display-lg-mobile": ["32px", { lineHeight: "40px", letterSpacing: "-0.01em", fontWeight: "700" }], "body-reading-md": ["17px", { lineHeight: "30px", letterSpacing: "0.01em", fontWeight: "400" }], "display-lg": ["44px", { lineHeight: "52px", letterSpacing: "-0.02em", fontWeight: "700" }] } } } }</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface font-body-ui-md text-body-ui-md min-h-screen flex flex-col antialiased selection:bg-primary/20"><header class="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-6 px-margin flex items-center justify-between text-on-surface select-none"><span class="font-label-sm text-label-sm font-semibold tracking-tight">9:41</span><div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">wifi</span><span class="material-symbols-outlined text-[15px]">signal_cellular_alt</span><span class="material-symbols-outlined text-[17px]">battery_full</span></div></div><div class="h-16 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-sm"><button aria-label="Go back" class="w-12 h-12 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:scale-95 transition-all" onclick="history.back()" type="button"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><img alt="Lumina Reader Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1VdQT-iWF22_1ElcMKDyChrHQXP_o-IaD1K5YYcgsAOt3Mvd7XrrZQTqJT4W3P8y4q7j-_4IviKjb1VCX9QQ4fk2o_8ZyQvHM_fKPfSW728sj3SzBCSH2TeA9YJKkukiuMJiQxvus-95hMFjMDSVcHhQChdxHMbdBWwS8VEa0p87UudY0m2IXfXxpW96_F6Co_pqh_8a59tJOvrdhvSBVDlYZk9Kwc74vOB4hrTJlpl9WWAXvcuWh-OUIZx"/><h1 class="font-title-lg text-title-lg text-on-surface truncate max-w-[190px]">Story Details</h1></div><div class="flex items-center gap-1"><button aria-label="Search" class="w-12 h-12 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container transition-colors" type="button"><span class="material-symbols-outlined text-[24px]">search</span></button><button aria-label="Bookmark story" class="w-12 h-12 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container transition-colors" type="button"><span class="material-symbols-outlined text-[24px]">bookmark_border</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center ml-1"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-20 pb-safe bg-surface"><div class="flex flex-col w-full relative select-none">
+<!-- Underlying Story Details Page Content (Contextually Dimmed Under M3 Scrim) -->
+<div class="flex flex-col w-full px-margin opacity-40 pointer-events-none transition-opacity duration-300">
+<!-- Story Visual Overview Card -->
+<div class="flex gap-space-md p-space-md bg-surface-container-lowest rounded-xl shadow-sm mt-space-sm">
+<div class="relative w-28 h-40 rounded-lg overflow-hidden shrink-0 shadow-md">
+<img class="w-full h-full object-cover" data-alt="Dark romantic fantasy book cover titled The Whispering Spire with an ancient ornate gothic cathedral spire shrouded in golden mist and glowing amber runes, deep slate and warm terracotta colors, digital editorial oil painting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0qtkLg2zxy55UrvxkxdNHSEtApOeCe3N1UIUlQ1iyYqPl6CCjGiRpRH8zW7YMi9oUKgsJFThhrw-YujqznMNXKs9-L7iJMfsy8BegoyzoST1ygoWLaIj5fqOUMF3JaP0kQaNvbEZl1ny1j_37Qu0DJAIFRmBQ5o4nmXYcKBbVMqBRjQNPfMXmO_GLd-JZfgrSZtLGiA0G28YfmGWivgV8EcgYJu3osRuoSPc1Qh8H3z0jHssnZ21Ycw"/>
+<span class="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-full bg-surface-container-lowest/90 backdrop-blur-sm text-on-surface font-label-sm text-label-sm font-semibold">4.9 ★</span>
+</div>
+<div class="flex flex-col justify-between py-1 min-w-0">
+<div>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm inline-block mb-1.5">Dark Fantasy</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">The Whispering Spire</h2>
+<p class="font-body-ui-md text-body-ui-md text-secondary">Elena Vance</p>
+</div>
+<div class="flex items-center gap-space-md text-on-surface-variant font-label-md text-label-md">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">auto_stories</span>
+<span>32 Chs</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-tertiary">schedule</span>
+<span>7h 40m</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Synopsis Preview -->
+<div class="mt-space-md p-space-md bg-surface-container-low rounded-xl">
+<p class="font-body-reading-md text-body-reading-md text-on-surface-variant line-clamp-3">
+        Beneath the calcified arches of Oakhaven, a bell tolled that had no clapper. Aurelia pressed her palm against the vibrating stone, feeling the thrum of forgotten mechanisms deep inside the earth...
+      </p>
+</div>
+</div>
+<!-- Material 3 Modal Scrim -->
+<div class="fixed inset-0 z-40 bg-on-surface/40 backdrop-blur-[2px] transition-opacity duration-300" id="modal-scrim"></div>
+<!-- Material 3 Chapter List Bottom Sheet -->
+<section aria-labelledby="chapters-sheet-title" class="fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[777px] bg-surface-container-lowest rounded-t-[28px] shadow-[0_-8px_32px_rgba(15,23,42,0.18)] pb-safe transition-transform duration-300 ease-out">
+<!-- Drag Handle Zone -->
+<div class="w-full flex items-center justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
+<div class="w-10 h-1 rounded-full bg-outline-variant"></div>
+</div>
+<!-- Sheet Header -->
+<div class="px-margin pt-1 pb-3 flex items-center justify-between">
+<div class="flex items-baseline gap-2">
+<h2 class="font-headline-sm text-headline-sm text-on-surface" id="chapters-sheet-title">Chapters</h2>
+<span class="font-label-md text-label-md px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container">32</span>
+</div>
+<div class="flex items-center gap-1">
+<!-- Sort Order Pill Button -->
+<button class="h-9 px-3 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface flex items-center gap-1.5 transition-colors active:scale-95" id="sort-order-btn" type="button">
+<span class="material-symbols-outlined text-[18px] text-primary" id="sort-icon">arrow_downward</span>
+<span class="font-label-md text-label-md font-semibold" id="sort-label">Oldest</span>
+</button>
+<!-- Close Sheet Icon Button -->
+<button aria-label="Close chapter list" class="w-10 h-10 flex items-center justify-center rounded-full text-secondary hover:bg-surface-container active:scale-90 transition-all" type="button">
+<span class="material-symbols-outlined text-[22px]">close</span>
+</button>
+</div>
+</div>
+<!-- Chapter Search Field & Chips Container -->
+<div class="px-margin space-y-3 pb-2">
+<!-- Search Input Container (Surface Container Styled) -->
+<div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-surface-container-low text-on-surface focus-within:bg-surface-container transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px] text-secondary">search</span>
+<input class="w-full bg-transparent border-none outline-none font-body-ui-md text-body-ui-md text-on-surface placeholder:text-on-surface-variant/60" placeholder="Search chapter by number or title..." type="search"/>
+</div>
+<!-- Ergonomic Horizontal Filter Chips -->
+<div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+<button class="filter-chip active shrink-0 px-3.5 py-1.5 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md font-semibold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[16px]">menu_book</span>
+<span>All (32)</span>
+</button>
+<button class="filter-chip shrink-0 px-3.5 py-1.5 rounded-full bg-surface-container text-on-surface-variant font-label-md text-label-md font-medium flex items-center gap-1.5 hover:bg-surface-container-high active:scale-95 transition-all" type="button">
+<span>Unread (18)</span>
+</button>
+<button class="filter-chip shrink-0 px-3.5 py-1.5 rounded-full bg-surface-container text-on-surface-variant font-label-md text-label-md font-medium flex items-center gap-1.5 hover:bg-surface-container-high active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[16px]">download_done</span>
+<span>Downloaded (5)</span>
+</button>
+</div>
+</div>
+<!-- Scrollable Chapter List Items Area -->
+<div class="flex-1 overflow-y-auto px-margin space-y-2 py-2 divide-none overscroll-contain">
+<!-- Chapter 1: Read, Free -->
+<div class="flex items-center justify-between p-3.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container-low active:bg-surface-container transition-colors">
+<div class="flex items-center gap-3 min-w-0 pr-2">
+<div class="w-7 h-7 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px] text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-title-sm text-title-sm text-on-surface truncate">Ch. 1: The Hollow Spire</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Free</span>
+<span class="font-label-sm text-label-sm text-secondary">12 mins</span>
+</div>
+</div>
+</div>
+<button aria-label="Downloaded" class="w-10 h-10 flex items-center justify-center rounded-full text-secondary hover:bg-surface-container-low shrink-0" type="button">
+<span class="material-symbols-outlined text-[20px] text-primary" style="font-variation-settings: 'FILL' 1;">cloud_done</span>
+</button>
+</div>
+<!-- Chapter 2: Read, Free -->
+<div class="flex items-center justify-between p-3.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container-low active:bg-surface-container transition-colors">
+<div class="flex items-center gap-3 min-w-0 pr-2">
+<div class="w-7 h-7 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px] text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-title-sm text-title-sm text-on-surface truncate">Ch. 2: Whispers in the Gloom</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Free</span>
+<span class="font-label-sm text-label-sm text-secondary">15 mins</span>
+</div>
+</div>
+</div>
+<button aria-label="Downloaded" class="w-10 h-10 flex items-center justify-center rounded-full text-secondary hover:bg-surface-container-low shrink-0" type="button">
+<span class="material-symbols-outlined text-[20px] text-primary" style="font-variation-settings: 'FILL' 1;">cloud_done</span>
+</button>
+</div>
+<!-- Chapter 13: Read, Free -->
+<div class="flex items-center justify-between p-3.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container-low active:bg-surface-container transition-colors">
+<div class="flex items-center gap-3 min-w-0 pr-2">
+<div class="w-7 h-7 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px] text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-title-sm text-title-sm text-on-surface truncate">Ch. 13: The Brass Mechanism</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Free</span>
+<span class="font-label-sm text-label-sm text-secondary">16 mins</span>
+</div>
+</div>
+</div>
+<button aria-label="Download chapter" class="w-10 h-10 flex items-center justify-center rounded-full text-secondary hover:bg-surface-container-low shrink-0" type="button">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+</div>
+<!-- Chapter 14: CURRENT ACTIVE CHAPTER (Warm Terracotta Accent Framing & Live Progress) -->
+<div class="relative overflow-hidden p-3.5 rounded-2xl bg-surface-container shadow-sm">
+<!-- Colored Left Accent Indicator -->
+<div class="absolute inset-y-0 left-0 w-1.5 bg-primary-container"></div>
+<div class="flex items-center justify-between pl-2">
+<div class="flex items-center gap-3 min-w-0 pr-2">
+<!-- Pulsing Active Audio/Reading Node -->
+<div class="relative w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[18px] animate-pulse">graphic_eq</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-title-sm text-title-sm text-on-surface font-bold truncate">Ch. 14: The Ember Chamber</span>
+<span class="px-1.5 py-0.5 rounded-md bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm uppercase tracking-wider font-bold">Now</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<!-- Mini Progress Pill -->
+<span class="px-2 py-0.5 rounded-full bg-primary-container/15 text-primary-container font-label-sm text-label-sm font-semibold">
+                  45% read
+                </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Active bookmark</span>
+</div>
+</div>
+</div>
+<button aria-label="Reading chapter" class="w-10 h-10 flex items-center justify-center rounded-full text-primary-container bg-surface-container-lowest shadow-sm shrink-0 active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<!-- Integrated Ambient Progress Track Inside Current Item -->
+<div class="w-full bg-outline-variant/30 h-1 rounded-full mt-3 overflow-hidden">
+<div class="bg-primary-container h-full rounded-full" style="width: 45%;"></div>
+</div>
+</div>
+<!-- Chapter 15: Unread, Free, Download Icon -->
+<div class="flex items-center justify-between p-3.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container-low active:bg-surface-container transition-colors">
+<div class="flex items-center gap-3 min-w-0 pr-2">
+<div class="w-7 h-7 rounded-full bg-surface-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px] text-secondary">radio_button_unchecked</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-title-sm text-title-sm text-on-surface truncate">Ch. 15: Runes of Silence</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Free</span>
+<span class="font-label-sm text-label-sm text-secondary">14 mins</span>
+</div>
+</div>
+</div>
+<button aria-label="Download chapter 15" class="w-10 h-10 flex items-center justify-center rounded-full text-secondary hover:text-primary hover:bg-surface-container-low shrink-0 active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+</div>
+<!-- Chapter 16: Unread, Free -->
+<div class="flex items-center justify-between p-3.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container-low active:bg-surface-container transition-colors">
+<div class="flex items-center gap-3 min-w-0 pr-2">
+<div class="w-7 h-7 rounded-full bg-surface-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px] text-secondary">radio_button_unchecked</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-title-sm text-title-sm text-on-surface truncate">Ch. 16: The Veiled King</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Free</span>
+<span class="font-label-sm text-label-sm text-secondary">18 mins</span>
+</div>
+</div>
+</div>
+<button aria-label="Download chapter 16" class="w-10 h-10 flex items-center justify-center rounded-full text-secondary hover:text-primary hover:bg-surface-container-low shrink-0 active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+</div>
+<!-- Chapter 30: Locked Premium (Amber Padlock, Coin Cost) -->
+<div class="flex items-center justify-between p-3.5 rounded-xl bg-surface-container-low/70 hover:bg-surface-container-low active:bg-surface-container transition-colors">
+<div class="flex items-center gap-3 min-w-0 pr-2">
+<div class="w-7 h-7 rounded-full bg-tertiary-fixed flex items-center justify-center shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[16px] text-on-tertiary-fixed" style="font-variation-settings: 'FILL' 1;">lock</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-title-sm text-title-sm text-on-surface truncate">Ch. 30: The Veil Fractured</span>
+</div>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="px-2 py-0.5 rounded-md bg-tertiary-container text-on-tertiary-container font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">monetization_on</span>
+<span>45 coins or Subscribe</span>
+</span>
+</div>
+</div>
+</div>
+<button class="px-3 py-1.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-label-md font-semibold shrink-0 hover:bg-tertiary-fixed-dim active:scale-95 transition-all shadow-sm" type="button">
+          Unlock
+        </button>
+</div>
+</div>
+<!-- Sticky Floating Primary Action Bar at Bottom of Modal -->
+<div class="p-margin bg-surface-container-lowest/95 backdrop-blur-md shadow-[0_-4px_16px_rgba(0,0,0,0.06)] flex flex-col gap-2">
+<button class="w-full h-14 rounded-full bg-primary-container hover:bg-primary-container/90 text-on-primary-container font-title-md text-title-md font-bold shadow-lg flex items-center justify-center gap-2.5 active:scale-[0.98] transition-transform" type="button">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">play_circle</span>
+<span>Resume Ch. 14 (45%)</span>
+</button>
+</div>
+</section>
+</div>
+<script>
+  // Simple micro-interaction for Oldest / Newest sort toggle
+  const sortBtn = document.getElementById('sort-order-btn');
+  const sortLabel = document.getElementById('sort-label');
+  const sortIcon = document.getElementById('sort-icon');
+
+  if (sortBtn && sortLabel && sortIcon) {
+    sortBtn.addEventListener('click', () => {
+      const isOldest = sortLabel.textContent.trim() === 'Oldest';
+      sortLabel.textContent = isOldest ? 'Newest' : 'Oldest';
+      sortIcon.textContent = isOldest ? 'arrow_upward' : 'arrow_downward';
+    });
+  }
+
+  // Filter chips tab-switching delight
+  const chips = document.querySelectorAll('.filter-chip');
+  chips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      chips.forEach(c => {
+        c.classList.remove('bg-primary-container', 'text-on-primary-container', 'shadow-sm');
+        c.classList.add('bg-surface-container', 'text-on-surface-variant');
+      });
+      chip.classList.add('bg-primary-container', 'text-on-primary-container', 'shadow-sm');
+      chip.classList.remove('bg-surface-container', 'text-on-surface-variant');
+    });
+  });
+</script></main><div class="fixed bottom-0 w-full z-40 pointer-events-none pb-safe flex items-center justify-center py-1.5"><div class="w-32 h-1 rounded-full bg-on-surface/20"></div></div></body></html>
