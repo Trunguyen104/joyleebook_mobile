@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/chapter_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
 import 'package:joyleebook_mobile/domain/models/series.dart';
@@ -9,6 +10,7 @@ import 'package:joyleebook_mobile/ui/series/view_models/series_detail_view_model
 import 'package:joyleebook_mobile/ui/series/widgets/series_detail_screen.dart';
 import 'package:joyleebook_mobile/ui/series/widgets/series_rating_card.dart';
 
+import '../../testing/fakes/fake_auth_repository.dart';
 import '../../testing/fakes/fake_chapter_repository.dart';
 import '../../testing/fakes/fake_series_repository.dart';
 
@@ -231,15 +233,56 @@ void main() {
       expect(find.text('Đã cập nhật đánh giá thành công!'), findsOneWidget);
     });
 
-    testWidgets('Tích hợp SeriesDetailScreen: Hiển thị SeriesRatingCard và thực hiện đánh giá mượt mà', (tester) async {
+    testWidgets('Tích hợp SeriesDetailScreen: Khi chưa đăng nhập, bấm vào sao mở Dialog yêu cầu Đăng nhập', (tester) async {
       final fakeSeriesRepo = FakeSeriesRepository([testSeries]);
       final fakeChapterRepo = FakeChapterRepository([]);
+      final fakeAuthRepo = FakeAuthRepository(savedSession: null); // Chưa đăng nhập
 
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             seriesRepositoryProvider.overrideWithValue(fakeSeriesRepo),
             chapterRepositoryProvider.overrideWithValue(fakeChapterRepo),
+            authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const SeriesDetailScreen(seriesId: 's_rating_1'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Kiểm tra badge hiển thị "Chưa có đánh giá" khi totalRatings == 0
+      expect(find.text('Chưa có đánh giá'), findsOneWidget);
+
+      // Cuộn để nút sao hiển thị trong tầm nhìn trước khi bấm
+      await tester.ensureVisible(find.byKey(const Key('star_button_5')));
+      await tester.pumpAndSettle();
+
+      // Bấm vào ngôi sao 5 khi chưa đăng nhập
+      await tester.tap(find.byKey(const Key('star_button_5')));
+      await tester.pumpAndSettle();
+
+      // Phải mở AlertDialog yêu cầu đăng nhập
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.text('Đăng nhập để đánh giá'), findsOneWidget);
+      expect(find.text('Đăng nhập ngay'), findsOneWidget);
+      expect(find.text('Để sau'), findsOneWidget);
+    });
+
+    testWidgets('Tích hợp SeriesDetailScreen: Khi đã đăng nhập, thực hiện đánh giá mượt mà', (tester) async {
+      final fakeSeriesRepo = FakeSeriesRepository([testSeries]);
+      final fakeChapterRepo = FakeChapterRepository([]);
+      final fakeAuthRepo = FakeAuthRepository(savedSession: fakeSession); // Đã đăng nhập
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            seriesRepositoryProvider.overrideWithValue(fakeSeriesRepo),
+            chapterRepositoryProvider.overrideWithValue(fakeChapterRepo),
+            authRepositoryProvider.overrideWithValue(fakeAuthRepo),
           ],
           child: MaterialApp(
             theme: AppTheme.light,

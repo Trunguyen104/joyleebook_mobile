@@ -11,6 +11,7 @@ import '../../chapter/widgets/chapter_item.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 import '../../core/themes/theme_provider.dart';
+import '../../auth/view_models/auth_session_view_model.dart';
 import '../../core/widgets/joylee_avatar.dart';
 import '../../core/widgets/joylee_button.dart';
 import '../../core/widgets/joylee_error_view.dart';
@@ -133,6 +134,14 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
   ) {
     final chapters = chaptersAsync.value ?? [];
 
+    // Số chương hiển thị trên Tab: Ưu tiên danh sách chapters đã tải,
+    // fallback ngay về series.totalChapters để không bị nhảy số 0 ở lần tải đầu.
+    final displayChapterCount = chapters.isNotEmpty
+        ? chapters.length
+        : (series.totalChapters > 0
+            ? series.totalChapters
+            : (chaptersAsync.value?.length ?? 0));
+
     // Tìm chương đang đọc dở (nếu có)
     Chapter? activeChapter;
     for (final c in chapters) {
@@ -234,7 +243,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                         text: 'Tóm tắt',
                       ),
                       Tab(
-                        text: 'Chương (${chapters.length})',
+                        text: 'Chương ($displayChapterCount)',
                       ),
                     ],
                   ),
@@ -508,40 +517,52 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                   const SizedBox(width: 10),
                 ],
 
-                // Badge điểm đánh giá trung bình
-                if (series.totalRatings > 0 || series.averageRating > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
-                      border: Border.all(
-                        color: Colors.amber.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.star_rounded,
-                          size: 14,
-                          color: Colors.amber[700],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${series.averageRating} (${series.totalRatings})',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.amber[900],
-                          ),
-                        ),
-                      ],
+                // Badge điểm đánh giá trung bình: Luôn hiển thị
+                // Nếu có đánh giá -> hiện điểm và số lượt; Nếu chưa có -> hiện "Chưa có đánh giá"
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: series.totalRatings > 0
+                        ? Colors.amber.withValues(alpha: 0.15)
+                        : colors.bgSurfaceSubtle,
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                    border: Border.all(
+                      color: series.totalRatings > 0
+                          ? Colors.amber.withValues(alpha: 0.4)
+                          : colors.borderDefault.withValues(alpha: 0.5),
                     ),
                   ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        series.totalRatings > 0
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
+                        size: 14,
+                        color: series.totalRatings > 0
+                            ? Colors.amber[700]
+                            : colors.textDisabled,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        series.totalRatings > 0
+                            ? '${series.averageRating.toStringAsFixed(1)} (${series.totalRatings})'
+                            : 'Chưa có đánh giá',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: series.totalRatings > 0
+                              ? Colors.amber[900]
+                              : colors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: AppDimensions.space4),
@@ -597,6 +618,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
               userRating: series.userRating,
               averageRating: series.averageRating,
               totalRatings: series.totalRatings,
+              isAuthenticated: ref.watch(authSessionProvider).value != null,
+              onRequireAuth: () => _showLoginRequiredDialog(context, series),
               onRate: (score) async {
                 final success = await ref
                     .read(seriesDetailViewModelProvider(series.id).notifier)
@@ -818,6 +841,85 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         ),
       );
     }
+  }
+
+  /// Hiển thị Dialog yêu cầu Đăng nhập khi người dùng chưa đăng nhập thực hiện đánh giá
+  Future<void> _showLoginRequiredDialog(
+    BuildContext context,
+    Series series,
+  ) async {
+    final colors = context.colors;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: colors.bgSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          ),
+          icon: Icon(
+            Icons.lock_person_rounded,
+            size: 40,
+            color: colors.primaryBrand,
+          ),
+          title: Text(
+            'Đăng nhập để đánh giá',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: colors.textPrimary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          content: Text(
+            'Bạn cần đăng nhập tài khoản JoyleeBook để gửi đánh giá cho tác phẩm "${series.title}".',
+            style: TextStyle(
+              fontSize: 14,
+              color: colors.textSecondary,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          actionsAlignment: MainAxisAlignment.spaceEvenly,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(
+                'Để sau',
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                final currentPath = AppPaths.seriesDetail(series.id);
+                context.push(
+                  '${AppPaths.signIn}?from=${Uri.encodeComponent(currentPath)}',
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primaryBrand,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimensions.space4,
+                  vertical: 10,
+                ),
+              ),
+              child: const Text(
+                'Đăng nhập ngay',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
 

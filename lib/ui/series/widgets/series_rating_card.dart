@@ -14,6 +14,8 @@ class SeriesRatingCard extends StatefulWidget {
   final double averageRating;
   final int totalRatings;
   final Future<bool> Function(int score) onRate;
+  final bool isAuthenticated;
+  final VoidCallback? onRequireAuth;
 
   const SeriesRatingCard({
     super.key,
@@ -21,6 +23,8 @@ class SeriesRatingCard extends StatefulWidget {
     required this.averageRating,
     required this.totalRatings,
     required this.onRate,
+    this.isAuthenticated = true,
+    this.onRequireAuth,
   });
 
   @override
@@ -49,6 +53,11 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
   }
 
   Future<void> _handleStarTapped(int score) async {
+    if (!widget.isAuthenticated) {
+      widget.onRequireAuth?.call();
+      return;
+    }
+
     if (_isSubmitting) return;
 
     final isFirstRate = widget.userRating == null;
@@ -99,13 +108,31 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
           // 1. Tiêu đề Card & Nút Chỉnh sửa / Hủy
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                'Đánh giá tác phẩm',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: colors.textPrimary,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Đánh giá tác phẩm',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.totalRatings > 0
+                          ? 'Trung bình: ${widget.averageRating.toStringAsFixed(1)} ★ (${widget.totalRatings} lượt đánh giá)'
+                          : 'Tác phẩm chưa có lượt đánh giá nào',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               if (hasRated)
@@ -113,6 +140,10 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
                   onPressed: _isSubmitting
                       ? null
                       : () {
+                          if (!widget.isAuthenticated) {
+                            widget.onRequireAuth?.call();
+                            return;
+                          }
                           setState(() {
                             if (_isEditing) {
                               _isEditing = false;
