@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../domain/models/series.dart';
 import '../ui/auth/view_models/auth_session_view_model.dart';
+import '../ui/auth/widgets/forgot_password_screen.dart';
 import '../ui/auth/widgets/sign_in_screen.dart';
 import '../ui/auth/widgets/sign_up_screen.dart';
 import '../ui/chapter/widgets/chapter_detail_screen.dart';
@@ -17,7 +18,7 @@ import 'app_shell.dart';
 
 /// Các trang bắt buộc đăng nhập. Kho Truyện xem được khi chưa đăng nhập.
 const _privatePaths = {AppPaths.profile};
-const _authPaths = {AppPaths.signIn, AppPaths.signUp};
+const _authPaths = {AppPaths.signIn, AppPaths.signUp, AppPaths.forgotPassword};
 
 /// Navigator gốc (nằm trên thanh tab). Trang nào gắn key này sẽ mở toàn màn hình.
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -129,6 +130,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppPaths.signUp,
         builder: (context, state) =>
             SignUpScreen(from: state.uri.queryParameters['from']),
+      ),
+      GoRoute(
+        path: AppPaths.forgotPassword,
+        builder: (context, state) =>
+            ForgotPasswordScreen(from: state.uri.queryParameters['from']),
       ),
     ],
   );

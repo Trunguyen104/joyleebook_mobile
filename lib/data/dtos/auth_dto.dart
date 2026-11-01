@@ -52,3 +52,36 @@ class TokenResponseDto {
   /// Chỉ bắt buộc có accessToken
   bool get isValid => accessToken.isNotEmpty;
 }
+
+/// Body gửi lên POST /api/auth/forgot-password
+@immutable
+class ForgotPasswordRequestDto {
+  final String email;
+
+  const ForgotPasswordRequestDto({required this.email});
+
+  Map<String, dynamic> toJson() => {'email': email};
+}
+
+/// Body gửi lên POST /api/auth/reset-password
+@immutable
+class ResetPasswordRequestDto {
+  final String email;
+  final String token;
+  final String newPassword;
+  final String confirmPassword;
+
+  const ResetPasswordRequestDto({
+    required this.email,
+    required this.token,
+    required this.newPassword,
+    required this.confirmPassword,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'email': email,
+    'token': token,
+    'newPassword': newPassword,
+    'confirmPassword': confirmPassword,
+  };
+}

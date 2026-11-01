@@ -80,6 +80,64 @@ class AuthRepository {
     }
   }
 
+  /// Gửi yêu cầu đặt lại mật khẩu qua email
+  /// Theo OWASP: API luôn trả về 200 kể cả email không tồn tại để tránh rò rỉ thông tin
+  Future<void> forgotPassword({required String email}) async {
+    try {
+      await _dio.post<dynamic>(
+        ApiEndpoints.authForgotPassword,
+        data: ForgotPasswordRequestDto(email: email.trim()).toJson(),
+        options: _skipRefresh,
+      );
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
+  /// Đặt lại mật khẩu mới bằng token đã nhận qua email
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    try {
+      await _dio.post<dynamic>(
+        ApiEndpoints.authResetPassword,
+        data: ResetPasswordRequestDto(
+          email: email.trim(),
+          token: token.trim(),
+          newPassword: newPassword,
+          confirmPassword: confirmPassword,
+        ).toJson(),
+        options: _skipRefresh,
+      );
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
+  /// Kiểm tra token đặt lại mật khẩu có còn hiệu lực không
+  Future<bool> validateResetToken({
+    required String email,
+    required String token,
+  }) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        ApiEndpoints.authValidateResetToken,
+        queryParameters: {
+          'email': email.trim(),
+          'token': token.trim(),
+        },
+        options: _skipRefresh,
+      );
+      return response.statusCode == 200;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 400) return false;
+      throw AppException.fromDio(e);
+    }
+  }
+
   /// Mở app: khôi phục phiên từ token đã lưu (không gọi mạng).
   /// Access token hết hạn mà còn refresh token thì vẫn giữ phiên,
   /// interceptor sẽ tự refresh ở request đầu tiên.

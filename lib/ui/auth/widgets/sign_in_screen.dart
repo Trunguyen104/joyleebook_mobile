@@ -102,7 +102,23 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               autofillHints: const [AutofillHints.password],
               onSubmitted: (_) => _submit(),
             ),
-            const SizedBox(height: AppDimensions.space6),
+            const SizedBox(height: AppDimensions.space2),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => context.go(
+                  authPathWithFrom(AppPaths.forgotPassword, widget.from),
+                ),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 32),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  foregroundColor: colors.textLink,
+                ),
+                child: const Text('Quên mật khẩu?'),
+              ),
+            ),
+            const SizedBox(height: AppDimensions.space5),
             JoyleeButton(
               label: 'Đăng nhập',
               isLoading: state.isLoading,
