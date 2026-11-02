@@ -7,6 +7,7 @@ import '../ui/auth/view_models/auth_session_view_model.dart';
 import '../ui/auth/widgets/forgot_password_screen.dart';
 import '../ui/auth/widgets/sign_in_screen.dart';
 import '../ui/auth/widgets/sign_up_screen.dart';
+import '../ui/bookmark/widgets/bookmark_screen.dart';
 import '../ui/chapter/widgets/chapter_detail_screen.dart';
 import '../ui/chapter/widgets/chapter_list_screen.dart';
 import '../ui/gateway_test/widgets/gateway_test_screen.dart';
@@ -17,14 +18,14 @@ import 'app_paths.dart';
 import 'app_shell.dart';
 
 /// Các trang bắt buộc đăng nhập. Kho Truyện xem được khi chưa đăng nhập.
-const _privatePaths = {AppPaths.profile};
+const _privatePaths = {AppPaths.bookmarks, AppPaths.profile};
 const _authPaths = {AppPaths.signIn, AppPaths.signUp, AppPaths.forgotPassword};
 
 /// Navigator gốc (nằm trên thanh tab). Trang nào gắn key này sẽ mở toàn màn hình.
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 /// BỘ ĐỊNH TUYẾN CỦA APP
-/// - 3 tab (Kho Truyện, Cá nhân, Kiểm tra Gateway) giữ nguyên trạng thái khi chuyển tab.
+/// - 4 tab giữ nguyên trạng thái khi chuyển tab.
 /// - Chi tiết truyện và danh sách chương mở bên trong tab Kho Truyện (vẫn thấy thanh tab).
 /// - Trang đọc chương, /sign-in, /sign-up mở toàn màn hình, không có thanh tab.
 /// - [redirect] là nơi DUY NHẤT quyết định "chưa đăng nhập thì đi đâu".
@@ -100,6 +101,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     ],
                   ),
                 ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppPaths.bookmarks,
+                builder: (context, state) => BookmarkScreen(
+                  onExplore: () => context.go(AppPaths.series),
+                ),
               ),
             ],
           ),

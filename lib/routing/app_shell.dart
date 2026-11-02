@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// Khung chứa 3 tab chính + thanh điều hướng đáy (Material 3 NavigationBar).
+/// Khung chứa các tab chính + thanh điều hướng đáy (Material 3 NavigationBar).
 /// GoRouter giữ trạng thái từng tab giống IndexedStack.
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.navigationShell});
@@ -24,6 +24,11 @@ class AppShell extends StatelessWidget {
             icon: Icon(Icons.auto_stories_outlined),
             selectedIcon: Icon(Icons.auto_stories_rounded),
             label: 'Kho Truyện',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.bookmarks_outlined),
+            selectedIcon: Icon(Icons.bookmarks_rounded),
+            label: 'Tủ sách',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

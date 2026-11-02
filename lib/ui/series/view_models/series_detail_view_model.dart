@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/series_repository.dart';
 import '../../../domain/models/series.dart';
+import '../../bookmark/view_models/bookmark_list_view_model.dart';
+import '../../bookmark/view_models/bookmark_status_view_model.dart';
 import 'series_list_view_model.dart';
 
 /// RIVERPOD PROVIDER: Đăng ký ViewModel cho màn hình chi tiết truyện
@@ -27,23 +29,46 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
 
   @override
   Future<Series> build() async {
-    // 1. Đọc bộ nhớ cache từ danh sách truyện nếu đã tải trước đó
-    final list = ref.read(seriesListViewModelProvider).value;
-    final cached = list?.where((s) => s.id == seriesId).firstOrNull;
-    if (cached != null) {
-      return cached;
-    }
-
-    // 2. Nếu chưa có trong cache, gọi Repository tải từ Gateway
-    return ref.watch(seriesRepositoryProvider).getSeriesById(seriesId);
+    ref.listen(bookmarkStatusViewModelProvider, (previous, next) {
+      final status = next[seriesId];
+      final current = state.value;
+      if (status != null && current != null && current.isBookmarked != status) {
+        state = AsyncData(current.copyWith(isBookmarked: status));
+      }
+    });
+    return _loadSeries();
   }
 
   /// Kéo để làm mới dữ liệu chi tiết truyện (Pull-to-refresh)
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref.read(seriesRepositoryProvider).getSeriesById(seriesId),
-    );
+    state = await AsyncValue.guard(_loadSeries);
+  }
+
+  Future<Series> _loadSeries() async {
+    final list = ref.read(seriesListViewModelProvider).value;
+    final cached = list?.where((series) => series.id == seriesId).firstOrNull;
+    final series =
+        cached ??
+        await ref.read(seriesRepositoryProvider).getSeriesById(seriesId);
+    final isBookmarked = await ref
+        .read(seriesRepositoryProvider)
+        .getBookmarkStatus(seriesId);
+    final updated = series.copyWith(isBookmarked: isBookmarked);
+    _syncBookmarkStatus(updated, isBookmarked);
+    return updated;
+  }
+
+  void _syncBookmarkStatus(Series series, bool isBookmarked) {
+    ref
+        .read(bookmarkStatusViewModelProvider.notifier)
+        .setStatus(seriesId, isBookmarked);
+    ref
+        .read(seriesListViewModelProvider.notifier)
+        .updateBookmarkLocally(seriesId, isBookmarked);
+    ref
+        .read(bookmarkListViewModelProvider.notifier)
+        .updateBookmarkLocally(series, isBookmarked);
   }
 
   /// Bật/Tắt Lưu vào Tủ sách (Optimistic UI kèm Rollback khi lỗi)
@@ -62,6 +87,7 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
     ref
         .read(seriesListViewModelProvider.notifier)
         .updateBookmarkLocally(seriesId, newBookmarkState);
+    _syncBookmarkStatus(current, newBookmarkState);
 
     // BƯỚC 3: Gửi request ngầm lên API Gateway
     try {
@@ -72,9 +98,7 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
     } catch (_) {
       // BƯỚC 4: Rollback phục hồi lại trạng thái cũ nếu gặp sự cố mạng
       state = AsyncData(original);
-      ref
-          .read(seriesListViewModelProvider.notifier)
-          .updateBookmarkLocally(seriesId, original.isBookmarked);
+      _syncBookmarkStatus(original, original.isBookmarked);
       return false;
     }
   }

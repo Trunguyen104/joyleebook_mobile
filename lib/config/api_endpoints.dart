@@ -20,6 +20,7 @@ abstract final class ApiEndpoints {
 
   // Library Microservice (via Gateway)
   static const String library = '/api/library';
+  static const String libraryBookmarks = '$library/bookmarks';
 
   // Chapters Microservice (via Gateway)
   static const String chapters = '/api/chapters';

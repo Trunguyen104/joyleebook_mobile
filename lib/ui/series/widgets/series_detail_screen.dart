@@ -56,11 +56,36 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     // Lắng nghe danh sách chương của bộ truyện
     final chaptersAsync = ref.watch(chapterListViewModelProvider(seriesId));
 
+    if (seriesAsync.hasError) {
+      final error = seriesAsync.error;
+      return Scaffold(
+        backgroundColor: colors.bgCanvas,
+        appBar: AppBar(
+          backgroundColor: colors.bgCanvas,
+          title: Text(
+            'Lỗi tải tác phẩm',
+            style: TextStyle(color: colors.textPrimary, fontSize: 18),
+          ),
+        ),
+        body: JoyleeErrorView(
+          message: error is AppException ? error.message : 'Đã có lỗi xảy ra.',
+          onRetry: () =>
+              ref.read(seriesDetailViewModelProvider(seriesId).notifier).refresh(),
+        ),
+      );
+    }
+
     // Lấy dữ liệu series: ưu tiên dữ liệu từ seriesAsync, fallback về initialSeries
     final series = seriesAsync.value ?? widget.initialSeries;
 
     if (series != null) {
-      return _buildContent(context, colors, series, chaptersAsync);
+      return _buildContent(
+        context,
+        colors,
+        series,
+        chaptersAsync,
+        isBookmarkStatusLoading: seriesAsync.value == null,
+      );
     }
 
     return seriesAsync.when(
@@ -114,7 +139,13 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       ),
 
       // TRẠNG THÁI 3 & 4: DATA / EMPTY
-      data: (data) => _buildContent(context, colors, data, chaptersAsync),
+      data: (data) => _buildContent(
+        context,
+        colors,
+        data,
+        chaptersAsync,
+        isBookmarkStatusLoading: false,
+      ),
     );
   }
 
@@ -123,8 +154,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     BuildContext context,
     AppColors colors,
     Series series,
-    AsyncValue<List<Chapter>> chaptersAsync,
-  ) {
+    AsyncValue<List<Chapter>> chaptersAsync, {
+    required bool isBookmarkStatusLoading,
+  }) {
     final chapters = chaptersAsync.value ?? [];
 
     // Tìm chương đang đọc dở (nếu có)
@@ -180,7 +212,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                   : colors.textSecondary,
             ),
             tooltip: series.isBookmarked ? 'Bỏ lưu tủ sách' : 'Lưu vào tủ sách',
-            onPressed: _isBookmarkInFlight
+            onPressed: _isBookmarkInFlight || isBookmarkStatusLoading
                 ? null
                 : () => _handleToggleBookmark(context, series, colors.danger),
           ),
@@ -227,6 +259,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                   chapters,
                   readButtonLabel,
                   activeChapter,
+                  isBookmarkStatusLoading,
                 ),
                 const SizedBox(height: AppDimensions.space5),
 
@@ -472,6 +505,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     List<Chapter> chapters,
     String readButtonLabel,
     Chapter? activeChapter,
+    bool isBookmarkStatusLoading,
   ) {
     return Row(
       children: [
@@ -497,7 +531,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                   : Icons.bookmark_add_outlined,
               size: 18,
             ),
-            onPressed: _isBookmarkInFlight
+            onPressed: _isBookmarkInFlight || isBookmarkStatusLoading
                 ? null
                 : () => _handleToggleBookmark(context, series, colors.danger),
           ),

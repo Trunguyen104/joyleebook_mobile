@@ -8,6 +8,7 @@ import 'package:joyleebook_mobile/domain/models/series.dart';
 class FakeSeriesRepository implements SeriesRepository {
   final List<Series> _items;
   final bool shouldThrowError;
+  int bookmarkListCallCount = 0;
 
   FakeSeriesRepository([
     List<Series>? initialItems,
@@ -44,6 +45,29 @@ class FakeSeriesRepository implements SeriesRepository {
     final item = _items.where((s) => s.id == seriesId).firstOrNull;
     if (item != null) return item;
     throw AppException(message: 'Không tìm thấy tác phẩm.');
+  }
+
+  @override
+  Future<List<Series>> getBookmarkedSeries() async {
+    bookmarkListCallCount++;
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (shouldThrowError) {
+      throw AppException(message: 'Không thể tải tủ sách cá nhân.');
+    }
+    return List.unmodifiable(_items.where((series) => series.isBookmarked));
+  }
+
+  @override
+  Future<bool> getBookmarkStatus(String seriesId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (shouldThrowError) {
+      throw AppException(message: 'Không thể kiểm tra trạng thái tủ sách.');
+    }
+    return _items
+            .where((series) => series.id == seriesId)
+            .firstOrNull
+            ?.isBookmarked ??
+        false;
   }
 
   @override
