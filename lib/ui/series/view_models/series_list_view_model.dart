@@ -130,4 +130,26 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
     );
     state = AsyncData(updatedList);
   }
+
+  /// 5. Đồng bộ trạng thái Đánh giá từ màn hình chi tiết sang danh sách ngoài trang chủ
+  void updateRatingLocally({
+    required String seriesId,
+    required double averageRating,
+    required int totalRatings,
+    int? userRating,
+  }) {
+    final currentList = state.value;
+    if (currentList == null) return;
+
+    final targetIndex = currentList.indexWhere((s) => s.id == seriesId);
+    if (targetIndex == -1) return;
+
+    final updatedList = List<Series>.from(currentList);
+    updatedList[targetIndex] = updatedList[targetIndex].copyWith(
+      averageRating: averageRating,
+      totalRatings: totalRatings,
+      userRating: userRating,
+    );
+    state = AsyncData(updatedList);
+  }
 }

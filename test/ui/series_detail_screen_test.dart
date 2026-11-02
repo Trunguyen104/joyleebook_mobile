@@ -76,7 +76,7 @@ void main() {
       expect(find.text('Hành Trình Về Phương Đông'), findsAtLeast(1));
       expect(find.text('Nguyên Phong'), findsOneWidget);
 
-      // Kiểm tra trạng thái và thể loại
+      // Kiểm tra trạng thái và thể loại ở Tab Tóm tắt
       expect(find.text('Hoàn thành'), findsOneWidget);
       expect(find.text('Tâm Linh'), findsOneWidget);
       expect(find.text('Triết Học'), findsOneWidget);
@@ -87,6 +87,10 @@ void main() {
         find.text('Tác phẩm kinh điển về tâm linh và văn hóa phương Đông...'),
         findsOneWidget,
       );
+
+      // Chuyển sang Tab "Chương" để kiểm tra danh sách chương
+      await tester.tap(find.text('Chương (2)'));
+      await tester.pumpAndSettle();
 
       // Kiểm tra danh sách chương
       expect(find.byType(ChapterItem), findsNWidgets(2));

@@ -49,6 +49,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       messenger.showSnackBar(
         const SnackBar(content: Text('Đăng ký thành công. Chào mừng bạn!')),
       );
+      if (mounted && GoRouter.maybeOf(context) != null) {
+        context.go(widget.from ?? AppPaths.series);
+      }
     }
   }
 
