@@ -90,6 +90,7 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasRated = (widget.userRating != null && widget.userRating! > 0) ||
         _successFeedbackMessage != null;
     final currentScore = _hoveredOrSelectedScore ?? widget.userRating ?? 0;
@@ -99,8 +100,17 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
       padding: const EdgeInsets.all(AppDimensions.space4),
       decoration: BoxDecoration(
         color: colors.bgSurface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-        border: Border.all(color: colors.borderDefault),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(
+          color: colors.borderDefault.withValues(alpha: 0.8),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colors.textPrimary.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,32 +121,53 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Text(
-                      'Đánh giá tác phẩm',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: colors.textPrimary,
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: colors.primaryBrand.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                      ),
+                      child: Icon(
+                        Icons.rate_review_outlined,
+                        size: 20,
+                        color: colors.primaryBrand,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.totalRatings > 0
-                          ? 'Trung bình: ${widget.averageRating.toStringAsFixed(1)} ★ (${widget.totalRatings} lượt đánh giá)'
-                          : 'Tác phẩm chưa có lượt đánh giá nào',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colors.textSecondary,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Đánh giá tác phẩm',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: colors.textPrimary,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.totalRatings > 0
+                                ? 'Trung bình: ${widget.averageRating.toStringAsFixed(1)} ★ (${widget.totalRatings} lượt đánh giá)'
+                                : 'Tác phẩm chưa có lượt đánh giá nào',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
               if (hasRated)
-                TextButton(
+                TextButton.icon(
                   onPressed: _isSubmitting
                       ? null
                       : () {
@@ -157,10 +188,17 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
                         },
                   style: TextButton.styleFrom(
                     minimumSize: const Size(48, 48),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
                     foregroundColor: colors.primaryBrand,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                    ),
                   ),
-                  child: Text(
+                  icon: Icon(
+                    _isEditing ? Icons.close_rounded : Icons.edit_outlined,
+                    size: 15,
+                  ),
+                  label: Text(
                     _isEditing ? 'Hủy' : 'Chỉnh sửa',
                     style: TextStyle(
                       fontSize: 13,
@@ -171,10 +209,15 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
                 ),
             ],
           ),
-          const SizedBox(height: AppDimensions.space2),
+          const SizedBox(height: AppDimensions.space3),
 
           // 2. Hàng 5 ngôi sao tương tác (Touch target >= 48x48dp)
-          Center(
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: AppDimensions.space2),
+            decoration: BoxDecoration(
+              color: colors.bgSurfaceSubtle.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(5, (index) {
@@ -193,15 +236,16 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
                         ? null
                         : () => _handleStarTapped(starScore),
                     icon: AnimatedScale(
-                      scale: isFilled ? 1.05 : 1.0,
-                      duration: const Duration(milliseconds: 150),
+                      scale: isFilled ? 1.12 : 1.0,
+                      curve: Curves.easeOutBack,
+                      duration: const Duration(milliseconds: 180),
                       child: Icon(
                         isFilled
                             ? Icons.star_rounded
                             : Icons.star_outline_rounded,
                         color: isFilled
-                            ? Colors.amber[600]
-                            : colors.textDisabled.withValues(alpha: 0.6),
+                            ? const Color(0xFFF59E0B)
+                            : colors.textDisabled.withValues(alpha: 0.5),
                       ),
                     ),
                   ),
@@ -212,7 +256,7 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
           const SizedBox(height: AppDimensions.space3),
 
           // 3. Instant Feedback Banner
-          _buildFeedbackBanner(colors, hasRated, currentScore),
+          _buildFeedbackBanner(colors, hasRated, currentScore, isDark),
         ],
       ),
     );
@@ -222,14 +266,15 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
     AppColors colors,
     bool hasRated,
     int currentScore,
+    bool isDark,
   ) {
     String message;
-    IconData icon;
+    IconData? icon;
     Color iconColor;
 
     if (_isSubmitting) {
       message = 'Đang gửi đánh giá lên hệ thống...';
-      icon = Icons.hourglass_top_rounded;
+      icon = null;
       iconColor = colors.accent;
     } else if (_successFeedbackMessage != null) {
       message = _successFeedbackMessage!;
@@ -250,10 +295,13 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
     }
 
     final scoreDisplay = currentScore > 0 ? '$currentScore / 5 ★' : '- / 5 ★';
+    final scoreColor = currentScore > 0
+        ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))
+        : colors.textDisabled;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: colors.bgSurfaceSubtle,
         borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
@@ -263,8 +311,18 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: iconColor),
-          const SizedBox(width: 8),
+          if (_isSubmitting)
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation(colors.primaryBrand),
+              ),
+            )
+          else
+            Icon(icon, size: 18, color: iconColor),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
@@ -280,7 +338,7 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: currentScore > 0 ? Colors.amber[700] : colors.textDisabled,
+              color: scoreColor,
             ),
           ),
         ],

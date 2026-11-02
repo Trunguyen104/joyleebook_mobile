@@ -526,12 +526,16 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: series.totalRatings > 0
-                        ? Colors.amber.withValues(alpha: 0.15)
+                        ? (Theme.of(context).brightness == Brightness.dark
+                            ? Colors.amber.withValues(alpha: 0.2)
+                            : Colors.amber.withValues(alpha: 0.12))
                         : colors.bgSurfaceSubtle,
                     borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
                     border: Border.all(
                       color: series.totalRatings > 0
-                          ? Colors.amber.withValues(alpha: 0.4)
+                          ? (Theme.of(context).brightness == Brightness.dark
+                              ? Colors.amber.withValues(alpha: 0.5)
+                              : Colors.amber.withValues(alpha: 0.4))
                           : colors.borderDefault.withValues(alpha: 0.5),
                     ),
                   ),
@@ -544,7 +548,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                             : Icons.star_outline_rounded,
                         size: 14,
                         color: series.totalRatings > 0
-                            ? Colors.amber[700]
+                            ? (Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFFFBBF24)
+                                : Colors.amber[700])
                             : colors.textDisabled,
                       ),
                       const SizedBox(width: 4),
@@ -556,7 +562,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: series.totalRatings > 0
-                              ? Colors.amber[900]
+                              ? (Theme.of(context).brightness == Brightness.dark
+                                  ? const Color(0xFFFDE68A)
+                                  : const Color(0xFF92400E))
                               : colors.textSecondary,
                         ),
                       ),
