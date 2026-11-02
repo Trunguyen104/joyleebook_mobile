@@ -6,7 +6,15 @@ import 'ui/core/themes/app_theme.dart';
 import 'ui/gateway_test/widgets/gateway_test_screen.dart';
 import 'ui/series/widgets/series_list_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'data/services/api_client.dart';
+import 'routing/app_paths.dart';
+import 'routing/app_router.dart';
+import 'ui/core/themes/app_theme.dart';
 import 'ui/core/themes/theme_provider.dart';
+
+/// Cho phép hiện SnackBar từ ngoài các màn hình (vd. khi phiên hết hạn)
+final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 /// LỚP GỐC CỦA ỨNG DỤNG FLUTTER (JoyleeBookApp)
 /// Cấu hình giao diện Material Design 3, màu sắc Warm Editorial,
@@ -33,7 +41,7 @@ class _JoyleeBookAppState extends ConsumerState<JoyleeBookApp> {
       const GatewayTestScreen(),
     ];
 
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'JoyleeBook Mobile',
       debugShowCheckedModeBanner: false,
       // Áp dụng bộ màu chuẩn Warm Editorial cho cả chế độ Sáng và Tối

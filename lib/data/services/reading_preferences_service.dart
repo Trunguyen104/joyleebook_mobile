@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -19,12 +20,12 @@ class ReadingProgress {
   });
 
   Map<String, dynamic> toJson() => {
-        'seriesId': seriesId,
-        'chapterId': chapterId,
-        'sortOrder': sortOrder,
-        'readPercentage': readPercentage,
-        'updatedAt': updatedAt.toIso8601String(),
-      };
+    'seriesId': seriesId,
+    'chapterId': chapterId,
+    'sortOrder': sortOrder,
+    'readPercentage': readPercentage,
+    'updatedAt': updatedAt.toIso8601String(),
+  };
 
   factory ReadingProgress.fromJson(Map<String, dynamic> json) =>
       ReadingProgress(
@@ -32,7 +33,8 @@ class ReadingProgress {
         chapterId: json['chapterId'] as String? ?? '',
         sortOrder: json['sortOrder'] as int? ?? 1,
         readPercentage: (json['readPercentage'] as num?)?.toDouble() ?? 0.0,
-        updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
+        updatedAt:
+            DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
             DateTime.now(),
       );
 }
@@ -127,7 +129,8 @@ class ReadingPreferencesService {
 }
 
 /// RIVERPOD PROVIDER: Đăng ký ReadingPreferencesService
-final readingPreferencesServiceProvider =
-    Provider<ReadingPreferencesService>((ref) {
+final readingPreferencesServiceProvider = Provider<ReadingPreferencesService>((
+  ref,
+) {
   return ReadingPreferencesService();
 });

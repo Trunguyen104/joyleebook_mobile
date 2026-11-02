@@ -1,8 +1,9 @@
 import '../../../data/services/api_exceptions.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:joyleebook_mobile/ui/core/themes/theme_provider.dart';
-import 'package:joyleebook_mobile/ui/series/widgets/series_detail_screen.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../domain/models/series.dart';
 import '../../bookmark/view_models/bookmark_status_view_model.dart';

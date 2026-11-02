@@ -1,14 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../data/repositories/chapter_repository.dart';
 import '../../../domain/models/chapter.dart';
 
 /// RIVERPOD PROVIDER: Đăng ký ViewModel cho màn hình danh sách chương
 /// Riverpod 3 Family Provider truyền [seriesId] trực tiếp vào constructor của ViewModel.
-final chapterListViewModelProvider = AsyncNotifierProvider.family<
-    ChapterListViewModel, List<Chapter>, String>(
-  ChapterListViewModel.new,
-  retry: (retryCount, error) => null,
-);
+final chapterListViewModelProvider =
+    AsyncNotifierProvider.family<ChapterListViewModel, List<Chapter>, String>(
+      ChapterListViewModel.new,
+      retry: (retryCount, error) => null,
+    );
 
 /// VIEWMODEL - Quản lý trạng thái tải danh sách chương
 class ChapterListViewModel extends AsyncNotifier<List<Chapter>> {

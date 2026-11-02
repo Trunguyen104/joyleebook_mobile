@@ -1,0 +1,42 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+/// Khung chứa 3 tab chính + thanh điều hướng đáy (Material 3 NavigationBar).
+/// GoRouter giữ trạng thái từng tab giống IndexedStack.
+class AppShell extends StatelessWidget {
+  const AppShell({super.key, required this.navigationShell});
+
+  final StatefulNavigationShell navigationShell;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: navigationShell,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: navigationShell.currentIndex,
+        onDestinationSelected: (index) => navigationShell.goBranch(
+          index,
+          // Bấm lại tab đang mở -> quay về trang đầu của tab đó
+          initialLocation: index == navigationShell.currentIndex,
+        ),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.auto_stories_outlined),
+            selectedIcon: Icon(Icons.auto_stories_rounded),
+            label: 'Kho Truyện',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Cá nhân',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.router_outlined),
+            selectedIcon: Icon(Icons.router_rounded),
+            label: 'Kiểm tra Gateway',
+          ),
+        ],
+      ),
+    );
+  }
+}

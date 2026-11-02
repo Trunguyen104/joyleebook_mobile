@@ -7,10 +7,7 @@ class AppException implements Exception {
   final String message;
   final int? statusCode;
 
-  const AppException({
-    required this.message,
-    this.statusCode,
-  });
+  const AppException({required this.message, this.statusCode});
 
   /// Hàm tiện ích: Chuyển đổi mã lỗi từ thư viện Dio thành AppException tiếng Việt
   factory AppException.fromDio(DioException error) {
@@ -53,6 +50,17 @@ class AppException implements Exception {
               message: 'Không tìm thấy dữ liệu tác phẩm yêu cầu.',
               statusCode: status,
             );
+          case 409:
+            return AppException(
+              message:
+                  'Tên đăng nhập hoặc dữ liệu này đã tồn tại trên hệ thống.',
+              statusCode: status,
+            );
+          case 429:
+            return AppException(
+              message: 'Bạn đang gửi yêu cầu quá nhanh. Vui lòng thử lại sau giây lát.',
+              statusCode: status,
+            );
           case 502:
             return AppException(
               message: 'Máy chủ Gateway đang chạy nhưng dịch vụ truyện chưa được bật (HTTP 502).',
@@ -66,7 +74,8 @@ class AppException implements Exception {
             );
           default:
             return AppException(
-              message: 'Lỗi máy chủ ($status): ${error.response?.statusMessage ?? "Không rõ"}',
+              message:
+                  'Lỗi máy chủ ($status): ${error.response?.statusMessage ?? "Không rõ"}',
               statusCode: status,
             );
         }

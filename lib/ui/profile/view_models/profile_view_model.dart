@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
+import 'package:joyleebook_mobile/data/services/api_exceptions.dart';
 import 'package:joyleebook_mobile/domain/models/user_profile.dart';
+import 'package:joyleebook_mobile/ui/auth/view_models/auth_session_view_model.dart';
 
 final profileViewModelProvider =
     AsyncNotifierProvider<ProfileViewModel, UserProfile>(
@@ -12,8 +14,15 @@ final profileViewModelProvider =
 
 class ProfileViewModel extends AsyncNotifier<UserProfile> {
   @override
-  Future<UserProfile> build() =>
-      ref.watch(profileRepositoryProvider).getMyProfile();
+  Future<UserProfile> build() async {
+    final repository = ref.watch(profileRepositoryProvider);
+    // Theo dõi phiên: đăng nhập / đăng xuất thì hồ sơ tự tải lại
+    final session = await ref.watch(authSessionProvider.future);
+    if (session == null) {
+      throw const AppException(message: 'Bạn chưa đăng nhập.', statusCode: 401);
+    }
+    return repository.getMyProfile();
+  }
 
   Future<void> refresh() async {
     state = const AsyncLoading();

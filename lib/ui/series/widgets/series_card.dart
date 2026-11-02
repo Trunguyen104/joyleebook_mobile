@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../domain/models/series.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
@@ -103,7 +104,9 @@ class SeriesCard extends StatelessWidget {
                         ),
 
                         // Các thẻ thể loại truyện (nếu có)
-                        ...series.genres.take(2).map(
+                        ...series.genres
+                            .take(2)
+                            .map(
                               (genre) => _buildBadge(
                                 label: genre,
                                 bgColor: colors.bgSurfaceSubtle,
@@ -163,13 +166,16 @@ class SeriesCard extends StatelessWidget {
           ? Image.network(
               series.coverImageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, error, stackTrace) => _buildPlaceholderIcon(colors),
+              errorBuilder: (_, error, stackTrace) =>
+                  _buildPlaceholderIcon(colors),
               loadingBuilder: (context, child, progress) {
                 if (progress == null) return child;
                 return Center(
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(colors.primaryBrand),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      colors.primaryBrand,
+                    ),
                   ),
                 );
               },

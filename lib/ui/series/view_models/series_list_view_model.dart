@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../data/repositories/series_repository.dart';
 import '../../../domain/models/series.dart';
 import '../../bookmark/view_models/bookmark_list_view_model.dart';
@@ -9,9 +11,9 @@ import '../../bookmark/view_models/bookmark_status_view_model.dart';
 /// AsyncNotifierProvider tự động quản lý vòng đời và trạng thái bất đồng bộ (AsyncValue)
 final seriesListViewModelProvider =
     AsyncNotifierProvider<SeriesListViewModel, List<Series>>(
-  SeriesListViewModel.new,
-  retry: (retryCount, error) => null,
-);
+      SeriesListViewModel.new,
+      retry: (retryCount, error) => null,
+    );
 
 /// VIEWMODEL - Quản lý trạng thái và nghiệp vụ màn hình
 /// Bước 4 trong kiến trúc Compass App:
@@ -53,7 +55,9 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
     _debounceTimer = Timer(const Duration(milliseconds: 400), () async {
       state = const AsyncLoading();
       state = await AsyncValue.guard(
-        () => ref.read(seriesRepositoryProvider).getSeriesList(searchQuery: query),
+        () => ref
+            .read(seriesRepositoryProvider)
+            .getSeriesList(searchQuery: query),
       );
     });
   }
@@ -78,7 +82,9 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
     // BƯỚC A: Cập nhật Lạc quan (Optimistic Update)
     // Đổi trạng thái icon trên UI ngay lập tức để người dùng thấy phản hồi tức thì
     final updatedList = List<Series>.from(currentList);
-    updatedList[targetIndex] = originalItem.copyWith(isBookmarked: newBookmarkState);
+    updatedList[targetIndex] = originalItem.copyWith(
+      isBookmarked: newBookmarkState,
+    );
     state = AsyncData(updatedList);
     ref
         .read(bookmarkStatusViewModelProvider.notifier)
@@ -119,8 +125,9 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
     if (targetIndex == -1) return;
 
     final updatedList = List<Series>.from(currentList);
-    updatedList[targetIndex] =
-        updatedList[targetIndex].copyWith(isBookmarked: isBookmarked);
+    updatedList[targetIndex] = updatedList[targetIndex].copyWith(
+      isBookmarked: isBookmarked,
+    );
     state = AsyncData(updatedList);
   }
 }
