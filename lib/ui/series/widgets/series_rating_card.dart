@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 
-/// WIDGET ĐÁNH GIÁ TÁC PHẨM (SeriesRatingCard)
+/// WIDGET ĐÁNH GIÁ TÁC PHẨM TINH GỌN (SeriesRatingCard)
 /// Tuân thủ quy chuẩn thiết kế Warm Editorial & Material 3:
-/// 1. Bám sát Stitch design (`docs/stitch/story_details.html`).
-/// 2. Hỗ trợ Rate (Đánh giá lần đầu) và Update Rating (Cập nhật đánh giá).
-/// 3. Touch target tối thiểu 48x48 dp cho mỗi ngôi sao.
-/// 4. Instant Feedback Banner thông báo trạng thái trực quan ngay dưới hàng sao.
-/// 5. Chống spam click (Double-submit prevention) khi đang gửi request.
+/// 1. Tối giản, hiện đại: Cập nhật trực tiếp không cần nút Chỉnh sửa/Hủy.
+/// 2. Touch target tối thiểu 48x48 dp cho mỗi ngôi sao.
+/// 3. Hiển thị loading spinner xoay mượt mà ngay khi đang gửi đánh giá.
+/// 4. Chống spam click (Double-submit prevention).
 class SeriesRatingCard extends StatefulWidget {
   final int? userRating;
   final double averageRating;
@@ -32,10 +31,8 @@ class SeriesRatingCard extends StatefulWidget {
 }
 
 class _SeriesRatingCardState extends State<SeriesRatingCard> {
-  bool _isEditing = false;
   int? _hoveredOrSelectedScore;
   bool _isSubmitting = false;
-  String? _successFeedbackMessage;
 
   @override
   void initState() {
@@ -48,7 +45,6 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
     super.didUpdateWidget(oldWidget);
     if (widget.userRating != oldWidget.userRating) {
       _hoveredOrSelectedScore = widget.userRating;
-      _isEditing = false;
     }
   }
 
@@ -60,10 +56,8 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
 
     if (_isSubmitting) return;
 
-    final isFirstRate = widget.userRating == null;
-    final isSameScore = widget.userRating == score;
-
-    if (isSameScore && !_isEditing) return;
+    // Nếu chọn cùng điểm số hiện tại thì không gửi request trùng
+    if (widget.userRating == score) return;
 
     setState(() {
       _isSubmitting = true;
@@ -75,12 +69,7 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
     if (mounted) {
       setState(() {
         _isSubmitting = false;
-        if (success) {
-          _isEditing = false;
-          _successFeedbackMessage = isFirstRate
-              ? 'Đã gửi đánh giá thành công! Cảm ơn bạn.'
-              : 'Đã cập nhật đánh giá thành công!';
-        } else {
+        if (!success) {
           _hoveredOrSelectedScore = widget.userRating;
         }
       });
@@ -90,14 +79,14 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hasRated = (widget.userRating != null && widget.userRating! > 0) ||
-        _successFeedbackMessage != null;
     final currentScore = _hoveredOrSelectedScore ?? widget.userRating ?? 0;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppDimensions.space4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.space4,
+        vertical: AppDimensions.space3,
+      ),
       decoration: BoxDecoration(
         color: colors.bgSurface,
         borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
@@ -115,7 +104,7 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Tiêu đề Card & Nút Chỉnh sửa / Hủy
+          // 1. Tiêu đề Card, trạng thái đánh giá & Spinner khi đang gửi
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -124,8 +113,8 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
                 child: Row(
                   children: [
                     Container(
-                      width: 38,
-                      height: 38,
+                      width: 36,
+                      height: 36,
                       decoration: BoxDecoration(
                         color: colors.primaryBrand.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
@@ -166,56 +155,50 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
                   ],
                 ),
               ),
-              if (hasRated)
-                TextButton.icon(
-                  onPressed: _isSubmitting
-                      ? null
-                      : () {
-                          if (!widget.isAuthenticated) {
-                            widget.onRequireAuth?.call();
-                            return;
-                          }
-                          setState(() {
-                            if (_isEditing) {
-                              _isEditing = false;
-                              _hoveredOrSelectedScore = widget.userRating;
-                              _successFeedbackMessage = null;
-                            } else {
-                              _isEditing = true;
-                              _successFeedbackMessage = null;
-                            }
-                          });
-                        },
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(48, 48),
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    foregroundColor: colors.primaryBrand,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                    ),
+              const SizedBox(width: 8),
+
+              // Hiển thị vòng xoay loading khi đang submit
+              if (_isSubmitting)
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    valueColor: AlwaysStoppedAnimation(colors.primaryBrand),
                   ),
-                  icon: Icon(
-                    _isEditing ? Icons.close_rounded : Icons.edit_outlined,
-                    size: 15,
+                )
+              else if (widget.userRating != null && widget.userRating! > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: colors.success.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
                   ),
-                  label: Text(
-                    _isEditing ? 'Hủy' : 'Chỉnh sửa',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: colors.primaryBrand,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle_rounded, size: 13, color: colors.success),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Đã đánh giá',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: colors.success,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: AppDimensions.space3),
+          const SizedBox(height: AppDimensions.space2),
 
-          // 2. Hàng 5 ngôi sao tương tác (Touch target >= 48x48dp)
+          // 2. Hàng 5 ngôi sao tương tác trực tiếp (Touch target >= 48x48dp)
           Container(
-            padding: const EdgeInsets.symmetric(vertical: AppDimensions.space2),
+            padding: const EdgeInsets.symmetric(vertical: 2),
             decoration: BoxDecoration(
-              color: colors.bgSurfaceSubtle.withValues(alpha: 0.5),
+              color: colors.bgSurfaceSubtle.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
             ),
             child: Row(
@@ -251,94 +234,6 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
                   ),
                 );
               }),
-            ),
-          ),
-          const SizedBox(height: AppDimensions.space3),
-
-          // 3. Instant Feedback Banner
-          _buildFeedbackBanner(colors, hasRated, currentScore, isDark),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeedbackBanner(
-    AppColors colors,
-    bool hasRated,
-    int currentScore,
-    bool isDark,
-  ) {
-    String message;
-    IconData? icon;
-    Color iconColor;
-
-    if (_isSubmitting) {
-      message = 'Đang gửi đánh giá lên hệ thống...';
-      icon = null;
-      iconColor = colors.accent;
-    } else if (_successFeedbackMessage != null) {
-      message = _successFeedbackMessage!;
-      icon = Icons.verified_rounded;
-      iconColor = colors.success;
-    } else if (_isEditing) {
-      message = 'Chọn số sao mới để cập nhật đánh giá';
-      icon = Icons.edit_note_rounded;
-      iconColor = colors.primaryBrand;
-    } else if (hasRated) {
-      message = 'Bạn đã đánh giá tác phẩm này.';
-      icon = Icons.verified_rounded;
-      iconColor = colors.success;
-    } else {
-      message = 'Chạm vào sao để đánh giá tác phẩm này';
-      icon = Icons.star_outline_rounded;
-      iconColor = colors.textSecondary;
-    }
-
-    final scoreDisplay = currentScore > 0 ? '$currentScore / 5 ★' : '- / 5 ★';
-    final scoreColor = currentScore > 0
-        ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))
-        : colors.textDisabled;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: colors.bgSurfaceSubtle,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
-        border: Border.all(
-          color: colors.borderDefault.withValues(alpha: 0.6),
-        ),
-      ),
-      child: Row(
-        children: [
-          if (_isSubmitting)
-            SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation(colors.primaryBrand),
-              ),
-            )
-          else
-            Icon(icon, size: 18, color: iconColor),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: colors.textSecondary,
-              ),
-            ),
-          ),
-          Text(
-            scoreDisplay,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: scoreColor,
             ),
           ),
         ],

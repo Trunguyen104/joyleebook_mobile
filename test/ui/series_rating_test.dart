@@ -174,10 +174,9 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Kiểm tra tiêu đề và thông báo hướng dẫn
+      // Kiểm tra tiêu đề và hàng sao
       expect(find.text('Đánh giá tác phẩm'), findsOneWidget);
-      expect(find.text('Chạm vào sao để đánh giá tác phẩm này'), findsOneWidget);
-      expect(find.text('- / 5 ★'), findsOneWidget);
+      expect(find.text('Tác phẩm chưa có lượt đánh giá nào'), findsOneWidget);
 
       // Kiểm tra có đủ 5 nút sao
       expect(find.byKey(const Key('star_button_1')), findsOneWidget);
@@ -186,16 +185,14 @@ void main() {
       expect(find.byKey(const Key('star_button_4')), findsOneWidget);
       expect(find.byKey(const Key('star_button_5')), findsOneWidget);
 
-      // Bấm vào ngôi sao 5
+      // Bấm vào ngôi sao 5 để đánh giá trực tiếp
       await tester.tap(find.byKey(const Key('star_button_5')));
       await tester.pumpAndSettle();
 
       expect(ratedScore, equals(5));
-      expect(find.text('Đã gửi đánh giá thành công! Cảm ơn bạn.'), findsOneWidget);
-      expect(find.text('5 / 5 ★'), findsOneWidget);
     });
 
-    testWidgets('Chức năng Update Rating: Bấm Chỉnh sửa và chọn lại số sao', (tester) async {
+    testWidgets('Chức năng Update Rating: Cập nhật trực tiếp bằng cách chọn số sao mới', (tester) async {
       int? updatedScore;
 
       await tester.pumpWidget(
@@ -217,25 +214,15 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Trạng thái đã đánh giá 4 sao
-      expect(find.text('Chỉnh sửa'), findsOneWidget);
-      expect(find.text('4 / 5 ★'), findsOneWidget);
-      expect(find.text('Bạn đã đánh giá tác phẩm này.'), findsOneWidget);
+      // Trạng thái đã đánh giá
+      expect(find.text('Đã đánh giá'), findsOneWidget);
+      expect(find.text('Trung bình: 4.0 ★ (1 lượt đánh giá)'), findsOneWidget);
 
-      // Bấm nút "Chỉnh sửa"
-      await tester.tap(find.text('Chỉnh sửa'));
-      await tester.pumpAndSettle();
-
-      // Đổi sang chế độ chọn số sao mới kèm nút Hủy
-      expect(find.text('Hủy'), findsOneWidget);
-      expect(find.text('Chọn số sao mới để cập nhật đánh giá'), findsOneWidget);
-
-      // Bấm chọn sao 5
+      // Cập nhật trực tiếp: Bấm chọn sao 5 không cần nút chỉnh sửa/hủy
       await tester.tap(find.byKey(const Key('star_button_5')));
       await tester.pumpAndSettle();
 
       expect(updatedScore, equals(5));
-      expect(find.text('Đã cập nhật đánh giá thành công!'), findsOneWidget);
     });
 
     testWidgets('Tích hợp SeriesDetailScreen: Khi chưa đăng nhập, bấm vào sao mở Dialog yêu cầu Đăng nhập', (tester) async {
@@ -311,7 +298,7 @@ void main() {
       await tester.pumpAndSettle(); // Hoàn tất async
 
       // Xác nhận phản hồi thành công
-      expect(find.text('Đã gửi đánh giá thành công! Cảm ơn bạn.'), findsOneWidget);
+      expect(find.text('5.0 (1)'), findsOneWidget);
     });
 
     testWidgets('Toàn bộ luồng: Đang ở Series Detail -> bấm đánh giá -> hiện popup -> đăng nhập -> quay lại đúng Series Detail -> đánh giá trực tiếp', (tester) async {
@@ -369,10 +356,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // State thay đổi trực tiếp ngay trên giao diện
-      expect(find.text('Đã gửi đánh giá thành công! Cảm ơn bạn.'), findsOneWidget);
-      expect(find.text('5 / 5 ★'), findsOneWidget);
       expect(find.text('5.0 (1)'), findsOneWidget);
       expect(find.text('Trung bình: 5.0 ★ (1 lượt đánh giá)'), findsOneWidget);
+      expect(find.text('Đã đánh giá'), findsOneWidget);
     });
   });
 }
