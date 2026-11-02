@@ -3,6 +3,9 @@
 library;
 
 final _usernamePattern = RegExp(r'^[A-Za-z0-9._-]+$');
+final _emailPattern = RegExp(
+  r'^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$',
+);
 final _hasLetter = RegExp(r'[A-Za-z]');
 final _hasDigit = RegExp(r'[0-9]');
 
@@ -45,3 +48,13 @@ String? validateConfirmPassword(String password, String confirmPassword) {
 /// (backend cho đăng nhập bằng cả email nên không áp quy tắc tên đăng nhập)
 String? validateRequired(String value, String message) =>
     value.trim().isEmpty ? message : null;
+
+/// Email: không được để trống, đúng định dạng email
+String? validateEmail(String value) {
+  final email = value.trim();
+  if (email.isEmpty) return 'Vui lòng nhập địa chỉ email';
+  if (!_emailPattern.hasMatch(email)) {
+    return 'Địa chỉ email không đúng định dạng';
+  }
+  return null;
+}

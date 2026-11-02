@@ -140,6 +140,15 @@ sequenceDiagram
 
 Khi độc giả bấm lưu truyện vào Tủ sách cá nhân (Bookmark), ứng dụng phản hồi lập tức để tạo cảm giác mượt mà, nhưng vẫn đảm bảo tính toàn vẹn dữ liệu nếu gặp lỗi mạng.
 
+Ứng dụng sử dụng các API qua Gateway:
+
+| Thao tác | API |
+|---|---|
+| Tải danh sách đã lưu | `GET /api/library/bookmarks` |
+| Kiểm tra trạng thái một truyện | `GET /api/library/bookmarks/{seriesId}/status` |
+| Thêm vào tủ sách | `POST /api/library/bookmarks` với `{ "seriesId": "GUID" }` |
+| Bỏ khỏi tủ sách | `DELETE /api/library/bookmarks/{seriesId}` |
+
 ```mermaid
 sequenceDiagram
     autonumber

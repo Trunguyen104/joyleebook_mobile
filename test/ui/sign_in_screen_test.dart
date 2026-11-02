@@ -110,4 +110,13 @@ void main() {
 
     expect(fake.signInCallCount, 1);
   });
+
+  testWidgets('Hiển thị liên kết Quên mật khẩu trên màn hình đăng nhập', (
+    tester,
+  ) async {
+    final fake = FakeAuthRepository();
+    await _pumpScreen(tester, fake);
+
+    expect(find.text('Quên mật khẩu?'), findsOneWidget);
+  });
 }

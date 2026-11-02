@@ -22,6 +22,10 @@ class FakeAuthRepository implements AuthRepository {
   int signInCallCount = 0;
   int signUpCallCount = 0;
   int signOutCallCount = 0;
+  int forgotPasswordCallCount = 0;
+  String? lastForgotPasswordEmail;
+  int resetPasswordCallCount = 0;
+  bool isTokenValid = true;
 
   @override
   Future<AuthSession?> restoreSession() async => savedSession;
@@ -54,5 +58,35 @@ class FakeAuthRepository implements AuthRepository {
   Future<void> signOut() async {
     signOutCallCount++;
     savedSession = null;
+  }
+
+  @override
+  Future<void> forgotPassword({required String email}) async {
+    forgotPasswordCallCount++;
+    lastForgotPasswordEmail = email;
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (error != null) throw error!;
+  }
+
+  @override
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    resetPasswordCallCount++;
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (error != null) throw error!;
+  }
+
+  @override
+  Future<bool> validateResetToken({
+    required String email,
+    required String token,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (error != null) throw error!;
+    return isTokenValid;
   }
 }

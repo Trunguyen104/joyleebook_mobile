@@ -37,8 +37,9 @@ class _FakeServer implements HttpClientAdapter {
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
-    final body = options.path == ApiEndpoints.authSignOut
-        ? <String, dynamic>{}
+    final body = (options.path == ApiEndpoints.authSignOut ||
+            options.path == ApiEndpoints.authForgotPassword)
+        ? <String, dynamic>{'message': 'OK'}
         : {
             'accessToken': _fakeJwt(),
             'tokenType': 'Bearer',
@@ -169,4 +170,24 @@ void main() {
       expect(session?.username, 'phuc123');
     },
   );
+
+  test('Gửi yêu cầu quên mật khẩu thành công khi máy chủ trả 200', () async {
+    final storage = FakeTokenStorage();
+    final repo = _buildRepository(storage, 200);
+
+    await expectLater(
+      repo.forgotPassword(email: 'user@joyleebook.com'),
+      completes,
+    );
+  });
+
+  test('Gửi yêu cầu quên mật khẩu ném AppException khi máy chủ báo lỗi', () async {
+    final storage = FakeTokenStorage();
+    final repo = _buildRepository(storage, 500);
+
+    await expectLater(
+      repo.forgotPassword(email: 'user@joyleebook.com'),
+      throwsA(isA<AppException>()),
+    );
+  });
 }
