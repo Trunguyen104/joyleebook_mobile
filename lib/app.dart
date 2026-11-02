@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:joyleebook_mobile/ui/bookmark/widgets/bookmark_screen.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/profile_screen.dart';
 
 import 'ui/core/themes/app_theme.dart';
@@ -9,7 +10,7 @@ import 'ui/core/themes/theme_provider.dart';
 
 /// LỚP GỐC CỦA ỨNG DỤNG FLUTTER (JoyleeBookApp)
 /// Cấu hình giao diện Material Design 3, màu sắc Warm Editorial,
-/// và thanh điều hướng chuyển đổi giữa Trang Khám Phá Truyện và Trang Chẩn Đoán Gateway.
+/// và thanh điều hướng giữa các khu vực dành cho độc giả.
 class JoyleeBookApp extends ConsumerStatefulWidget {
   const JoyleeBookApp({super.key});
 
@@ -18,20 +19,19 @@ class JoyleeBookApp extends ConsumerStatefulWidget {
 }
 
 class _JoyleeBookAppState extends ConsumerState<JoyleeBookApp> {
-  // Chỉ số tab đang chọn: 0 = Kho Truyện, 1 = Chẩn Đoán Gateway
+  // Chỉ số tab đang chọn: 0 = Kho Truyện, 1 = Tủ sách
   int _currentTabIndex = 0;
-
-  // Danh sách các màn hình tương ứng với từng tab
-  final List<Widget> _screens = const [
-    SeriesListScreen(), // Trang mẫu chức năng: Khám phá danh sách truyện
-    ProfileScreen(),
-    GatewayTestScreen(), // Trang kiểm tra: Gọi thử kết nối tới JoyleeBook Gateway
-  ];
 
   @override
   Widget build(BuildContext context) {
     // Lang nghe trang thai themeMode tu Riverpod
     final themeMode = ref.watch(themeModeProvider);
+    final screens = [
+      const SeriesListScreen(),
+      BookmarkScreen(onExplore: () => setState(() => _currentTabIndex = 0)),
+      const ProfileScreen(),
+      const GatewayTestScreen(),
+    ];
 
     return MaterialApp(
       title: 'JoyleeBook Mobile',
@@ -42,7 +42,7 @@ class _JoyleeBookAppState extends ConsumerState<JoyleeBookApp> {
       themeMode: themeMode,
       themeAnimationDuration: Duration.zero,
       home: Scaffold(
-        body: IndexedStack(index: _currentTabIndex, children: _screens),
+        body: IndexedStack(index: _currentTabIndex, children: screens),
         // Thanh điều hướng đáy chuẩn Material 3 (NavigationBar)
         bottomNavigationBar: NavigationBar(
           selectedIndex: _currentTabIndex,
@@ -56,6 +56,11 @@ class _JoyleeBookAppState extends ConsumerState<JoyleeBookApp> {
               icon: Icon(Icons.auto_stories_outlined),
               selectedIcon: Icon(Icons.auto_stories_rounded),
               label: 'Kho Truyện',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.bookmarks_outlined),
+              selectedIcon: Icon(Icons.bookmarks_rounded),
+              label: 'Tủ sách',
             ),
             NavigationDestination(
               icon: Icon(Icons.person_outline),

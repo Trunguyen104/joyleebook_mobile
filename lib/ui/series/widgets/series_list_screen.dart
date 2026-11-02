@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:joyleebook_mobile/ui/core/themes/theme_provider.dart';
 import 'package:joyleebook_mobile/ui/series/widgets/series_detail_screen.dart';
 
+import '../../../domain/models/series.dart';
+import '../../bookmark/view_models/bookmark_status_view_model.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_empty_state.dart';
@@ -30,6 +32,7 @@ class SeriesListScreen extends ConsumerStatefulWidget {
 class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
   // Controller điều khiển ô nhập tìm kiếm
   final TextEditingController _searchController = TextEditingController();
+  final Set<String> _bookmarkRequestsInFlight = {};
 
   @override
   void dispose() {
@@ -45,6 +48,7 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
 
     // 2. Lắng nghe trạng thái bất đồng bộ từ Riverpod ViewModel
     final seriesState = ref.watch(seriesListViewModelProvider);
+    final bookmarkStatuses = ref.watch(bookmarkStatusViewModelProvider);
 
     return Scaffold(
       backgroundColor: colors.bgCanvas,
@@ -145,10 +149,18 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
               padding: const EdgeInsets.all(AppDimensions.space4),
               itemCount: seriesList.length,
               itemBuilder: (context, index) {
-                final item = seriesList[index];
+                final storedItem = seriesList[index];
+                final item = storedItem.copyWith(
+                  isBookmarked:
+                      bookmarkStatuses[storedItem.id] ??
+                      storedItem.isBookmarked,
+                );
+                final isBookmarkActionLoading = _bookmarkRequestsInFlight
+                    .contains(item.id);
 
                 return SeriesCard(
                   series: item,
+                  isBookmarkActionLoading: isBookmarkActionLoading,
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -156,24 +168,7 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
                       ),
                     );
                   },
-                  onBookmarkTap: () async {
-                    // Gọi hàm lưu/bỏ lưu truyện (Optimistic UI)
-                    final success = await ref
-                        .read(seriesListViewModelProvider.notifier)
-                        .toggleBookmark(item.id);
-
-                    // Nếu API thất bại (mạng đứt), báo lỗi hoàn tác
-                    if (!success && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text(
-                            'Không thể cập nhật tủ sách. Đã hoàn tác trạng thái.',
-                          ),
-                          backgroundColor: colors.danger,
-                        ),
-                      );
-                    }
-                  },
+                  onBookmarkTap: () => _toggleBookmark(item, colors),
                 );
               },
             ),
@@ -181,6 +176,33 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _toggleBookmark(Series item, AppColors colors) async {
+    if (_bookmarkRequestsInFlight.contains(item.id)) return;
+    setState(() => _bookmarkRequestsInFlight.add(item.id));
+
+    late final bool success;
+    try {
+      success = await ref
+          .read(seriesListViewModelProvider.notifier)
+          .toggleBookmark(item.id);
+    } finally {
+      if (mounted) {
+        setState(() => _bookmarkRequestsInFlight.remove(item.id));
+      }
+    }
+
+    if (mounted && !success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Không thể cập nhật tủ sách. Đã hoàn tác trạng thái.',
+          ),
+          backgroundColor: colors.danger,
+        ),
+      );
+    }
   }
 
   /// Khung tìm kiếm có hỗ trợ nút Xóa nhanh và debounce 400ms
