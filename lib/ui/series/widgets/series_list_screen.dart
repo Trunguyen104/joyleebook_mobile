@@ -6,6 +6,7 @@ import 'package:joyleebook_mobile/ui/core/themes/theme_provider.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../domain/models/series.dart';
+import '../../../routing/app_paths.dart';
 import '../../bookmark/view_models/bookmark_status_view_model.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
@@ -163,11 +164,7 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
                   series: item,
                   isBookmarkActionLoading: isBookmarkActionLoading,
                   onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => SeriesDetailScreen(initialSeries: item),
-                      ),
-                    );
+                    context.push(AppPaths.seriesDetail(item.id), extra: item);
                   },
                   onBookmarkTap: () => _toggleBookmark(item, colors),
                 );

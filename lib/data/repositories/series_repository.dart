@@ -93,7 +93,8 @@ class SeriesRepository {
         final rawSeries = bookmark.series ?? row;
         if (_hasSeriesDetails(rawSeries)) {
           final json = Map<String, dynamic>.from(rawSeries)
-            ..['id'] = rawSeries['id'] ?? bookmark.seriesId;
+            // Bản ghi bookmark có thể có id riêng; thao tác API cần seriesId.
+            ..['id'] = bookmark.seriesId;
           series.add(
             Series.fromDto(SeriesDto.fromJson(json), isBookmarked: true),
           );
