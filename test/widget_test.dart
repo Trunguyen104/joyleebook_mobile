@@ -1,4 +1,4 @@
-// Test toàn app: GoRouter + 3 tab + chuyển hướng đăng nhập.
+// Test toàn app: GoRouter + 4 tab + chuyển hướng đăng nhập.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,6 +44,7 @@ void main() {
     // Tab 0 mặc định là Kho Truyện (xem được khi chưa đăng nhập)
     expect(find.text('Kho Truyện JoyleeBook'), findsOneWidget);
     expect(find.text('Kho Truyện'), findsOneWidget);
+    expect(find.text('Tủ sách'), findsOneWidget);
     expect(find.text('Kiểm tra Gateway'), findsOneWidget);
 
     await tester.tap(find.text('Kiểm tra Gateway'));
@@ -51,6 +52,18 @@ void main() {
 
     expect(find.text('Kiểm tra Kết nối Gateway'), findsOneWidget);
     expect(find.text('Bắt đầu Kiểm tra Kết nối'), findsOneWidget);
+  });
+
+  testWidgets('Chưa đăng nhập: bấm tab Tủ sách thì chuyển sang Đăng nhập', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildApp(FakeAuthRepository()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Tủ sách'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SignInScreen), findsOneWidget);
   });
 
   testWidgets('Chưa đăng nhập: bấm tab Cá nhân thì chuyển sang Đăng nhập', (

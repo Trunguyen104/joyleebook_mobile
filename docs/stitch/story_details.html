@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Merriweather:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#f9f9ff;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { tertiary: "#784b00", "surface-tint": "#ac3400", "tertiary-fixed": "#ffddb8", "secondary-container": "#dae2fd", "on-tertiary-fixed-variant": "#653e00", background: "#f9f9ff", "tertiary-container": "#996100", "outline-variant": "#e1bfb5", "on-secondary-fixed": "#131b2e", "on-surface": "#111c2d", "on-primary-container": "#ffece7", "on-secondary": "#ffffff", "surface-container-lowest": "#ffffff", "tertiary-fixed-dim": "#ffb95f", "secondary-fixed-dim": "#bec6e0", error: "#ba1a1a", surface: "#f9f9ff", "inverse-on-surface": "#ecf1ff", "on-surface-variant": "#59413a", "on-primary": "#ffffff", "surface-container-high": "#dee8ff", "on-tertiary": "#ffffff", "surface-container-highest": "#d8e3fb", "on-secondary-container": "#5c647a", "surface-container-low": "#f0f3ff", "on-background": "#111c2d", "on-tertiary-fixed": "#2a1700", "surface-dim": "#cfdaf2", "surface-variant": "#d8e3fb", "inverse-primary": "#ffb59d", "on-error-container": "#93000a", primary: "#9b2f00", "error-container": "#ffdad6", outline: "#8d7168", "on-primary-fixed": "#390c00", "on-tertiary-container": "#ffeedd", "secondary-fixed": "#dae2fd", "surface-bright": "#f9f9ff", secondary: "#565e74", "surface-container": "#e7eeff", "on-primary-fixed-variant": "#832600", "primary-fixed": "#ffdbd0", "on-error": "#ffffff", "on-secondary-fixed-variant": "#3f465c", "inverse-surface": "#263143", "primary-fixed-dim": "#ffb59d", "primary-container": "#c2410c" }, borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" }, spacing: { "space-xl": "2rem", "margin-lg": "1.5rem", "space-lg": "1.5rem", "space-xs": "0.25rem", "margin-sm": "0.75rem", "space-md": "1rem", gutter: "1rem", "space-sm": "0.5rem", "gutter-sm": "0.75rem", margin: "1rem" }, fontFamily: { "title-lg": ["Inter"], "headline-md": ["Inter"], "title-sm": ["Inter"], "headline-sm": ["Inter"], "title-md": ["Inter"], "label-md": ["Inter"], "body-ui-lg": ["Inter"], "headline-lg": ["Inter"], "label-sm": ["Inter"], "label-lg": ["Inter"], "body-ui-md": ["Inter"], "body-reading-lg": ["Merriweather"], "display-lg-mobile": ["Inter"], "body-reading-md": ["Merriweather"], "display-lg": ["Inter"] }, fontSize: { "title-lg": ["18px", { lineHeight: "24px", fontWeight: "600" }], "headline-md": ["24px", { lineHeight: "32px", fontWeight: "600" }], "title-sm": ["14px", { lineHeight: "20px", fontWeight: "600" }], "headline-sm": ["20px", { lineHeight: "28px", fontWeight: "600" }], "title-md": ["16px", { lineHeight: "22px", fontWeight: "600" }], "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "500" }], "body-ui-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }], "headline-lg": ["30px", { lineHeight: "38px", fontWeight: "700" }], "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.04em", fontWeight: "600" }], "label-lg": ["14px", { lineHeight: "20px", fontWeight: "500" }], "body-ui-md": ["14px", { lineHeight: "20px", fontWeight: "400" }], "body-reading-lg": ["19px", { lineHeight: "34px", letterSpacing: "0.01em", fontWeight: "400" }], "display-lg-mobile": ["32px", { lineHeight: "40px", letterSpacing: "-0.01em", fontWeight: "700" }], "body-reading-md": ["17px", { lineHeight: "30px", letterSpacing: "0.01em", fontWeight: "400" }], "display-lg": ["44px", { lineHeight: "52px", letterSpacing: "-0.02em", fontWeight: "700" }] } } } }</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface font-body-ui-md text-body-ui-md min-h-screen flex flex-col antialiased selection:bg-primary/20"><header class="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-6 px-margin flex items-center justify-between text-on-surface select-none"><span class="font-label-sm text-label-sm font-semibold tracking-tight">9:41</span><div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">wifi</span><span class="material-symbols-outlined text-[15px]">signal_cellular_alt</span><span class="material-symbols-outlined text-[17px]">battery_full</span></div></div><div class="h-16 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-sm"><button aria-label="Go back" class="w-12 h-12 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:scale-95 transition-all" onclick="history.back()" type="button"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><img alt="Lumina Reader Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1VdQT-iWF22_1ElcMKDyChrHQXP_o-IaD1K5YYcgsAOt3Mvd7XrrZQTqJT4W3P8y4q7j-_4IviKjb1VCX9QQ4fk2o_8ZyQvHM_fKPfSW728sj3SzBCSH2TeA9YJKkukiuMJiQxvus-95hMFjMDSVcHhQChdxHMbdBWwS8VEa0p87UudY0m2IXfXxpW96_F6Co_pqh_8a59tJOvrdhvSBVDlYZk9Kwc74vOB4hrTJlpl9WWAXvcuWh-OUIZx"/><h1 class="font-title-lg text-title-lg text-on-surface truncate max-w-[190px]">Story Details</h1></div><div class="flex items-center gap-1"><button aria-label="Bookmark story" class="w-12 h-12 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container transition-colors" type="button"><span class="material-symbols-outlined text-[24px]">bookmark_border</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center ml-1"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-20 pb-safe bg-surface"><div class="flex flex-col w-full pb-12">
+<!-- Interactive Header Bar Override / Actions -->
+<section class="px-margin pt-space-xs pb-space-sm flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm uppercase tracking-wider font-semibold">Dark Fantasy</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-high text-tertiary font-label-sm text-label-sm font-medium flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> Editor's Choice
+      </span>
+</div>
+<div class="flex items-center gap-space-xs">
+<button aria-label="Share story" class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-95 transition-all" id="btn-share">
+<span class="material-symbols-outlined text-[20px]">share</span>
+</button>
+<button aria-label="Toggle bookmark" class="w-10 h-10 rounded-full flex items-center justify-center bg-primary-fixed text-primary active:scale-90 transition-transform" id="btn-bookmark">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">bookmark</span>
+</button>
+</div>
+</section>
+<!-- Story Hero Card with Bookish Atmosphere -->
+<section class="px-margin my-space-xs">
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col items-center text-center relative overflow-hidden">
+<!-- Ambient Decorative Backdrop Tint -->
+<div class="absolute -top-16 -right-16 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute -bottom-16 -left-16 w-48 h-48 bg-tertiary/10 rounded-full blur-3xl pointer-events-none"></div>
+<!-- Book Cover with Tactile Elevation -->
+<div class="relative group my-space-xs">
+<div class="w-36 h-52 rounded-lg overflow-hidden shadow-xl shadow-on-surface/10 relative">
+<img alt="The Whispering Spire Book Cover" class="w-full h-full object-cover select-none" data-alt="Editorial book cover of 'The Whispering Spire' displaying a towering ancient gothic obsidian spire enshrouded in mist, bathed in warm amber and deep terracotta atmospheric light, fine paper lithographic texture, cinematic high fantasy book illustration" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgtuojimHj2jBHqyGmGxfyBJritg97NCNhNMpG_d-Rwa-Dy71OJZ0R7Wh19E7w6JHA0lJbcMWqqPfuNge52iUoP-oeoEOgrBJHgbH6OU_tFbLYpbFxgDEgI2eKUAi_6k7KO13xC4JFoWdjckzxVbwztSi9yDa9vePYlwSomq2GlJGRE5peemPnVZDSXkQDkQVFmh_GWDjRnxayWB-BJa-D8JoE9HpM1gsH9YHEmebawbZuE4V59yHpeg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-white/10 pointer-events-none"></div>
+</div>
+<!-- Ribbed Spine Illusion Badge -->
+<span class="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-md text-white font-label-sm text-label-sm uppercase tracking-widest text-[9px]">EPUB</span>
+</div>
+<!-- Story Metadata -->
+<h2 class="mt-space-sm font-headline-md text-headline-md text-on-surface tracking-tight">The Whispering Spire</h2>
+<!-- Author Row -->
+<div class="mt-space-xs flex items-center justify-center gap-2 flex-wrap">
+<span class="font-body-ui-md text-body-ui-md text-on-surface-variant font-medium">By Elena Vance</span>
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: 'FILL' 1;" title="Verified Author">verified</span>
+<span class="text-outline text-xs select-none">•</span>
+<span class="font-label-md text-label-md text-secondary">12.4k followers</span>
+<button class="ml-1 px-3 py-1 rounded-full bg-secondary-container hover:bg-surface-container-highest text-on-secondary-container font-label-sm text-label-sm font-semibold active:scale-95 transition-all" id="follow-btn">
+          + Follow
+        </button>
+</div>
+<!-- Key Metrics Strip -->
+<div class="mt-space-md w-full grid grid-cols-4 gap-1 p-space-sm rounded-lg bg-surface-container-low text-center">
+<div class="flex flex-col items-center">
+<div class="flex items-center text-tertiary gap-0.5">
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-title-sm text-title-sm font-bold text-on-surface">4.9</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">1.5k revs</span>
+</div>
+<div class="flex flex-col items-center">
+<span class="font-title-sm text-title-sm text-on-surface font-bold">32</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Ongoing</span>
+</div>
+<div class="flex flex-col items-center">
+<span class="font-title-sm text-title-sm text-on-surface font-bold">145K</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Reads</span>
+</div>
+<div class="flex flex-col items-center justify-center">
+<span class="px-2 py-0.5 rounded-full bg-emerald-100/70 text-emerald-800 font-label-sm text-label-sm font-semibold">Active</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">Status</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Reading Progress Card -->
+<section class="px-margin my-space-xs">
+<div class="p-space-md rounded-xl bg-surface-container text-on-surface flex flex-col gap-space-xs relative overflow-hidden">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">auto_stories</span>
+<span class="font-title-sm text-title-sm text-on-surface">Your Progress</span>
+</div>
+<span class="font-label-sm text-label-sm font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary">45% Completed</span>
+</div>
+<div class="flex items-baseline justify-between mt-1">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">Chapter 14 <span class="text-sm font-normal text-on-surface-variant font-body-ui-md">/ 32</span></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Last read yesterday, 10:24 PM</span>
+</div>
+<!-- Linear Progress Bar -->
+<div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden mt-1">
+<div class="bg-primary h-full rounded-full transition-all duration-700 ease-out" style="width: 45%;"></div>
+</div>
+</div>
+</section>
+<!-- Action Bar CTAs -->
+<section class="px-margin my-space-xs flex flex-col gap-space-xs">
+<button class="w-full h-12 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg font-semibold flex items-center justify-center gap-2 shadow-md shadow-primary/20 active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+<span>Continue Reading (Ch. 14)</span>
+</button>
+<button class="w-full h-11 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-lg text-label-lg font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-all" id="open-chapters-sheet">
+<span class="material-symbols-outlined text-[18px]">format_list_bulleted</span>
+<span>View All Chapters (32)</span>
+</button>
+</section>
+<!-- Synopsis Section -->
+<section class="px-margin my-space-xs">
+<div class="p-space-md rounded-xl bg-surface-container-lowest shadow-sm">
+<h3 class="font-title-md text-title-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">menu_book</span>
+        Synopsis
+      </h3>
+<div class="mt-space-xs relative">
+<p class="font-body-reading-md text-body-reading-md text-on-surface-variant line-clamp-3 transition-all duration-300 select-text" id="synopsis-text">
+          High above the mist-choked valley of Oakhaven stands the Whispering Spire, a monolithic structure carved from fallen celestial obsidian. Scholar-apprentice Mira has spent her quiet youth deciphering the muffled murmurs echoing from its foundational vaults. When a crimson eclipse tears open the celestial veil, the dormant gargoyles awaken with prophecies of ancient kings. Bound by a forbidden contract of blood-ash, Mira must ascend thirty-three spiraling floors before the solstice bell tolls, or watch her homeland collapse into perpetual twilight.
+        </p>
+<div class="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-surface-container-lowest to-transparent pointer-events-none" id="synopsis-fade"></div>
+</div>
+<button class="mt-space-xs text-primary font-label-md text-label-md font-semibold flex items-center gap-0.5 hover:underline" id="synopsis-toggle">
+<span id="synopsis-btn-text">Read more</span>
+<span class="material-symbols-outlined text-[16px] transition-transform" id="synopsis-btn-icon">expand_more</span>
+</button>
+</div>
+</section>
+<!-- Chapter List Preview -->
+<section class="px-margin my-space-xs">
+<div class="p-space-md rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-space-xs">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-2">
+<span class="font-title-md text-title-md text-on-surface">Chapter Index</span>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-surface-container-high text-secondary font-medium">Preview</span>
+</div>
+<button class="text-primary font-label-md text-label-md font-medium hover:underline" id="view-index-btn">See 32</button>
+</div>
+<div class="flex flex-col gap-1.5">
+<!-- Ch 1 (Read) -->
+<div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between active:bg-surface-container transition-colors cursor-pointer">
+<div class="flex items-center gap-3 min-w-0">
+<span class="material-symbols-outlined text-emerald-700 text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-title-sm text-on-surface truncate">Ch. 1: The Hollow Spire</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Read • Free • 12 mins</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary text-[18px]">chevron_right</span>
+</div>
+<!-- Ch 2 (Read) -->
+<div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between active:bg-surface-container transition-colors cursor-pointer">
+<div class="flex items-center gap-3 min-w-0">
+<span class="material-symbols-outlined text-emerald-700 text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-title-sm text-on-surface truncate">Ch. 2: Whispers in the Gloom</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Read • Free • 15 mins</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary text-[18px]">chevron_right</span>
+</div>
+<!-- Ch 14 (Current Bookmark) -->
+<div class="p-3 rounded-lg bg-primary/10 flex items-center justify-between active:bg-primary/15 transition-colors cursor-pointer relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+<div class="flex items-center gap-3 min-w-0 pl-1">
+<span class="material-symbols-outlined text-primary text-[20px]" style="font-variation-settings: 'FILL' 1;">bookmark</span>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-title-sm text-title-sm text-primary font-bold truncate">Ch. 14: The Ember Chamber</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.2 rounded bg-primary text-on-primary font-semibold text-[10px]">CURRENT</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Resume reading • Free • 18 mins</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary text-[20px]">play_circle</span>
+</div>
+<!-- Ch 15 (Unread Free) -->
+<div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between active:bg-surface-container transition-colors cursor-pointer">
+<div class="flex items-center gap-3 min-w-0">
+<span class="material-symbols-outlined text-secondary text-[18px]">radio_button_unchecked</span>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-title-sm text-on-surface truncate">Ch. 15: Runes of Silence</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Unread • Free • 14 mins</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary text-[18px]">chevron_right</span>
+</div>
+<!-- Ch 30 (Locked Premium) -->
+<div class="p-3 rounded-lg bg-surface-container-low/70 opacity-80 flex items-center justify-between active:bg-surface-container transition-colors cursor-pointer">
+<div class="flex items-center gap-3 min-w-0">
+<span class="material-symbols-outlined text-primary-container text-[18px]">lock</span>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-title-sm text-title-sm text-on-surface truncate">Ch. 30: The Veil Fractured</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.2 rounded bg-error-container text-on-error-container font-medium text-[10px]">PREMIUM</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Locked chapter • 45 coins</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline text-[18px]">key</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Interactive Rating & Review Card -->
+<section class="px-margin my-space-xs">
+<div class="p-space-md rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<h3 class="font-title-md text-title-md text-on-surface">Rate this story</h3>
+<button class="font-label-md text-label-md text-primary font-medium hover:underline" id="edit-rating-btn">Edit Rating</button>
+</div>
+<!-- Interactive Star Rating Container -->
+<div class="flex items-center justify-center gap-2 py-2" id="star-container">
+<button class="star-btn p-1 text-tertiary hover:scale-110 active:scale-95 transition-transform" data-star="1">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+<button class="star-btn p-1 text-tertiary hover:scale-110 active:scale-95 transition-transform" data-star="2">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+<button class="star-btn p-1 text-tertiary hover:scale-110 active:scale-95 transition-transform" data-star="3">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+<button class="star-btn p-1 text-tertiary hover:scale-110 active:scale-95 transition-transform" data-star="4">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+<button class="star-btn p-1 text-tertiary hover:scale-110 active:scale-95 transition-transform" data-star="5">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+</div>
+<!-- Instant Feedback Banner -->
+<div class="p-2.5 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-between transition-all duration-300" id="rating-feedback">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">verified</span>
+<span class="font-label-md text-label-md font-medium" id="feedback-message">Rating submitted! Thank you.</span>
+</div>
+<span class="font-label-sm text-label-sm font-bold text-tertiary" id="feedback-stars">5 / 5 ★</span>
+</div>
+</div>
+</section>
+<!-- Reader Discussion Preview Pill -->
+<section class="px-margin my-space-xs">
+<div class="p-space-md rounded-xl bg-surface-container-low flex items-center justify-between cursor-pointer active:bg-surface-container transition-all">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">forum</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-sm text-title-sm text-on-surface">Spire Community Chat</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">348 reader discussions active</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">arrow_forward</span>
+</div>
+</section>
+<!-- Material Design 3 Bottom Sheet: Chapters Overlay (Drawer) -->
+<div class="fixed inset-0 z-50 bg-on-surface/40 backdrop-blur-sm hidden flex-col justify-end transition-opacity duration-300 opacity-0" id="chapters-modal">
+<div class="w-full bg-surface-container-lowest rounded-t-[24px] max-h-[751px] flex flex-col transform translate-y-full transition-transform duration-300 shadow-2xl" id="chapters-sheet">
+<!-- Drag Handle Header -->
+<div class="w-full flex flex-col items-center pt-3 pb-2 cursor-pointer select-none" id="sheet-drag">
+<div class="w-8 h-1 bg-outline-variant rounded-full mb-3"></div>
+<div class="w-full px-margin flex items-center justify-between">
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Table of Contents</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">32 Total Chapters • Volume 1 &amp; 2</span>
+</div>
+<button class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-colors" id="close-sheet-btn">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+</div>
+<!-- Quick Filter Chips inside Sheet -->
+<div class="px-margin py-2 flex items-center gap-2 overflow-x-auto select-none">
+<button class="px-3 py-1 rounded-full bg-primary text-on-primary font-label-sm text-label-sm font-semibold whitespace-nowrap">All (32)</button>
+<button class="px-3 py-1 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm whitespace-nowrap">Free Only</button>
+<button class="px-3 py-1 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm whitespace-nowrap">Downloaded</button>
+<button class="px-3 py-1 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm whitespace-nowrap">Bookmarked</button>
+</div>
+<!-- Scrollable Chapter List -->
+<div class="px-margin py-2 overflow-y-auto space-y-2 max-h-[486px]">
+<div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="font-label-sm text-label-sm font-bold text-secondary">01</span>
+<span class="font-title-sm text-title-sm text-on-surface">The Hollow Spire</span>
+</div>
+<span class="font-label-sm text-label-sm text-emerald-700 font-medium">Read</span>
+</div>
+<div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="font-label-sm text-label-sm font-bold text-secondary">02</span>
+<span class="font-title-sm text-title-sm text-on-surface">Whispers in the Gloom</span>
+</div>
+<span class="font-label-sm text-label-sm text-emerald-700 font-medium">Read</span>
+</div>
+<div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="font-label-sm text-label-sm font-bold text-secondary">03</span>
+<span class="font-title-sm text-title-sm text-on-surface">Crows on Obsidian</span>
+</div>
+<span class="font-label-sm text-label-sm text-emerald-700 font-medium">Read</span>
+</div>
+<div class="p-3 rounded-lg bg-primary/10 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="font-label-sm text-label-sm font-bold text-primary">14</span>
+<span class="font-title-sm text-title-sm text-primary font-semibold">The Ember Chamber</span>
+</div>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-primary text-on-primary font-bold">Resume</span>
+</div>
+<div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="font-label-sm text-label-sm font-bold text-secondary">15</span>
+<span class="font-title-sm text-title-sm text-on-surface">Runes of Silence</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">Free</span>
+</div>
+<div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="font-label-sm text-label-sm font-bold text-secondary">16</span>
+<span class="font-title-sm text-title-sm text-on-surface">The Altar of Quicksilver</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">Free</span>
+</div>
+<div class="p-3 rounded-lg bg-surface-container-low/70 flex items-center justify-between opacity-75">
+<div class="flex items-center gap-3">
+<span class="font-label-sm text-label-sm font-bold text-outline">30</span>
+<span class="font-title-sm text-title-sm text-on-surface">The Veil Fractured</span>
+</div>
+<span class="material-symbols-outlined text-primary text-[18px]">lock</span>
+</div>
+<div class="p-3 rounded-lg bg-surface-container-low/70 flex items-center justify-between opacity-75">
+<div class="flex items-center gap-3">
+<span class="font-label-sm text-label-sm font-bold text-outline">31</span>
+<span class="font-title-sm text-title-sm text-on-surface">Solstice Eclipse</span>
+</div>
+<span class="material-symbols-outlined text-primary text-[18px]">lock</span>
+</div>
+<div class="p-3 rounded-lg bg-surface-container-low/70 flex items-center justify-between opacity-75">
+<div class="flex items-center gap-3">
+<span class="font-label-sm text-label-sm font-bold text-outline">32</span>
+<span class="font-title-sm text-title-sm text-on-surface">Dawn of Ash</span>
+</div>
+<span class="material-symbols-outlined text-primary text-[18px]">lock</span>
+</div>
+</div>
+<!-- Safe Area Spacer inside Sheet -->
+<div class="h-6"></div>
+</div>
+</div>
+</div>
+<script>
+  (() => {
+    // 1. Expandable Synopsis Toggle
+    const synopsisToggle = document.getElementById('synopsis-toggle');
+    const synopsisText = document.getElementById('synopsis-text');
+    const synopsisFade = document.getElementById('synopsis-fade');
+    const synopsisBtnText = document.getElementById('synopsis-btn-text');
+    const synopsisBtnIcon = document.getElementById('synopsis-btn-icon');
+    let isExpanded = false;
+
+    if (synopsisToggle && synopsisText) {
+      synopsisToggle.addEventListener('click', () => {
+        isExpanded = !isExpanded;
+        if (isExpanded) {
+          synopsisText.classList.remove('line-clamp-3');
+          synopsisFade.classList.add('hidden');
+          synopsisBtnText.textContent = 'Show less';
+          synopsisBtnIcon.classList.add('rotate-180');
+        } else {
+          synopsisText.classList.add('line-clamp-3');
+          synopsisFade.classList.remove('hidden');
+          synopsisBtnText.textContent = 'Read more';
+          synopsisBtnIcon.classList.remove('rotate-180');
+        }
+      });
+    }
+
+    // 2. Interactive Star Rating System
+    const starButtons = document.querySelectorAll('.star-btn');
+    const feedbackMsg = document.getElementById('feedback-message');
+    const feedbackStars = document.getElementById('feedback-stars');
+    let currentRating = 5;
+
+    function renderStars(rating) {
+      starButtons.forEach(btn => {
+        const starVal = parseInt(btn.getAttribute('data-star'), 10);
+        const icon = btn.querySelector('.material-symbols-outlined');
+        if (starVal <= rating) {
+          btn.classList.add('text-tertiary');
+          btn.classList.remove('text-outline-variant');
+          icon.style.fontVariationSettings = "'FILL' 1";
+        } else {
+          btn.classList.remove('text-tertiary');
+          btn.classList.add('text-outline-variant');
+          icon.style.fontVariationSettings = "'FILL' 0";
+        }
+      });
+      if (feedbackStars) {
+        feedbackStars.textContent = `${rating} / 5 ★`;
+      }
+    }
+
+    starButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentRating = parseInt(btn.getAttribute('data-star'), 10);
+        renderStars(currentRating);
+        if (feedbackMsg) {
+          feedbackMsg.textContent = 'Rating updated! Thank you.';
+        }
+      });
+    });
+
+    const editRatingBtn = document.getElementById('edit-rating-btn');
+    if (editRatingBtn) {
+      editRatingBtn.addEventListener('click', () => {
+        renderStars(0);
+        if (feedbackMsg) {
+          feedbackMsg.textContent = 'Select stars to rate';
+          feedbackStars.textContent = '- / 5 ★';
+        }
+      });
+    }
+
+    // 3. Bottom Sheet Presentation Logic
+    const openSheetBtn = document.getElementById('open-chapters-sheet');
+    const viewIndexBtn = document.getElementById('view-index-btn');
+    const closeSheetBtn = document.getElementById('close-sheet-btn');
+    const chaptersModal = document.getElementById('chapters-modal');
+    const chaptersSheet = document.getElementById('chapters-sheet');
+
+    function openModal() {
+      if (!chaptersModal || !chaptersSheet) return;
+      chaptersModal.classList.remove('hidden');
+      chaptersModal.classList.add('flex');
+      setTimeout(() => {
+        chaptersModal.classList.remove('opacity-0');
+        chaptersModal.classList.add('opacity-100');
+        chaptersSheet.classList.remove('translate-y-full');
+        chaptersSheet.classList.add('translate-y-0');
+      }, 10);
+    }
+
+    function closeModal() {
+      if (!chaptersModal || !chaptersSheet) return;
+      chaptersModal.classList.remove('opacity-100');
+      chaptersModal.classList.add('opacity-0');
+      chaptersSheet.classList.remove('translate-y-0');
+      chaptersSheet.classList.add('translate-y-full');
+      setTimeout(() => {
+        chaptersModal.classList.remove('flex');
+        chaptersModal.classList.add('hidden');
+      }, 300);
+    }
+
+    if (openSheetBtn) openSheetBtn.addEventListener('click', openModal);
+    if (viewIndexBtn) viewIndexBtn.addEventListener('click', openModal);
+    if (closeSheetBtn) closeSheetBtn.addEventListener('click', closeModal);
+
+    if (chaptersModal) {
+      chaptersModal.addEventListener('click', (e) => {
+        if (e.target === chaptersModal) closeModal();
+      });
+    }
+
+    // 4. Bookmark & Follow Micro-interactions
+    const bookmarkBtn = document.getElementById('btn-bookmark');
+    let bookmarked = true;
+    if (bookmarkBtn) {
+      bookmarkBtn.addEventListener('click', () => {
+        bookmarked = !bookmarked;
+        const icon = bookmarkBtn.querySelector('.material-symbols-outlined');
+        if (bookmarked) {
+          bookmarkBtn.classList.add('bg-primary-fixed', 'text-primary');
+          bookmarkBtn.classList.remove('bg-surface-container', 'text-on-surface-variant');
+          icon.style.fontVariationSettings = "'FILL' 1";
+        } else {
+          bookmarkBtn.classList.remove('bg-primary-fixed', 'text-primary');
+          bookmarkBtn.classList.add('bg-surface-container', 'text-on-surface-variant');
+          icon.style.fontVariationSettings = "'FILL' 0";
+        }
+      });
+    }
+
+    const followBtn = document.getElementById('follow-btn');
+    let following = false;
+    if (followBtn) {
+      followBtn.addEventListener('click', () => {
+        following = !following;
+        followBtn.textContent = following ? 'Following' : '+ Follow';
+        if (following) {
+          followBtn.classList.add('bg-primary', 'text-on-primary');
+          followBtn.classList.remove('bg-secondary-container', 'text-on-secondary-container');
+        } else {
+          followBtn.classList.remove('bg-primary', 'text-on-primary');
+          followBtn.classList.add('bg-secondary-container', 'text-on-secondary-container');
+        }
+      });
+    }
+  })();
+</script></main><div class="fixed bottom-0 w-full z-40 pointer-events-none pb-safe flex items-center justify-center py-1.5"><div class="w-32 h-1 rounded-full bg-on-surface/20"></div></div></body></html>

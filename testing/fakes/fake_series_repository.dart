@@ -8,6 +8,7 @@ import 'package:joyleebook_mobile/domain/models/series.dart';
 class FakeSeriesRepository implements SeriesRepository {
   final List<Series> _items;
   final bool shouldThrowError;
+  int bookmarkListCallCount = 0;
 
   FakeSeriesRepository([
     List<Series>? initialItems,
@@ -47,6 +48,29 @@ class FakeSeriesRepository implements SeriesRepository {
   }
 
   @override
+  Future<List<Series>> getBookmarkedSeries() async {
+    bookmarkListCallCount++;
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (shouldThrowError) {
+      throw AppException(message: 'Không thể tải tủ sách cá nhân.');
+    }
+    return List.unmodifiable(_items.where((series) => series.isBookmarked));
+  }
+
+  @override
+  Future<bool> getBookmarkStatus(String seriesId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (shouldThrowError) {
+      throw AppException(message: 'Không thể kiểm tra trạng thái tủ sách.');
+    }
+    return _items
+            .where((series) => series.id == seriesId)
+            .firstOrNull
+            ?.isBookmarked ??
+        false;
+  }
+
+  @override
   Future<void> toggleBookmark(String seriesId, bool shouldBookmark) async {
     await Future<void>.delayed(const Duration(milliseconds: 50));
     if (shouldThrowError) {
@@ -55,6 +79,36 @@ class FakeSeriesRepository implements SeriesRepository {
     final index = _items.indexWhere((s) => s.id == seriesId);
     if (index != -1) {
       _items[index] = _items[index].copyWith(isBookmarked: shouldBookmark);
+    }
+  }
+
+  @override
+  Future<void> rateSeries(String seriesId, int score) async {
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (shouldThrowError) {
+      throw AppException(message: 'Lỗi khi gửi đánh giá tác phẩm.');
+    }
+    if (score < 1 || score > 5) {
+      throw AppException(
+        message: 'Điểm đánh giá không hợp lệ. Vui lòng chọn từ 1 đến 5 sao.',
+      );
+    }
+    final index = _items.indexWhere((s) => s.id == seriesId);
+    if (index != -1) {
+      final old = _items[index];
+      final isFirstRate = old.userRating == null;
+      final newTotal = isFirstRate ? old.totalRatings + 1 : old.totalRatings;
+      final currentSum = old.averageRating * old.totalRatings;
+      final newSum = isFirstRate
+          ? (currentSum + score)
+          : (currentSum - (old.userRating ?? 0) + score);
+      final newAvg = newTotal > 0 ? (newSum / newTotal) : score.toDouble();
+
+      _items[index] = old.copyWith(
+        userRating: score,
+        totalRatings: newTotal,
+        averageRating: double.parse(newAvg.toStringAsFixed(1)),
+      );
     }
   }
 }

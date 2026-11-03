@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/series_repository.dart';
 import '../../../domain/models/series.dart';
+import '../../bookmark/view_models/bookmark_list_view_model.dart';
+import '../../bookmark/view_models/bookmark_status_view_model.dart';
 
 /// RIVERPOD PROVIDER: Đăng ký ViewModel cho toàn bộ màn hình danh sách truyện
 /// AsyncNotifierProvider tự động quản lý vòng đời và trạng thái bất đồng bộ (AsyncValue)
@@ -24,6 +26,7 @@ final seriesListViewModelProvider =
 class SeriesListViewModel extends AsyncNotifier<List<Series>> {
   // Bộ đếm thời gian dùng cho tính năng tìm kiếm (Debounce)
   Timer? _debounceTimer;
+  final Set<String> _bookmarkRequestsInFlight = {};
 
   /// Hàm build() được Riverpod tự động gọi đầu tiên khi màn hình mở lên
   @override
@@ -62,6 +65,8 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
   /// 3. Bật/Tắt Lưu vào Tủ sách (Optimistic UI kèm Rollback khi lỗi)
   /// Trả về true nếu thành công, false nếu thất bại để UI hiển thị SnackBar thông báo
   Future<bool> toggleBookmark(String seriesId) async {
+    if (_bookmarkRequestsInFlight.contains(seriesId)) return false;
+
     // Lấy danh sách truyện hiện tại trong State
     final currentList = state.value;
     if (currentList == null) return false;
@@ -72,6 +77,7 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
 
     final originalItem = currentList[targetIndex];
     final newBookmarkState = !originalItem.isBookmarked;
+    _bookmarkRequestsInFlight.add(seriesId);
 
     // BƯỚC A: Cập nhật Lạc quan (Optimistic Update)
     // Đổi trạng thái icon trên UI ngay lập tức để người dùng thấy phản hồi tức thì
@@ -80,6 +86,12 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
       isBookmarked: newBookmarkState,
     );
     state = AsyncData(updatedList);
+    ref
+        .read(bookmarkStatusViewModelProvider.notifier)
+        .setStatus(seriesId, newBookmarkState);
+    ref
+        .read(bookmarkListViewModelProvider.notifier)
+        .updateBookmarkLocally(originalItem, newBookmarkState);
 
     // BƯỚC B: Gửi request ngầm lên server
     try {
@@ -92,7 +104,15 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
       final rollbackList = List<Series>.from(state.value ?? currentList);
       rollbackList[targetIndex] = originalItem;
       state = AsyncData(rollbackList);
+      ref
+          .read(bookmarkStatusViewModelProvider.notifier)
+          .setStatus(seriesId, originalItem.isBookmarked);
+      ref
+          .read(bookmarkListViewModelProvider.notifier)
+          .updateBookmarkLocally(originalItem, originalItem.isBookmarked);
       return false; // Báo về cho UI hiển thị SnackBar cảnh báo
+    } finally {
+      _bookmarkRequestsInFlight.remove(seriesId);
     }
   }
 
@@ -107,6 +127,28 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
     final updatedList = List<Series>.from(currentList);
     updatedList[targetIndex] = updatedList[targetIndex].copyWith(
       isBookmarked: isBookmarked,
+    );
+    state = AsyncData(updatedList);
+  }
+
+  /// 5. Đồng bộ trạng thái Đánh giá từ màn hình chi tiết sang danh sách ngoài trang chủ
+  void updateRatingLocally({
+    required String seriesId,
+    required double averageRating,
+    required int totalRatings,
+    int? userRating,
+  }) {
+    final currentList = state.value;
+    if (currentList == null) return;
+
+    final targetIndex = currentList.indexWhere((s) => s.id == seriesId);
+    if (targetIndex == -1) return;
+
+    final updatedList = List<Series>.from(currentList);
+    updatedList[targetIndex] = updatedList[targetIndex].copyWith(
+      averageRating: averageRating,
+      totalRatings: totalRatings,
+      userRating: userRating,
     );
     state = AsyncData(updatedList);
   }

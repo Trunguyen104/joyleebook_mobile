@@ -36,9 +36,11 @@ class Series {
   final String coverImageUrl; // Đường dẫn ảnh bìa
   final SeriesStatus status; // Trạng thái (Hoàn thành / Đang ra)
   final List<String> genres; // Danh sách thể loại
-  final bool
-  isBookmarked; // Đã thêm vào tủ sách hay chưa (thuộc tính của app mobile)
+  final bool isBookmarked; // Đã thêm vào tủ sách hay chưa (thuộc tính của app mobile)
   final int totalChapters; // Tổng số chương của bộ truyện
+  final double averageRating; // Điểm đánh giá trung bình (0.0 - 5.0)
+  final int totalRatings; // Tổng số lượt độc giả đã đánh giá
+  final int? userRating; // Điểm đánh giá của người dùng hiện tại (1 - 5, null nếu chưa đánh giá)
 
   const Series({
     required this.id,
@@ -50,6 +52,9 @@ class Series {
     this.genres = const [],
     this.isBookmarked = false,
     this.totalChapters = 0,
+    this.averageRating = 0.0,
+    this.totalRatings = 0,
+    this.userRating,
   });
 
   /// Hàm chuyển đổi từ DTO (Data Layer) sang Domain Model (Domain Layer)
@@ -68,12 +73,22 @@ class Series {
       genres: dto.genreNames,
       isBookmarked: isBookmarked,
       totalChapters: dto.totalChapters,
+      averageRating: dto.averageRating,
+      totalRatings: dto.totalRatings,
+      userRating: dto.userRating,
     );
   }
 
   /// Hàm copyWith: Tạo bản sao mới với một vài thuộc tính thay đổi
-  /// Rất hữu ích khi muốn đổi trạng thái isBookmarked (Optimistic UI) mà không làm thay đổi các trường khác
-  Series copyWith({bool? isBookmarked, int? totalChapters}) {
+  /// Rất hữu ích khi muốn đổi trạng thái isBookmarked, userRating (Optimistic UI) mà không làm thay đổi các trường khác
+  Series copyWith({
+    bool? isBookmarked,
+    int? totalChapters,
+    double? averageRating,
+    int? totalRatings,
+    int? userRating,
+    bool clearUserRating = false,
+  }) {
     return Series(
       id: id,
       title: title,
@@ -84,15 +99,44 @@ class Series {
       genres: genres,
       isBookmarked: isBookmarked ?? this.isBookmarked,
       totalChapters: totalChapters ?? this.totalChapters,
+      averageRating: averageRating ?? this.averageRating,
+      totalRatings: totalRatings ?? this.totalRatings,
+      userRating: clearUserRating ? null : (userRating ?? this.userRating),
     );
   }
 
-  /// So sánh hai đối tượng Series theo ID (dùng cho việc tìm kiếm hoặc kiểm thử)
+  /// So sánh hai đối tượng Series theo đầy đủ thuộc tính để Riverpod và UI nhận diện đúng sự thay đổi trạng thái
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Series && runtimeType == other.runtimeType && id == other.id;
+      other is Series &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          title == other.title &&
+          authorName == other.authorName &&
+          description == other.description &&
+          coverImageUrl == other.coverImageUrl &&
+          status == other.status &&
+          listEquals(genres, other.genres) &&
+          isBookmarked == other.isBookmarked &&
+          totalChapters == other.totalChapters &&
+          averageRating == other.averageRating &&
+          totalRatings == other.totalRatings &&
+          userRating == other.userRating;
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode => Object.hash(
+        id,
+        title,
+        authorName,
+        description,
+        coverImageUrl,
+        status,
+        Object.hashAll(genres),
+        isBookmarked,
+        totalChapters,
+        averageRating,
+        totalRatings,
+        userRating,
+      );
 }

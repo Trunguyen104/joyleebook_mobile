@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/series_repository.dart';
 import '../../../domain/models/series.dart';
+import '../../auth/view_models/auth_session_view_model.dart';
+import '../../bookmark/view_models/bookmark_list_view_model.dart';
+import '../../bookmark/view_models/bookmark_status_view_model.dart';
 import 'series_list_view_model.dart';
 
 /// RIVERPOD PROVIDER: Đăng ký ViewModel cho màn hình chi tiết truyện
@@ -18,7 +21,7 @@ final seriesDetailViewModelProvider =
 /// Áp dụng các nguyên tắc kiến trúc:
 /// 1. Tận dụng bộ đệm (cache) từ SeriesListViewModel để hiển thị giao diện tức thì không giật lag.
 /// 2. Bắt lỗi an toàn và bọc trong AsyncValue để UI hiển thị đủ 4 trạng thái chuẩn.
-/// 3. Optimistic UI với Rollback cho tính năng Bookmark (Lưu vào tủ sách).
+/// 3. Optimistic UI với Rollback cho tính năng Bookmark (Lưu vào tủ sách) và Rating (Đánh giá).
 /// 4. Đồng bộ 2 chiều với danh sách truyện ở trang chủ.
 class SeriesDetailViewModel extends AsyncNotifier<Series> {
   final String seriesId;
@@ -27,23 +30,61 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
 
   @override
   Future<Series> build() async {
-    // 1. Đọc bộ nhớ cache từ danh sách truyện nếu đã tải trước đó
-    final list = ref.read(seriesListViewModelProvider).value;
-    final cached = list?.where((s) => s.id == seriesId).firstOrNull;
-    if (cached != null) {
-      return cached;
-    }
+    // 1. Lắng nghe khi phiên đăng nhập thay đổi (đăng nhập / đăng xuất)
+    // để tự động cập nhật my-rating và điểm số mới nhất mà không block build ban đầu
+    ref.listen(authSessionProvider, (previous, next) {
+      if (previous?.value != next.value) {
+        refresh();
+      }
+    });
 
-    // 2. Nếu chưa có trong cache, gọi Repository tải từ Gateway
-    return ref.watch(seriesRepositoryProvider).getSeriesById(seriesId);
+    // 2. Lắng nghe trạng thái bookmark thay đổi từ màn hình khác
+    ref.listen(bookmarkStatusViewModelProvider, (previous, next) {
+      final status = next[seriesId];
+      final current = state.value;
+      if (status != null && current != null && current.isBookmarked != status) {
+        state = AsyncData(current.copyWith(isBookmarked: status));
+      }
+    });
+
+    return _loadSeries();
   }
 
   /// Kéo để làm mới dữ liệu chi tiết truyện (Pull-to-refresh)
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref.read(seriesRepositoryProvider).getSeriesById(seriesId),
-    );
+    state = await AsyncValue.guard(_loadSeries);
+  }
+
+  Future<Series> _loadSeries() async {
+    final list = ref.read(seriesListViewModelProvider).value;
+    final cached = list?.where((series) => series.id == seriesId).firstOrNull;
+    final series =
+        cached ??
+        await ref.read(seriesRepositoryProvider).getSeriesById(seriesId);
+    bool isBookmarked = series.isBookmarked;
+    try {
+      isBookmarked = await ref
+          .read(seriesRepositoryProvider)
+          .getBookmarkStatus(seriesId);
+    } catch (_) {
+      // Giữ nguyên trạng thái bookmark nếu chưa đăng nhập hoặc gặp lỗi mạng
+    }
+    final updated = series.copyWith(isBookmarked: isBookmarked);
+    _syncBookmarkStatus(updated, isBookmarked);
+    return updated;
+  }
+
+  void _syncBookmarkStatus(Series series, bool isBookmarked) {
+    ref
+        .read(bookmarkStatusViewModelProvider.notifier)
+        .setStatus(seriesId, isBookmarked);
+    ref
+        .read(seriesListViewModelProvider.notifier)
+        .updateBookmarkLocally(seriesId, isBookmarked);
+    ref
+        .read(bookmarkListViewModelProvider.notifier)
+        .updateBookmarkLocally(series, isBookmarked);
   }
 
   /// Bật/Tắt Lưu vào Tủ sách (Optimistic UI kèm Rollback khi lỗi)
@@ -62,6 +103,7 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
     ref
         .read(seriesListViewModelProvider.notifier)
         .updateBookmarkLocally(seriesId, newBookmarkState);
+    _syncBookmarkStatus(current, newBookmarkState);
 
     // BƯỚC 3: Gửi request ngầm lên API Gateway
     try {
@@ -72,9 +114,63 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
     } catch (_) {
       // BƯỚC 4: Rollback phục hồi lại trạng thái cũ nếu gặp sự cố mạng
       state = AsyncData(original);
-      ref
-          .read(seriesListViewModelProvider.notifier)
-          .updateBookmarkLocally(seriesId, original.isBookmarked);
+      _syncBookmarkStatus(original, original.isBookmarked);
+      return false;
+    }
+  }
+
+  /// Đánh giá hoặc Cập nhật đánh giá tác phẩm (Optimistic UI kèm Rollback)
+  /// Điểm đánh giá bắt buộc thuộc thang 1 - 5 sao.
+  /// Trả về true nếu thành công, false nếu có lỗi xảy ra.
+  Future<bool> rateSeries(int score) async {
+    // 1. Kiểm tra validation ranh giới (Boundary check): 1 <= score <= 5
+    if (score < 1 || score > 5) {
+      return false;
+    }
+
+    final current = state.value;
+    if (current == null) return false;
+
+    final original = current;
+    final isFirstRate = current.userRating == null;
+    final newTotal = isFirstRate ? current.totalRatings + 1 : current.totalRatings;
+    final currentSum = current.averageRating * current.totalRatings;
+    final newSum = isFirstRate
+        ? (currentSum + score)
+        : (currentSum - (current.userRating ?? 0) + score);
+    final newAvg = newTotal > 0 ? (newSum / newTotal) : score.toDouble();
+    final roundedAvg = double.parse(newAvg.toStringAsFixed(1));
+
+    // BƯỚC 1: Cập nhật Lạc quan (Optimistic Update)
+    state = AsyncData(current.copyWith(
+      userRating: score,
+      totalRatings: newTotal,
+      averageRating: roundedAvg,
+    ));
+
+    // Đồng bộ sang danh sách ngoài trang chủ
+    ref.read(seriesListViewModelProvider.notifier).updateRatingLocally(
+      seriesId: seriesId,
+      averageRating: roundedAvg,
+      totalRatings: newTotal,
+      userRating: score,
+    );
+
+    // BƯỚC 2: Gửi request lên Gateway
+    try {
+      await ref
+          .read(seriesRepositoryProvider)
+          .rateSeries(seriesId, score);
+      return true;
+    } catch (_) {
+      // BƯỚC 3: Rollback khi lỗi
+      state = AsyncData(original);
+      ref.read(seriesListViewModelProvider.notifier).updateRatingLocally(
+        seriesId: seriesId,
+        averageRating: original.averageRating,
+        totalRatings: original.totalRatings,
+        userRating: original.userRating,
+      );
       return false;
     }
   }

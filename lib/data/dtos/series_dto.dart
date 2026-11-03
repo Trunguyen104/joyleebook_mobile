@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 /// DTO (Data Transfer Object) - Đối tượng truyền dữ liệu
 /// Bước 1 trong kiến trúc Compass App:
 /// Lớp này ánh xạ CHÍNH XÁC cấu trúc JSON trả về từ JoyleeBook API Gateway (/api/series).
-/// Mục đích: Parse dữ liệu thô từ `Map<String, dynamic>` và xử lý an toàn kiểu dữ liệu (null-safety).
+/// Hỗ trợ cả cấu trúc SeriesResponse trực tiếp và đối tượng Metrics từ backend microservice.
 @immutable
 class SeriesDto {
   // Mã định danh truyện (Backend trả về UUID string, ví dụ: 11111111-1111-...)
@@ -36,6 +36,15 @@ class SeriesDto {
   // Tổng số chương (nếu API trả về)
   final int totalChapters;
 
+  // Điểm đánh giá trung bình (ví dụ: 4.8 / 5.0)
+  final double averageRating;
+
+  // Tổng số lượt độc giả đã đánh giá
+  final int totalRatings;
+
+  // Điểm đánh giá của người dùng hiện tại (1-5, null nếu chưa đánh giá)
+  final int? userRating;
+
   const SeriesDto({
     required this.id,
     required this.title,
@@ -47,6 +56,9 @@ class SeriesDto {
     this.isPublish = true,
     this.genreNames = const [],
     this.totalChapters = 0,
+    this.averageRating = 0.0,
+    this.totalRatings = 0,
+    this.userRating,
   });
 
   /// Hàm khởi tạo từ Map JSON nhận từ API
@@ -61,6 +73,9 @@ class SeriesDto {
         )
         .where((name) => name.isNotEmpty)
         .toList();
+
+    // 2. Trích xuất metrics nếu backend trả về kèm theo (SeriesMetricsResponse)
+    final metrics = json['metrics'] as Map<String, dynamic>?;
 
     return SeriesDto(
       // Lấy id: Chuyển về dạng String để hỗ trợ cả Guid lẫn số nguyên
@@ -81,7 +96,7 @@ class SeriesDto {
       // Lấy ảnh bìa: Hỗ trợ cả 2 tên trường coverImageUrl hoặc coverUrl
       coverImageUrl: (json['coverImageUrl'] ?? json['coverUrl']) as String?,
 
-      // Lấy trạng thái truyện (0 hoặc 1, mặc định 1 = Ongoing)
+      // Lấy trạng thái truyện (0 = Completed, 1 = Ongoing)
       status: json['status'] as int? ?? 1,
 
       // Cờ xuất bản
@@ -90,8 +105,26 @@ class SeriesDto {
       // Danh sách thể loại
       genreNames: parsedGenres,
 
-      // Tổng số chương
-      totalChapters: json['totalChapters'] as int? ?? 0,
+      // Tổng số chương (ưu tiên metrics của backend)
+      totalChapters: (metrics?['publishedChapterCount'] as int?) ??
+          (metrics?['chapterCount'] as int?) ??
+          (json['totalChapters'] as int?) ??
+          0,
+
+      // Điểm đánh giá trung bình
+      averageRating: (metrics?['averageRating'] as num?)?.toDouble() ??
+          (json['averageRating'] as num?)?.toDouble() ??
+          (json['rating'] as num?)?.toDouble() ??
+          0.0,
+
+      // Tổng số lượt đánh giá
+      totalRatings: (metrics?['ratingCount'] as int?) ??
+          (json['totalRatings'] as int?) ??
+          (json['ratingCount'] as int?) ??
+          0,
+
+      // Điểm đánh giá của người dùng
+      userRating: json['userRating'] as int?,
     );
   }
 
@@ -107,6 +140,9 @@ class SeriesDto {
       'status': status,
       'isPublish': isPublish,
       'totalChapters': totalChapters,
+      'averageRating': averageRating,
+      'totalRatings': totalRatings,
+      if (userRating != null) 'userRating': userRating,
     };
   }
 }
