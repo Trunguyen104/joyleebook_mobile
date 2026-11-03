@@ -3,16 +3,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:joyleebook_mobile/app.dart';
 import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
+import 'package:joyleebook_mobile/data/repositories/notification_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
 import 'package:joyleebook_mobile/ui/auth/widgets/sign_in_screen.dart';
 import 'package:joyleebook_mobile/ui/auth/widgets/sign_up_screen.dart';
+import 'package:joyleebook_mobile/routing/app_paths.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_button.dart';
+import 'package:joyleebook_mobile/ui/notifications/widgets/notification_list_screen.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/profile_screen.dart';
+import 'package:joyleebook_mobile/ui/series/widgets/series_list_screen.dart';
 
 import '../testing/fakes/fake_auth_repository.dart';
+import '../testing/fakes/fake_notification_repository.dart';
 import '../testing/fakes/fake_profile_repository.dart';
 import '../testing/fakes/fake_series_repository.dart';
 
@@ -21,6 +27,9 @@ ProviderScope _buildApp(FakeAuthRepository auth) => ProviderScope(
     seriesRepositoryProvider.overrideWithValue(FakeSeriesRepository([])),
     profileRepositoryProvider.overrideWithValue(FakeProfileRepository()),
     authRepositoryProvider.overrideWithValue(auth),
+    notificationRepositoryProvider.overrideWithValue(
+      FakeNotificationRepository(),
+    ),
   ],
   child: const JoyleeBookApp(),
 );
@@ -105,5 +114,36 @@ void main() {
 
     expect(find.byType(ProfileScreen), findsOneWidget);
     expect(find.byType(SignInScreen), findsNothing);
+  });
+
+  testWidgets('Chưa đăng nhập mở /notifications thì chuyển sang Đăng nhập', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildApp(FakeAuthRepository()));
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(SeriesListScreen));
+    GoRouter.of(context).go(AppPaths.notifications);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SignInScreen), findsOneWidget);
+    expect(find.byType(NotificationListScreen), findsNothing);
+  });
+
+  testWidgets('Bấm chuông ở tab Cá nhân mở màn Thông báo toàn màn hình', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildApp(FakeAuthRepository(savedSession: fakeSession)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Cá nhân'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Thông báo'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NotificationListScreen), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
   });
 }

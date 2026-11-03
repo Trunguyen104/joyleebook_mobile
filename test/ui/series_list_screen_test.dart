@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
+import 'package:joyleebook_mobile/data/repositories/notification_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
+import 'package:joyleebook_mobile/domain/models/app_notification.dart';
 import 'package:joyleebook_mobile/domain/models/series.dart';
 import 'package:joyleebook_mobile/ui/core/themes/app_theme.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_empty_state.dart';
 import 'package:joyleebook_mobile/ui/series/widgets/series_list_screen.dart';
+
+import '../../testing/fakes/fake_auth_repository.dart';
+import '../../testing/fakes/fake_notification_repository.dart';
 import '../../testing/fakes/fake_series_repository.dart';
 
 void main() {
-  testWidgets('Hiển thị JoyleeEmptyState khi danh sách truyện rỗng', (tester) async {
+  testWidgets('Hiển thị JoyleeEmptyState khi danh sách truyện rỗng', (
+    tester,
+  ) async {
     // 1. Khởi tạo Fake Repository rỗng
     final fakeRepo = FakeSeriesRepository([]);
 
@@ -18,6 +26,7 @@ void main() {
       ProviderScope(
         overrides: [
           seriesRepositoryProvider.overrideWithValue(fakeRepo),
+          authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
         ],
         child: MaterialApp(
           theme: AppTheme.light,
@@ -34,7 +43,9 @@ void main() {
     expect(find.text('Không tìm thấy truyện nào'), findsOneWidget);
   });
 
-  testWidgets('Hiển thị danh sách truyện khi có dữ liệu từ Repository', (tester) async {
+  testWidgets('Hiển thị danh sách truyện khi có dữ liệu từ Repository', (
+    tester,
+  ) async {
     // 1. Khởi tạo Fake Repository có 1 truyện mẫu
     final mockData = [
       const Series(
@@ -54,6 +65,7 @@ void main() {
       ProviderScope(
         overrides: [
           seriesRepositoryProvider.overrideWithValue(fakeRepo),
+          authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
         ],
         child: MaterialApp(
           theme: AppTheme.light,
@@ -67,5 +79,52 @@ void main() {
     // 3. Xác nhận tên truyện và tác giả hiển thị chính xác
     expect(find.text('Bí Mật Cổ Trấn Giữa Sương Mù'), findsOneWidget);
     expect(find.text('Nguyên Phong'), findsOneWidget);
+  });
+
+  testWidgets('Đã đăng nhập thì hiển thị chuông thông báo kèm badge', (
+    tester,
+  ) async {
+    final notificationRepo = FakeNotificationRepository(
+      items: [
+        AppNotification(
+          id: 'n1',
+          userId: fakeSession.userId,
+          type: 0,
+          title: 'Chương mới',
+          message: 'Nội dung',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+        AppNotification(
+          id: 'n2',
+          userId: fakeSession.userId,
+          type: 0,
+          title: 'Thông báo hệ thống',
+          message: 'Nội dung',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          seriesRepositoryProvider.overrideWithValue(FakeSeriesRepository([])),
+          authRepositoryProvider.overrideWithValue(
+            FakeAuthRepository(savedSession: fakeSession),
+          ),
+          notificationRepositoryProvider.overrideWithValue(notificationRepo),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const SeriesListScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Thông báo, 2 chưa đọc'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
   });
 }
