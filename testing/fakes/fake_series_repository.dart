@@ -16,16 +16,22 @@ class FakeSeriesRepository implements SeriesRepository {
   ]) : _items = initialItems != null ? List.of(initialItems) : [];
 
   @override
-  Future<List<Series>> getSeriesList({String? searchQuery}) async {
+  Future<List<Series>> getSeriesList({
+    String? searchQuery,
+    String? genre,
+    SeriesStatus? status,
+  }) async {
     // Giả lập độ trễ mạng ngắn 50ms
     await Future<void>.delayed(const Duration(milliseconds: 50));
     if (shouldThrowError) {
       throw AppException(message: 'Lỗi kết nối máy chủ khi tải danh sách.');
     }
 
+    var result = List<Series>.of(_items);
+
     if (searchQuery != null && searchQuery.trim().isNotEmpty) {
       final query = searchQuery.trim().toLowerCase();
-      return _items
+      result = result
           .where(
             (s) =>
                 s.title.toLowerCase().contains(query) ||
@@ -33,7 +39,25 @@ class FakeSeriesRepository implements SeriesRepository {
           )
           .toList();
     }
-    return List.unmodifiable(_items);
+
+    if (genre != null && genre.trim().isNotEmpty) {
+      final targetGenre = genre.trim().toLowerCase();
+      result = result
+          .where(
+            (s) => s.genres.any(
+              (g) =>
+                  g.toLowerCase() == targetGenre ||
+                  g.toLowerCase().contains(targetGenre),
+            ),
+          )
+          .toList();
+    }
+
+    if (status != null) {
+      result = result.where((s) => s.status == status).toList();
+    }
+
+    return List.unmodifiable(result);
   }
 
   @override

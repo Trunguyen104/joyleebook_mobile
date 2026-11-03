@@ -18,11 +18,21 @@ class SeriesRepository {
 
   /// 1. Lấy danh sách truyện từ Gateway
   /// Có hỗ trợ tham số tìm kiếm [searchQuery] nếu người dùng gõ từ khóa
-  Future<List<Series>> getSeriesList({String? searchQuery}) async {
+  Future<List<Series>> getSeriesList({
+    String? searchQuery,
+    String? genre,
+    SeriesStatus? status,
+  }) async {
     try {
       final queryParams = <String, dynamic>{};
       if (searchQuery != null && searchQuery.trim().isNotEmpty) {
         queryParams['search'] = searchQuery.trim();
+      }
+      if (genre != null && genre.trim().isNotEmpty) {
+        queryParams['genre'] = genre.trim();
+      }
+      if (status != null) {
+        queryParams['status'] = status == SeriesStatus.completed ? 0 : 1;
       }
 
       final response = await _dio.get<List<dynamic>>(
@@ -36,7 +46,24 @@ class SeriesRepository {
         SeriesDto.fromJson,
       );
 
-      final domainList = dtoList.map(Series.fromDto).toList(growable: false);
+      var domainList = dtoList.map(Series.fromDto).toList(growable: false);
+
+      if (genre != null && genre.trim().isNotEmpty) {
+        final targetGenre = genre.trim().toLowerCase();
+        domainList = domainList
+            .where(
+              (s) => s.genres.any(
+                (item) =>
+                    item.toLowerCase() == targetGenre ||
+                    item.toLowerCase().contains(targetGenre),
+              ),
+            )
+            .toList(growable: false);
+      }
+      if (status != null) {
+        domainList =
+            domainList.where((s) => s.status == status).toList(growable: false);
+      }
 
       return domainList;
     } on DioException catch (e) {
