@@ -23,6 +23,7 @@ abstract final class ApiEndpoints {
   // Notifications Microservice (via Gateway)
   static const String notifications = '/api/notifications';
   static const String notificationsHealth = '/api/notifications/health';
+  static const String notificationsHub = '/hubs/notifications';
 
   static String notificationsByUser(String userId) =>
       '$notifications/user/$userId';

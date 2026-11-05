@@ -1,6 +1,6 @@
 # Thiết lập Flutter Mobile cho JoyleeBook
 
-Tài liệu này hướng dẫn tạo ứng dụng Flutter mobile mới, dùng kiến trúc hiện đại và gọi **qua JoyleeBook Gateway**. Phạm vi API đã tích hợp gồm Authentication, Series và Notification in-app (danh sách, đánh dấu đã đọc). Chapters, Library, Community hiện mới có health check; không xây màn hình nghiệp vụ dựa trên các API đó cho đến khi contract được bổ sung.
+Tài liệu này hướng dẫn tạo ứng dụng Flutter mobile mới, dùng kiến trúc hiện đại và gọi **qua JoyleeBook Gateway**. Phạm vi API đã tích hợp gồm Authentication, Series và Notification in-app (danh sách, đánh dấu đã đọc, realtime qua SignalR `/hubs/notifications`). Chapters, Library, Community hiện mới có health check; không xây màn hình nghiệp vụ dựa trên các API đó cho đến khi contract được bổ sung.
 
 ## 1. Nguyên tắc tích hợp
 

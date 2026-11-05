@@ -63,6 +63,39 @@ void main() {
     expect(repo.getCallCount, 2);
   });
 
+  test('receiveRealtime chèn thông báo mới lên đầu và chống trùng', () async {
+    final repo = FakeNotificationRepository(items: _items(2));
+    final container = _container(repo);
+    addTearDown(container.dispose);
+
+    await container.read(notificationFeedViewModelProvider.future);
+    final viewModel = container.read(
+      notificationFeedViewModelProvider.notifier,
+    );
+
+    final realtime = AppNotification(
+      id: 'realtime-1',
+      userId: fakeSession.userId,
+      type: 0,
+      title: 'Chương mới',
+      message: 'Truyện bạn theo dõi vừa có chương mới.',
+      createdAt: DateTime.now().add(const Duration(minutes: 1)),
+      updatedAt: DateTime.now(),
+    );
+
+    viewModel.receiveRealtime(realtime);
+    var feed = container.read(notificationFeedViewModelProvider).value!;
+    expect(feed.items.first.id, 'realtime-1');
+    expect(feed.items, hasLength(3));
+    expect(feed.unreadCount, 3);
+    expect(feed.totalCount, 3);
+
+    viewModel.receiveRealtime(realtime);
+    feed = container.read(notificationFeedViewModelProvider).value!;
+    expect(feed.items, hasLength(3));
+    expect(feed.totalCount, 3);
+  });
+
   test('markAsSeen cập nhật lạc quan và rollback khi lỗi', () async {
     final repo = FakeNotificationRepository(items: _items(2));
     final container = _container(repo);

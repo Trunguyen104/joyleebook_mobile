@@ -13,8 +13,6 @@ abstract final class AppPaths {
   static const signUp = '/sign-up';
   static const forgotPassword = '/forgot-password';
 
-  static const notifications = '/notifications';
-
   /// Chi tiết một bộ truyện: /series/:seriesId
   static String seriesDetail(String seriesId) => '$series/$seriesId';
 

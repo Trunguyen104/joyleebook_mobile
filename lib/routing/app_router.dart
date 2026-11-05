@@ -11,7 +11,6 @@ import '../ui/bookmark/widgets/bookmark_screen.dart';
 import '../ui/chapter/widgets/chapter_detail_screen.dart';
 import '../ui/chapter/widgets/chapter_list_screen.dart';
 import '../ui/gateway_test/widgets/gateway_test_screen.dart';
-import '../ui/notifications/widgets/notification_list_screen.dart';
 import '../ui/profile/widgets/profile_screen.dart';
 import '../ui/series/widgets/series_detail_screen.dart';
 import '../ui/series/widgets/series_list_screen.dart';
@@ -19,11 +18,7 @@ import 'app_paths.dart';
 import 'app_shell.dart';
 
 /// Các trang bắt buộc đăng nhập. Kho Truyện xem được khi chưa đăng nhập.
-const _privatePaths = {
-  AppPaths.bookmarks,
-  AppPaths.profile,
-  AppPaths.notifications,
-};
+const _privatePaths = {AppPaths.bookmarks, AppPaths.profile};
 const _authPaths = {AppPaths.signIn, AppPaths.signUp, AppPaths.forgotPassword};
 
 /// Navigator gốc (nằm trên thanh tab). Trang nào gắn key này sẽ mở toàn màn hình.
@@ -136,10 +131,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
-      ),
-      GoRoute(
-        path: AppPaths.notifications,
-        builder: (context, state) => const NotificationListScreen(),
       ),
       GoRoute(
         path: AppPaths.signIn,

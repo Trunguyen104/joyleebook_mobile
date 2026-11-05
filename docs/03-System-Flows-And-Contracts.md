@@ -190,14 +190,14 @@ sequenceDiagram
 
 ## 5. Luồng Thông báo trong ứng dụng (In-app Notification Flow)
 
-Độc giả đã đăng nhập xem danh sách thông báo cá nhân và đánh dấu từng thông báo là đã đọc. Backend hiện chỉ hỗ trợ REST, không có push/FCM và không có endpoint mark-all-seen.
+Độc giả đã đăng nhập xem danh sách thông báo cá nhân và đánh dấu từng thông báo là đã đọc. Backend hỗ trợ REST và SignalR để đẩy thông báo realtime; chưa có push/FCM (thông báo hệ điều hành khi app bị kill) và chưa có endpoint mark-all-seen.
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Reader as Độc giả
     participant Bell as NotificationBellButton
-    participant UI as NotificationListScreen
+    participant UI as NotificationPopup
     participant VM as NotificationFeedViewModel
     participant Repo as NotificationRepository
     participant GW as Gateway
@@ -216,8 +216,8 @@ sequenceDiagram
     end
 
     Reader->>Bell: Bấm chuông
-    Bell->>UI: context.push('/notifications')
-    UI->>VM: Hiển thị 4 trạng thái (loading / empty / error / data)
+    Bell->>UI: Mở popup neo dưới chuông (overlay, không đổi route)
+    UI->>VM: Hiển thị 4 trạng thái trong popup (loading / empty / error / data)
 
     Reader->>UI: Bấm một thông báo chưa đọc
     UI->>VM: markAsSeen(notificationId)
@@ -233,7 +233,7 @@ sequenceDiagram
         VM-->>UI: Trả false, UI hiện SnackBar
     end
 
-    Reader->>UI: Kéo xuống để làm mới / cuộn gần cuối
+    Reader->>UI: Bấm làm mới / cuộn gần cuối trong popup
     UI->>VM: refresh() hoặc loadMore()
     VM->>Repo: getNotifications(Page kế tiếp)
     Repo->>GW: GET /api/notifications/user/{userId}?Page=...&PageSize=...
@@ -246,6 +246,42 @@ Ghi chú:
 - Badge chỉ đếm các thông báo chưa đọc trong trang đầu tiên đã tải (tối đa 100); hiển thị tối đa `99+`.
 - Chưa có endpoint đánh dấu tất cả đã đọc, nên app chỉ đánh dấu từng thông báo khi người dùng bấm.
 - Không gọi `POST /api/notifications` trên app Reader vì đó là chức năng gửi thông báo của Author/Admin.
+
+### 5.1. Real-time notification qua SignalR
+
+Khi đã đăng nhập, app mở kết nối SignalR tới `wss://api.joyleebook.duckdns.org/hubs/notifications` và lắng nghe event `ReceiveNotification`. Backend tạo thông báo (ví dụ khi chapter được duyệt/xuất bản) rồi đẩy tới `Clients.User(userId)`; app không gọi hàm nào trên hub.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as JoyleeBookApp
+    participant VM as NotificationRealtimeViewModel
+    participant Socket as NotificationSocketClient
+    participant Hub as Notification Hub (Gateway)
+    participant Feed as NotificationFeedViewModel
+
+    App->>VM: ref.watch khi khởi động / đổi phiên
+    VM->>VM: Đọc authSessionProvider + gatewayBaseUrlProvider
+    alt Chưa đăng nhập
+        VM->>Socket: disconnect()
+    else Đã đăng nhập
+        VM->>Socket: connect(hubUrl, accessTokenFactory)
+        Socket->>Hub: WebSocket + JWT Bearer
+        Hub-->>Socket: ReceiveNotification(NotificationResponse)
+        Socket->>VM: AppNotification
+        VM->>Feed: receiveRealtime(notification)
+        Feed-->>App: Badge + danh sách cập nhật ngay
+        VM-->>App: SnackBar thông báo mới
+    end
+```
+
+Ghi chú realtime:
+
+- `accessTokenFactory` đọc token mới từ `TokenStorage` mỗi lần kết nối/reconnect, nên token refresh của REST cũng được dùng lại.
+- Socket tự reconnect theo backoff; app chủ động kết nối lại khi quay về foreground hoặc khi đổi Gateway URL.
+- Feed chống trùng theo `id`. Nếu socket nhận thông báo lúc feed chưa tải xong thì bỏ qua; lần tải REST tiếp theo sẽ có vì backend đã lưu trước khi push.
+- Đăng xuất hoặc phiên hết hạn sẽ đóng socket. Socket không chạy khi app bị kill; khi mở lại, REST sẽ tải các thông báo đã lưu.
+- Payload `NotificationResponse` không có `seriesId`/`chapterId`, nên bấm thông báo chỉ mở popup và đánh dấu đã đọc, chưa deep-link tới chương.
 
 ---
 
@@ -391,6 +427,27 @@ Swagger: `https://api.joyleebook.duckdns.org/docs/notification/swagger/v1/swagge
 #### 4. Gửi thông báo (`POST /api/notifications`)
 - **Quyền truy cập**: Author/Admin.
 - **Không sử dụng trên app Reader**; mobile chỉ đọc danh sách và đánh dấu đã đọc.
+
+#### 5. Real-time Notification Hub (`/hubs/notifications`)
+- **Giao thức**: SignalR over WebSocket, JSON hub protocol.
+- **URL qua Gateway**: `wss://api.joyleebook.duckdns.org/hubs/notifications` (Gateway route `/hubs/notifications/{**catch-all}`).
+- **Quyền truy cập**: Bearer token. Native client gửi `Authorization: Bearer <accessToken>` khi mở WebSocket; Gateway cũng đọc `access_token` query cho các đường `/hubs/**`.
+- **Event server → client**: `ReceiveNotification`, tham số là một `NotificationResponse` giống response của REST:
+  ```json
+  {
+    "id": "3f2c...",
+    "userId": "115a...",
+    "type": 0,
+    "title": "📖 Chương mới vừa ra mắt!",
+    "message": "Bộ truyện bạn đang đọc vừa có chương mới: \"...\". Đọc ngay!",
+    "readAt": null,
+    "createdAt": "2026-11-01T10:00:00Z",
+    "updatedAt": "2026-11-01T10:00:00Z"
+  }
+  ```
+- **Client không gọi hàm nào trên hub**, chỉ lắng nghe. Hub dùng `Clients.User(userId)` nên mỗi tài khoản chỉ nhận thông báo của mình.
+- **Reconnect**: app dùng automatic reconnect + backoff, đọc lại access token mỗi lần kết nối. Khi app quay lại foreground hoặc Gateway URL đổi, app chủ động kết nối lại.
+- **Giới hạn**: không có FCM/APNs/device token, nên không có thông báo hệ điều hành khi app bị kill.
 
 ---
 

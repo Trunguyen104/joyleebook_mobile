@@ -118,6 +118,23 @@ class NotificationFeedViewModel extends AsyncNotifier<NotificationFeedState> {
     }
   }
 
+  /// Thêm thông báo vừa nhận qua SignalR vào đầu danh sách.
+  /// Nếu feed chưa tải xong thì bỏ qua; lần tải REST tiếp theo sẽ có thông báo
+  /// vì backend đã lưu nó trước khi push.
+  void receiveRealtime(AppNotification notification) {
+    final current = state.value;
+    if (current == null) return;
+    if (current.items.any((item) => item.id == notification.id)) return;
+
+    final items = List<AppNotification>.from(current.items)
+      ..add(notification)
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    state = AsyncData(
+      current.copyWith(items: items, totalCount: current.totalCount + 1),
+    );
+  }
+
   Future<bool> markAsSeen(String notificationId) async {
     final current = state.value;
     if (current == null) return false;

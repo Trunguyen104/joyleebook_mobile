@@ -9,7 +9,8 @@ import 'package:joyleebook_mobile/ui/core/themes/app_theme.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_empty_state.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_error_view.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_notification_bell.dart';
-import 'package:joyleebook_mobile/ui/notifications/widgets/notification_list_screen.dart';
+import 'package:joyleebook_mobile/ui/notifications/widgets/notification_bell_button.dart';
+import 'package:joyleebook_mobile/ui/notifications/widgets/notification_popup.dart';
 
 import '../../testing/fakes/fake_auth_repository.dart';
 import '../../testing/fakes/fake_notification_repository.dart';
@@ -33,7 +34,7 @@ AppNotification _notification({
   );
 }
 
-Widget _buildScreen({
+Widget _buildBell({
   required FakeNotificationRepository repository,
   FakeAuthRepository? auth,
 }) {
@@ -46,40 +47,62 @@ Widget _buildScreen({
     ],
     child: MaterialApp(
       theme: AppTheme.light,
-      home: const NotificationListScreen(),
+      home: Scaffold(
+        appBar: AppBar(actions: const [NotificationBellButton()]),
+        body: const SizedBox.expand(),
+      ),
     ),
   );
 }
 
+Future<void> _openPopup(WidgetTester tester) async {
+  await tester.pumpAndSettle();
+  await tester.tap(find.byType(NotificationBellButton));
+  await tester.pumpAndSettle();
+}
+
 void main() {
-  testWidgets('Hiển thị loading rồi danh sách thông báo', (tester) async {
-    final semantics = tester.ensureSemantics();
-    final repo = FakeNotificationRepository(
-      items: [
-        _notification(id: 'n1', title: 'Chương mới'),
-        _notification(id: 'n2', title: 'Thông báo hệ thống', isRead: true),
-      ],
-    );
+  testWidgets(
+    'Không hiện loading rồi hiển thị danh sách thông báo trong popup',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      final repo = FakeNotificationRepository(
+        items: [
+          _notification(id: 'n1', title: 'Chương mới'),
+          _notification(id: 'n2', title: 'Thông báo hệ thống', isRead: true),
+        ],
+      );
 
-    await tester.pumpWidget(_buildScreen(repository: repo));
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      await tester.pumpWidget(_buildBell(repository: repo));
+      await tester.pump();
+      await tester.tap(find.byType(NotificationBellButton));
+      await tester.pump();
 
-    await tester.pumpAndSettle();
+      expect(find.byType(NotificationPopup), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
 
-    expect(find.text('Chương mới'), findsOneWidget);
-    expect(find.text('Nội dung thông báo'), findsNWidgets(2));
-    expect(find.bySemanticsLabel(RegExp('Chưa đọc')), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('Đã đọc')), findsOneWidget);
-    expect(repo.getCallCount, 1);
-    semantics.dispose();
-  });
+      await tester.pumpAndSettle();
 
-  testWidgets('Danh sách rỗng hiển thị JoyleeEmptyState', (tester) async {
+      expect(find.text('Chương mới'), findsOneWidget);
+      expect(find.text('Nội dung thông báo'), findsNWidgets(2));
+      expect(find.bySemanticsLabel(RegExp('Chưa đọc')), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('Đã đọc')), findsOneWidget);
+      expect(repo.getCallCount, 1);
+
+      await tester.tap(find.byTooltip('Đóng thông báo'));
+      await tester.pumpAndSettle();
+      expect(find.byType(NotificationPopup), findsNothing);
+      semantics.dispose();
+    },
+  );
+
+  testWidgets('Popup rỗng hiển thị JoyleeEmptyState', (tester) async {
     await tester.pumpWidget(
-      _buildScreen(repository: FakeNotificationRepository()),
+      _buildBell(repository: FakeNotificationRepository()),
     );
-    await tester.pumpAndSettle();
+    await _openPopup(tester);
 
+    expect(find.byType(NotificationPopup), findsOneWidget);
     expect(find.byType(JoyleeEmptyState), findsOneWidget);
     expect(find.text('Chưa có thông báo'), findsOneWidget);
   });
@@ -94,8 +117,8 @@ void main() {
         message: 'Không thể kết nối tới máy chủ.',
       );
 
-      await tester.pumpWidget(_buildScreen(repository: repo));
-      await tester.pumpAndSettle();
+      await tester.pumpWidget(_buildBell(repository: repo));
+      await _openPopup(tester);
 
       expect(find.byType(JoyleeErrorView), findsOneWidget);
       expect(repo.getCallCount, 1);
@@ -117,8 +140,8 @@ void main() {
       items: [_notification(id: 'n1', title: 'Chương mới')],
     );
 
-    await tester.pumpWidget(_buildScreen(repository: repo));
-    await tester.pumpAndSettle();
+    await tester.pumpWidget(_buildBell(repository: repo));
+    await _openPopup(tester);
 
     await tester.tap(find.text('Chương mới'));
     await tester.pumpAndSettle();
@@ -137,8 +160,8 @@ void main() {
       items: [_notification(id: 'n1', title: 'Chương mới')],
     )..markSeenError = const AppException(message: 'Lỗi máy chủ.');
 
-    await tester.pumpWidget(_buildScreen(repository: repo));
-    await tester.pumpAndSettle();
+    await tester.pumpWidget(_buildBell(repository: repo));
+    await _openPopup(tester);
 
     await tester.tap(find.text('Chương mới'));
     await tester.pumpAndSettle();
@@ -151,18 +174,39 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('Chưa đăng nhập thì không gọi API thông báo', (tester) async {
+  testWidgets('Chưa đăng nhập thì không hiện chuông và không gọi API', (
+    tester,
+  ) async {
     final repo = FakeNotificationRepository(
       items: [_notification(id: 'n1', title: 'Chương mới')],
     );
 
     await tester.pumpWidget(
-      _buildScreen(repository: repo, auth: FakeAuthRepository()),
+      _buildBell(repository: repo, auth: FakeAuthRepository()),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Chưa có thông báo'), findsOneWidget);
+    expect(find.byTooltip('Thông báo'), findsNothing);
     expect(repo.getCallCount, 0);
+  });
+
+  testWidgets('Popup không tràn khỏi màn hình nhỏ', (tester) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final repo = FakeNotificationRepository(
+      items: [_notification(id: 'n1', title: 'Chương mới')],
+    );
+
+    await tester.pumpWidget(_buildBell(repository: repo));
+    await _openPopup(tester);
+
+    final popupRect = tester.getRect(find.byType(NotificationPopup));
+    expect(popupRect.left, greaterThanOrEqualTo(0));
+    expect(popupRect.right, lessThanOrEqualTo(320));
+    expect(popupRect.bottom, lessThanOrEqualTo(568));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Chuông thông báo hiển thị badge 99+ khi chưa đọc nhiều', (
