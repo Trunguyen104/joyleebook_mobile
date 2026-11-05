@@ -6,6 +6,8 @@ import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/chapter_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
+import 'package:joyleebook_mobile/data/services/api_client.dart';
+import 'package:joyleebook_mobile/data/services/notification_socket_client.dart';
 import 'package:joyleebook_mobile/domain/models/series.dart';
 import 'package:joyleebook_mobile/ui/auth/widgets/sign_in_screen.dart';
 import 'package:joyleebook_mobile/ui/core/themes/app_theme.dart';
@@ -16,8 +18,10 @@ import 'package:joyleebook_mobile/ui/series/widgets/series_rating_card.dart';
 
 import '../../testing/fakes/fake_auth_repository.dart';
 import '../../testing/fakes/fake_chapter_repository.dart';
+import '../../testing/fakes/fake_notification_socket_client.dart';
 import '../../testing/fakes/fake_profile_repository.dart';
 import '../../testing/fakes/fake_series_repository.dart';
+import '../../testing/fakes/fake_token_storage.dart';
 
 void main() {
   const testSeries = Series(
@@ -313,6 +317,12 @@ void main() {
             chapterRepositoryProvider.overrideWithValue(fakeChapterRepo),
             authRepositoryProvider.overrideWithValue(fakeAuthRepo),
             profileRepositoryProvider.overrideWithValue(FakeProfileRepository()),
+            tokenStorageProvider.overrideWithValue(
+              FakeTokenStorage(accessToken: 'test-access-token'),
+            ),
+            notificationSocketClientProvider.overrideWithValue(
+              FakeNotificationSocketClient(),
+            ),
           ],
           child: const JoyleeBookApp(),
         ),

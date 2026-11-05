@@ -23,7 +23,15 @@ abstract final class ApiEndpoints {
   static const String authValidateResetToken = '/api/auth/validate-reset-token';
 
   // Notifications Microservice (via Gateway)
+  static const String notifications = '/api/notifications';
   static const String notificationsHealth = '/api/notifications/health';
+  static const String notificationsHub = '/hubs/notifications';
+
+  static String notificationsByUser(String userId) =>
+      '$notifications/user/$userId';
+
+  static String notificationSeen(String notificationId) =>
+      '$notifications/$notificationId/seen';
 
   // Library Microservice (via Gateway)
   static const String library = '/api/library';

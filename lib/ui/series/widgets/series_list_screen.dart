@@ -12,6 +12,7 @@ import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
+import '../../notifications/widgets/notification_bell_button.dart';
 import '../view_models/series_list_view_model.dart';
 import 'series_card.dart';
 
@@ -64,6 +65,7 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
           ),
         ),
         actions: [
+          const NotificationBellButton(),
           IconButton(
             icon: Icon(
               ref.watch(themeModeProvider) == ThemeMode.dark

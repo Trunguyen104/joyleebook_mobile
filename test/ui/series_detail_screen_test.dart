@@ -4,8 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:joyleebook_mobile/app.dart';
 import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/chapter_repository.dart';
+import 'package:joyleebook_mobile/data/repositories/notification_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
+import 'package:joyleebook_mobile/data/services/api_client.dart';
+import 'package:joyleebook_mobile/data/services/notification_socket_client.dart';
 import 'package:joyleebook_mobile/domain/models/chapter.dart';
 import 'package:joyleebook_mobile/domain/models/series.dart';
 import 'package:joyleebook_mobile/ui/chapter/widgets/chapter_detail_screen.dart';
@@ -16,8 +19,11 @@ import 'package:joyleebook_mobile/ui/series/widgets/series_detail_screen.dart';
 
 import '../../testing/fakes/fake_auth_repository.dart';
 import '../../testing/fakes/fake_chapter_repository.dart';
+import '../../testing/fakes/fake_notification_repository.dart';
+import '../../testing/fakes/fake_notification_socket_client.dart';
 import '../../testing/fakes/fake_profile_repository.dart';
 import '../../testing/fakes/fake_series_repository.dart';
+import '../../testing/fakes/fake_token_storage.dart';
 
 void main() {
   const mockSeries = Series(
@@ -180,6 +186,15 @@ void main() {
             ),
             authRepositoryProvider.overrideWithValue(
               FakeAuthRepository(savedSession: fakeSession),
+            ),
+            notificationRepositoryProvider.overrideWithValue(
+              FakeNotificationRepository(),
+            ),
+            tokenStorageProvider.overrideWithValue(
+              FakeTokenStorage(accessToken: 'test-access-token'),
+            ),
+            notificationSocketClientProvider.overrideWithValue(
+              FakeNotificationSocketClient(),
             ),
           ],
           child: const JoyleeBookApp(),

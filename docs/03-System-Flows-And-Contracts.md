@@ -201,11 +201,108 @@ sequenceDiagram
 
 ---
 
-## 5. Bảng Đặc tả Hợp đồng API (API Contracts qua Gateway)
+## 5. Luồng Thông báo trong ứng dụng (In-app Notification Flow)
 
-Tất cả các lệnh gọi API đều đi qua JoyleeBook API Gateway tại địa chỉ base: `https://api.joyleebook.duckdns.org` (Swagger: `https://api.joyleebook.duckdns.org/docs/authentication/swagger/index.html`, `https://api.joyleebook.duckdns.org/docs/series/swagger/index.html`).
+Độc giả đã đăng nhập xem danh sách thông báo cá nhân và đánh dấu từng thông báo là đã đọc. Backend hỗ trợ REST và SignalR để đẩy thông báo realtime; chưa có push/FCM (thông báo hệ điều hành khi app bị kill) và chưa có endpoint mark-all-seen.
 
-### 5.1. Nhóm API Xác thực (Authentication)
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Reader as Độc giả
+    participant Bell as NotificationBellButton
+    participant UI as NotificationPopup
+    participant VM as NotificationFeedViewModel
+    participant Repo as NotificationRepository
+    participant GW as Gateway
+
+    Reader->>Bell: Mở Kho Truyện / Cá nhân
+    Bell->>VM: ref.watch(notificationFeedViewModelProvider)
+    VM->>VM: Đọc authSessionProvider lấy userId
+    alt Chưa đăng nhập
+        VM-->>Bell: Feed rỗng, không gọi API
+    else Đã đăng nhập
+        VM->>Repo: getNotifications(userId, Page=1, PageSize=100)
+        Repo->>GW: GET /api/notifications/user/{userId}
+        GW-->>Repo: 200 PagedNotificationsResponse
+        Repo-->>VM: NotificationFeedPage
+        VM-->>Bell: unreadCount
+    end
+
+    Reader->>Bell: Bấm chuông
+    Bell->>UI: Mở popup neo dưới chuông (overlay, không đổi route)
+    UI->>VM: Hiển thị 4 trạng thái trong popup (loading / empty / error / data)
+
+    Reader->>UI: Bấm một thông báo chưa đọc
+    UI->>VM: markAsSeen(notificationId)
+    VM->>VM: [OPTIMISTIC] Cập nhật readAt ngay
+    VM->>Repo: markSeen(notificationId)
+    Repo->>GW: PATCH /api/notifications/{notificationId}/seen
+    alt Thành công
+        GW-->>Repo: 200 NotificationResponse
+        Repo-->>VM: Thông báo đã cập nhật
+        VM-->>UI: Giữ trạng thái đã đọc, badge giảm
+    else Lỗi mạng / 404
+        VM->>VM: [ROLLBACK] Khôi phục trạng thái chưa đọc
+        VM-->>UI: Trả false, UI hiện SnackBar
+    end
+
+    Reader->>UI: Bấm làm mới / cuộn gần cuối trong popup
+    UI->>VM: refresh() hoặc loadMore()
+    VM->>Repo: getNotifications(Page kế tiếp)
+    Repo->>GW: GET /api/notifications/user/{userId}?Page=...&PageSize=...
+    GW-->>Repo: Trang kế tiếp
+    Repo-->>VM: Nối thêm item, chống trùng theo id
+```
+
+Ghi chú:
+
+- Badge chỉ đếm các thông báo chưa đọc trong trang đầu tiên đã tải (tối đa 100); hiển thị tối đa `99+`.
+- Chưa có endpoint đánh dấu tất cả đã đọc, nên app chỉ đánh dấu từng thông báo khi người dùng bấm.
+- Không gọi `POST /api/notifications` trên app Reader vì đó là chức năng gửi thông báo của Author/Admin.
+
+### 5.1. Real-time notification qua SignalR
+
+Khi đã đăng nhập, app mở kết nối SignalR tới `wss://api.joyleebook.duckdns.org/hubs/notifications` và lắng nghe event `ReceiveNotification`. Backend tạo thông báo (ví dụ khi chapter được duyệt/xuất bản) rồi đẩy tới `Clients.User(userId)`; app không gọi hàm nào trên hub.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as JoyleeBookApp
+    participant VM as NotificationRealtimeViewModel
+    participant Socket as NotificationSocketClient
+    participant Hub as Notification Hub (Gateway)
+    participant Feed as NotificationFeedViewModel
+
+    App->>VM: ref.watch khi khởi động / đổi phiên
+    VM->>VM: Đọc authSessionProvider + gatewayBaseUrlProvider
+    alt Chưa đăng nhập
+        VM->>Socket: disconnect()
+    else Đã đăng nhập
+        VM->>Socket: connect(hubUrl, accessTokenFactory)
+        Socket->>Hub: WebSocket + JWT Bearer
+        Hub-->>Socket: ReceiveNotification(NotificationResponse)
+        Socket->>VM: AppNotification
+        VM->>Feed: receiveRealtime(notification)
+        Feed-->>App: Badge + danh sách cập nhật ngay
+        VM-->>App: SnackBar thông báo mới
+    end
+```
+
+Ghi chú realtime:
+
+- `accessTokenFactory` đọc token mới từ `TokenStorage` mỗi lần kết nối/reconnect, nên token refresh của REST cũng được dùng lại.
+- Socket tự reconnect theo backoff; app chủ động kết nối lại khi quay về foreground hoặc khi đổi Gateway URL.
+- Feed chống trùng theo `id`. Nếu socket nhận thông báo lúc feed chưa tải xong thì bỏ qua; lần tải REST tiếp theo sẽ có vì backend đã lưu trước khi push.
+- Đăng xuất hoặc phiên hết hạn sẽ đóng socket. Socket không chạy khi app bị kill; khi mở lại, REST sẽ tải các thông báo đã lưu.
+- Payload `NotificationResponse` không có `seriesId`/`chapterId`, nên bấm thông báo chỉ mở popup và đánh dấu đã đọc, chưa deep-link tới chương.
+
+---
+
+## 6. Bảng Đặc tả Hợp đồng API (API Contracts qua Gateway)
+
+Tất cả các lệnh gọi API đều đi qua JoyleeBook API Gateway tại địa chỉ base: `https://api.joyleebook.duckdns.org` (Swagger: `https://api.joyleebook.duckdns.org/docs/authentication/swagger/index.html`, `https://api.joyleebook.duckdns.org/docs/series/swagger/index.html`, `https://api.joyleebook.duckdns.org/docs/notification/swagger/v1/swagger.json`).
+
+### 6.1. Nhóm API Xác thực (Authentication)
 
 #### 1. Đăng nhập (`POST /api/auth/sign-in`)
 - **Quyền truy cập**: Public.
@@ -267,7 +364,7 @@ Tất cả các lệnh gọi API đều đi qua JoyleeBook API Gateway tại đ�
 
 ---
 
-### 5.2. Nhóm API Tác phẩm (Series)
+### 6.2. Nhóm API Tác phẩm (Series)
 
 #### 1. Lấy danh sách truyện (`GET /api/series`)
 - **Quyền truy cập**: Public (Độc giả thông thường chỉ thấy các truyện đã xuất bản).
@@ -297,7 +394,77 @@ Tất cả các lệnh gọi API đều đi qua JoyleeBook API Gateway tại đ�
 
 ---
 
-### 5.3. Base URL của Gateway
+### 6.3. Nhóm API Thông báo (Notification)
+
+Swagger: `https://api.joyleebook.duckdns.org/docs/notification/swagger/v1/swagger.json` (đường dẫn số ít `notification`).
+
+#### 1. Kiểm tra sức khỏe Notification Service (`GET /api/notifications/health`)
+- **Quyền truy cập**: Public.
+- **Response thành công (`200 OK`)**: `{ "service": "Notification", "status": "Healthy" }`.
+- **Response lỗi**: `503 Service Unavailable` khi service chưa sẵn sàng.
+
+#### 2. Lấy danh sách thông báo của người dùng (`GET /api/notifications/user/{userId}`)
+- **Quyền truy cập**: Bearer Token. App luôn dùng `userId` lấy từ claim `sub` của access token, không lấy từ ô nhập.
+- **Query params**:
+  - `Page`: số trang, tối thiểu `1`.
+  - `PageSize`: số item mỗi trang, từ `1` đến `100`.
+- **Response thành công (`200 OK`)**:
+  ```json
+  {
+    "items": [
+      {
+        "id": "3f2c...",
+        "userId": "115a...",
+        "type": 0,
+        "title": "Chương mới",
+        "message": "Truyện bạn theo dõi vừa có chương mới.",
+        "readAt": null,
+        "createdAt": "2026-11-01T10:00:00Z",
+        "updatedAt": "2026-11-01T10:00:00Z"
+      }
+    ],
+    "page": 1,
+    "pageSize": 100,
+    "totalCount": 1
+  }
+  ```
+- **Response lỗi**: `400 Bad Request` khi phân trang không hợp lệ, `401 Unauthorized` khi thiếu/sai token, `403 Forbidden` khi không có quyền xem thông báo của người dùng khác.
+- **Lưu ý**: Swagger chưa mô tả ý nghĩa của `type` (enum số `0`, `1`, `2`), nên app hiện chỉ hiển thị icon trung tính và giữ nguyên giá trị để map sau.
+
+#### 3. Đánh dấu một thông báo đã đọc (`PATCH /api/notifications/{notificationId}/seen`)
+- **Quyền truy cập**: Bearer Token.
+- **Request Body**: không có.
+- **Response thành công (`200 OK`)**: `NotificationResponse` đã cập nhật `readAt`.
+- **Response lỗi**: `400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found` (thông báo không tồn tại).
+
+#### 4. Gửi thông báo (`POST /api/notifications`)
+- **Quyền truy cập**: Author/Admin.
+- **Không sử dụng trên app Reader**; mobile chỉ đọc danh sách và đánh dấu đã đọc.
+
+#### 5. Real-time Notification Hub (`/hubs/notifications`)
+- **Giao thức**: SignalR over WebSocket, JSON hub protocol.
+- **URL qua Gateway**: `wss://api.joyleebook.duckdns.org/hubs/notifications` (Gateway route `/hubs/notifications/{**catch-all}`).
+- **Quyền truy cập**: Bearer token. Native client gửi `Authorization: Bearer <accessToken>` khi mở WebSocket; Gateway cũng đọc `access_token` query cho các đường `/hubs/**`.
+- **Event server → client**: `ReceiveNotification`, tham số là một `NotificationResponse` giống response của REST:
+  ```json
+  {
+    "id": "3f2c...",
+    "userId": "115a...",
+    "type": 0,
+    "title": "📖 Chương mới vừa ra mắt!",
+    "message": "Bộ truyện bạn đang đọc vừa có chương mới: \"...\". Đọc ngay!",
+    "readAt": null,
+    "createdAt": "2026-11-01T10:00:00Z",
+    "updatedAt": "2026-11-01T10:00:00Z"
+  }
+  ```
+- **Client không gọi hàm nào trên hub**, chỉ lắng nghe. Hub dùng `Clients.User(userId)` nên mỗi tài khoản chỉ nhận thông báo của mình.
+- **Reconnect**: app dùng automatic reconnect + backoff, đọc lại access token mỗi lần kết nối. Khi app quay lại foreground hoặc Gateway URL đổi, app chủ động kết nối lại.
+- **Giới hạn**: không có FCM/APNs/device token, nên không có thông báo hệ điều hành khi app bị kill.
+
+---
+
+### 6.4. Base URL của Gateway
 
 Dự án dùng chung một Gateway đã deploy qua HTTPS, không chạy backend local. `lib/config/environment.dart` mặc định trỏ tới `https://api.joyleebook.duckdns.org`, nên mọi emulator, simulator và thiết bị thật đều chạy cùng một lệnh:
 
