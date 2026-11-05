@@ -41,6 +41,8 @@ class Series {
   final double averageRating; // Điểm đánh giá trung bình (0.0 - 5.0)
   final int totalRatings; // Tổng số lượt độc giả đã đánh giá
   final int? userRating; // Điểm đánh giá của người dùng hiện tại (1 - 5, null nếu chưa đánh giá)
+  final DateTime? createdAt; // Thời gian tạo truyện từ backend
+  final int? viewCount; // Lượt xem thực tế từ API (null nếu API chưa có)
 
   const Series({
     required this.id,
@@ -55,6 +57,8 @@ class Series {
     this.averageRating = 0.0,
     this.totalRatings = 0,
     this.userRating,
+    this.createdAt,
+    this.viewCount,
   });
 
   /// Hàm chuyển đổi từ DTO (Data Layer) sang Domain Model (Domain Layer)
@@ -76,6 +80,8 @@ class Series {
       averageRating: dto.averageRating,
       totalRatings: dto.totalRatings,
       userRating: dto.userRating,
+      createdAt: dto.createdAt,
+      viewCount: dto.viewCount,
     );
   }
 
@@ -87,6 +93,8 @@ class Series {
     double? averageRating,
     int? totalRatings,
     int? userRating,
+    DateTime? createdAt,
+    int? viewCount,
     bool clearUserRating = false,
   }) {
     return Series(
@@ -102,6 +110,8 @@ class Series {
       averageRating: averageRating ?? this.averageRating,
       totalRatings: totalRatings ?? this.totalRatings,
       userRating: clearUserRating ? null : (userRating ?? this.userRating),
+      createdAt: createdAt ?? this.createdAt,
+      viewCount: viewCount ?? this.viewCount,
     );
   }
 
@@ -122,7 +132,9 @@ class Series {
           totalChapters == other.totalChapters &&
           averageRating == other.averageRating &&
           totalRatings == other.totalRatings &&
-          userRating == other.userRating;
+          userRating == other.userRating &&
+          createdAt == other.createdAt &&
+          viewCount == other.viewCount;
 
   @override
   int get hashCode => Object.hash(
@@ -138,5 +150,7 @@ class Series {
         averageRating,
         totalRatings,
         userRating,
+        createdAt,
+        viewCount,
       );
 }

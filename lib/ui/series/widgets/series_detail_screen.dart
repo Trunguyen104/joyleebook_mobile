@@ -16,7 +16,7 @@ import '../../core/widgets/joylee_avatar.dart';
 import '../../core/widgets/joylee_button.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../view_models/series_detail_view_model.dart';
-import '../view_models/series_list_view_model.dart';
+import '../../search/view_models/search_view_model.dart';
 import 'series_rating_card.dart';
 
 /// MÀN HÌNH CHI TIẾT TÁC PHẨM (SeriesDetailScreen)
@@ -713,8 +713,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         return InkWell(
           borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
           onTap: () {
-            ref.read(seriesListViewModelProvider.notifier).filterByGenre(genre);
-            context.go(AppPaths.series);
+            ref.read(searchViewModelProvider.notifier).filterByGenre(genre);
+            context.go('${AppPaths.search}?genre=${Uri.encodeComponent(genre)}');
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

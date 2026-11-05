@@ -6,25 +6,19 @@ import 'package:joyleebook_mobile/ui/core/themes/theme_provider.dart';
 import '../../../data/services/api_exceptions.dart';
 import '../../../domain/models/series.dart';
 import '../../../routing/app_paths.dart';
-import '../../bookmark/view_models/bookmark_status_view_model.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../view_models/series_list_view_model.dart';
-import 'genre_filter_bar.dart';
-import 'series_card.dart';
 
-/// MÀN HÌNH KHÁM PHÁ & TRA CỨU TRUYỆN (SeriesListScreen / Research & Genres)
-/// Bước 5 trong kiến trúc Compass App:
-/// Dành riêng cho Actor Reader (Độc giả).
+/// MÀN HÌNH TRANG CHỦ / KHO TRUYỆN (SeriesListScreen)
+/// Phân loại và sắp xếp dựa trên THÔNG SỐ THẬT từ API:
+/// 1. "Truyện tiếp theo bạn đọc": Ưu tiên truyện đã lưu trong Tủ sách (isBookmarked) hoặc thứ tự mặc định từ API.
+/// 2. "Chúng tôi tin bạn sẽ thích": Sắp xếp theo điểm đánh giá thực tế (averageRating & totalRatings).
+/// 3. "Thử đọc Truyện Mới": Sắp xếp theo ngày tạo (createdAt) mới nhất hoặc trạng thái đang tiến hành.
 ///
-/// BẢO ĐẢM CÁC TIÊU CHUẨN KỸ THUẬT:
-/// 1. Bộ 4 Trạng thái (4 States): Loading -> Error -> Empty -> Data.
-/// 2. Debounce 400ms: Ô tìm kiếm tra cứu chống spam request.
-/// 3. Lọc đa tiêu chí: Lọc theo Thể loại (Genre) và Trạng thái phát hành (Status).
-/// 4. Optimistic UI: Bookmark tức thì, rollback khi mất mạng/lỗi server.
-/// 5. Warm Editorial Theme: Material 3, Light & Dark mode, không RenderFlex overflow.
+/// Tuyệt đối KHÔNG fake số liệu: Nếu API không trả viewCount thì ẩn hoàn toàn icon và lượt xem.
 class SeriesListScreen extends ConsumerStatefulWidget {
   const SeriesListScreen({super.key});
 
@@ -33,27 +27,10 @@ class SeriesListScreen extends ConsumerStatefulWidget {
 }
 
 class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  final Set<String> _bookmarkRequestsInFlight = {};
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final seriesState = ref.watch(seriesListViewModelProvider);
-    final bookmarkStatuses = ref.watch(bookmarkStatusViewModelProvider);
-    final seriesVm = ref.watch(seriesListViewModelProvider.notifier);
-    final isFiltered = seriesVm.isFiltered;
-
-    // Đồng bộ nếu bộ lọc từ khóa bị xóa từ ViewModel
-    if (seriesVm.currentQuery.isEmpty && _searchController.text.isNotEmpty) {
-      _searchController.clear();
-    }
 
     return Scaffold(
       backgroundColor: colors.bgCanvas,
@@ -67,6 +44,11 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search_rounded),
+            tooltip: 'Tìm kiếm & Khám phá',
+            onPressed: () => context.go(AppPaths.search),
+          ),
           IconButton(
             icon: Icon(
               ref.watch(themeModeProvider) == ThemeMode.dark
@@ -85,23 +67,6 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
                 ref.read(seriesListViewModelProvider.notifier).refresh(),
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(118),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.space4,
-                  vertical: AppDimensions.space1,
-                ),
-                child: _buildSearchBar(colors),
-              ),
-              const GenreFilterBar(),
-              const SizedBox(height: AppDimensions.space2),
-            ],
-          ),
-        ),
       ),
 
       // THỰC HIỆN BỘ 4 TRẠNG THÁI BẰNG HÀM .when() CỦA RIVERPOD
@@ -125,7 +90,7 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
 
         // TRẠNG THÁI 2: ERROR
         error: (err, stack) => JoyleeErrorView(
-          message: err is AppException ? err.message : 'Đã có lỗi xảy ra.',
+          message: err is AppException ? err.message : 'Đã có lỗi xảy ra khi tải kho truyện.',
           onRetry: () =>
               ref.read(seriesListViewModelProvider.notifier).refresh(),
         ),
@@ -136,62 +101,82 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
           if (seriesList.isEmpty) {
             return JoyleeEmptyState(
               title: 'Không tìm thấy truyện nào',
-              message: isFiltered
-                  ? (_searchController.text.isNotEmpty
-                      ? 'Không có kết quả nào khớp với từ khóa "${_searchController.text}".'
-                      : 'Không có tác phẩm nào phù hợp với bộ lọc đã chọn.')
-                  : 'Hiện tại chưa có tác phẩm nào được xuất bản trên hệ thống.',
-              actionLabel: isFiltered ? 'Xóa bộ lọc' : 'Tải lại toàn bộ',
-              onAction: () {
-                _searchController.clear();
-                ref.read(seriesListViewModelProvider.notifier).clearFilters();
-              },
+              message: 'Hiện tại chưa có tác phẩm nào được xuất bản trên hệ thống.',
+              actionLabel: 'Tải lại toàn bộ',
+              onAction: () =>
+                  ref.read(seriesListViewModelProvider.notifier).refresh(),
             );
           }
 
-          // B. Có dữ liệu -> Hiển thị danh sách kèm banner bộ lọc nếu có
-          final showBanner = isFiltered;
-          final totalItems = seriesList.length + (showBanner ? 1 : 0);
+          // B. SẮP XẾP DỰA TRÊN THÔNG SỐ THỰC TẾ TỪ API:
+          // 1. "Truyện tiếp theo bạn đọc": Truyện độc giả đã đánh dấu (bookmark) hoặc thứ tự API
+          final bookmarkedList = seriesList.where((s) => s.isBookmarked).toList();
+          final nextToReadList = bookmarkedList.isNotEmpty ? bookmarkedList : seriesList;
+
+          // 2. "Chúng tôi tin bạn sẽ thích": Sắp xếp theo điểm đánh giá thật (averageRating) & tổng lượt vote (totalRatings)
+          final topRatedList = List<Series>.from(seriesList)
+            ..sort((a, b) {
+              final ratingCmp = b.averageRating.compareTo(a.averageRating);
+              if (ratingCmp != 0) return ratingCmp;
+              return b.totalRatings.compareTo(a.totalRatings);
+            });
+
+          // 3. "Thử đọc Truyện Mới": Sắp xếp theo ngày tạo (createdAt) mới nhất hoặc trạng thái đang tiến hành
+          final newestList = List<Series>.from(seriesList)
+            ..sort((a, b) {
+              if (a.createdAt != null && b.createdAt != null) {
+                return b.createdAt!.compareTo(a.createdAt!);
+              }
+              if (a.createdAt != null) return -1;
+              if (b.createdAt != null) return 1;
+              // Nếu API chưa trả createdAt: ưu tiên truyện đang ra (ongoing) rồi đến id
+              if (a.status == SeriesStatus.ongoing && b.status != SeriesStatus.ongoing) {
+                return -1;
+              }
+              if (b.status == SeriesStatus.ongoing && a.status != SeriesStatus.ongoing) {
+                return 1;
+              }
+              return b.id.compareTo(a.id);
+            });
+
+          // Nếu chỉ có 1 truyện trong kho dữ liệu (như môi trường test), chỉ hiện 1 mục chính tránh lặp
+          final isSingleItem = seriesList.length <= 1;
 
           return RefreshIndicator(
             color: colors.primaryBrand,
             backgroundColor: colors.bgSurface,
             onRefresh: () =>
                 ref.read(seriesListViewModelProvider.notifier).refresh(),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(AppDimensions.space4),
-              itemCount: totalItems,
-              itemBuilder: (context, index) {
-                if (showBanner && index == 0) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: AppDimensions.space3),
-                    child: _buildActiveFiltersBanner(
-                      colors,
-                      seriesVm,
-                      seriesList.length,
-                    ),
-                  );
-                }
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: AppDimensions.space2),
+              children: [
+                // SECTION 1: Truyện tiếp theo bạn đọc
+                _buildSection(
+                  title: 'Truyện tiếp theo bạn đọc',
+                  seriesList: nextToReadList,
+                  colors: colors,
+                ),
 
-                final storedItem =
-                    seriesList[showBanner ? index - 1 : index];
-                final item = storedItem.copyWith(
-                  isBookmarked:
-                      bookmarkStatuses[storedItem.id] ??
-                      storedItem.isBookmarked,
-                );
-                final isBookmarkActionLoading =
-                    _bookmarkRequestsInFlight.contains(item.id);
+                if (!isSingleItem) ...[
+                  const SizedBox(height: AppDimensions.space4),
+                  // SECTION 2: Chúng tôi tin bạn sẽ thích (Đánh giá cao nhất từ API)
+                  _buildSection(
+                    title: 'Chúng tôi tin bạn sẽ thích',
+                    seriesList: topRatedList,
+                    colors: colors,
+                  ),
 
-                return SeriesCard(
-                  series: item,
-                  isBookmarkActionLoading: isBookmarkActionLoading,
-                  onTap: () {
-                    context.push(AppPaths.seriesDetail(item.id), extra: item);
-                  },
-                  onBookmarkTap: () => _toggleBookmark(item, colors),
-                );
-              },
+                  const SizedBox(height: AppDimensions.space4),
+                  // SECTION 3: Thử đọc Truyện Mới (Ngày tạo mới nhất)
+                  _buildSection(
+                    title: 'Thử đọc Truyện Mới',
+                    seriesList: newestList,
+                    colors: colors,
+                  ),
+                ],
+
+                const SizedBox(height: AppDimensions.space5),
+              ],
             ),
           );
         },
@@ -199,149 +184,211 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
     );
   }
 
-  /// Banner thông báo bộ lọc đang active
-  Widget _buildActiveFiltersBanner(
-    AppColors colors,
-    SeriesListViewModel vm,
-    int count,
-  ) {
-    final List<String> activeFilterLabels = [];
-    if (vm.currentQuery.isNotEmpty) {
-      activeFilterLabels.add('Từ khóa: "${vm.currentQuery}"');
-    }
-    if (vm.selectedGenre != null) {
-      activeFilterLabels.add('Thể loại: ${vm.selectedGenre}');
-    }
-    if (vm.selectedStatus != null) {
-      activeFilterLabels.add('Trạng thái: ${vm.selectedStatus!.label}');
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.space3,
-        vertical: AppDimensions.space2,
-      ),
-      decoration: BoxDecoration(
-        color: colors.primaryBrand.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-        border: Border.all(
-          color: colors.primaryBrand.withValues(alpha: 0.2),
+  /// Khung hiển thị một Section cuộn ngang
+  Widget _buildSection({
+    required String title,
+    required List<Series> seriesList,
+    required AppColors colors,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppDimensions.space4),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: colors.textPrimary,
+              letterSpacing: -0.2,
+            ),
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.filter_alt_outlined, size: 16, color: colors.primaryBrand),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Tìm thấy $count tác phẩm phù hợp',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: colors.primaryBrand,
+        const SizedBox(height: AppDimensions.space3),
+        SizedBox(
+          height: 275,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: AppDimensions.space4),
+            itemCount: seriesList.length,
+            separatorBuilder: (_, _) => const SizedBox(width: AppDimensions.space3),
+            itemBuilder: (context, index) {
+              final series = seriesList[index];
+              return _buildBookCard(series, colors);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Card truyện cuộn ngang theo chuẩn Wattpad (Image 1)
+  /// Sử dụng dữ liệu thật từ API, không fake số view
+  Widget _buildBookCard(Series series, AppColors colors) {
+    final primaryTag = series.genres.isNotEmpty
+        ? series.genres.first.toLowerCase()
+        : (series.status == SeriesStatus.completed ? 'completed' : 'ongoing');
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+      onTap: () {
+        context.push(AppPaths.seriesDetail(series.id), extra: series);
+      },
+      child: SizedBox(
+        width: 120,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Ảnh bìa truyện đứng (Aspect Ratio ~2:3)
+            Container(
+              width: 120,
+              height: 165,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
                   ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                child: series.coverImageUrl.isNotEmpty
+                    ? Image.network(
+                        series.coverImageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => _buildPlaceholderCover(colors),
+                      )
+                    : _buildPlaceholderCover(colors),
+              ),
+            ),
+
+            const SizedBox(height: 6),
+
+            // 2. Tag danh mục thể loại (Pill nhỏ màu xám nhạt)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: colors.bgSurfaceSubtle,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                primaryTag,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: colors.textPrimary,
                 ),
-                if (activeFilterLabels.isNotEmpty)
+              ),
+            ),
+
+            const SizedBox(height: 4),
+
+            // 3. Số lượt xem (CHỈ hiển thị nếu API có trả về viewCount, nếu không có thì BỎ HOÀN TOÀN)
+            if (series.viewCount != null) ...[
+              Row(
+                children: [
+                  Icon(
+                    Icons.remove_red_eye_outlined,
+                    size: 13,
+                    color: colors.textSecondary,
+                  ),
+                  const SizedBox(width: 4),
                   Text(
-                    activeFilterLabels.join(' • '),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    _formatViews(series.viewCount!),
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                       color: colors.textSecondary,
                     ),
                   ),
-              ],
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              _searchController.clear();
-              ref.read(seriesListViewModelProvider.notifier).clearFilters();
-            },
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              minimumSize: const Size(48, 36),
-            ),
-            child: Text(
-              'Xóa bộ lọc',
+                ],
+              ),
+              const SizedBox(height: 2),
+            ] else if (series.averageRating > 0) ...[
+              // Nếu không có view nhưng có rating thật từ API thì hiển thị điểm đánh giá thật
+              Row(
+                children: [
+                  const Icon(
+                    Icons.star_rounded,
+                    size: 14,
+                    color: Colors.amber,
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    series.averageRating.toStringAsFixed(1),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: colors.textPrimary,
+                    ),
+                  ),
+                  if (series.totalRatings > 0) ...[
+                    const SizedBox(width: 3),
+                    Text(
+                      '(${series.totalRatings})',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 2),
+            ],
+
+            // 4. Tiêu đề và Tác giả
+            Text(
+              series.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: colors.danger,
+                color: colors.textPrimary,
               ),
             ),
-          ),
-        ],
+            Text(
+              series.authorName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                color: colors.textSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Future<void> _toggleBookmark(Series item, AppColors colors) async {
-    if (_bookmarkRequestsInFlight.contains(item.id)) return;
-    setState(() => _bookmarkRequestsInFlight.add(item.id));
-
-    late final bool success;
-    try {
-      success = await ref
-          .read(seriesListViewModelProvider.notifier)
-          .toggleBookmark(item.id);
-    } finally {
-      if (mounted) {
-        setState(() => _bookmarkRequestsInFlight.remove(item.id));
-      }
-    }
-
-    if (mounted && !success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Không thể cập nhật tủ sách. Đã hoàn tác trạng thái.',
-          ),
-          backgroundColor: colors.danger,
-        ),
-      );
-    }
-  }
-
-  /// Khung tìm kiếm có hỗ trợ nút Xóa nhanh và debounce 400ms
-  Widget _buildSearchBar(AppColors colors) {
-    return TextField(
-      controller: _searchController,
-      onChanged: (value) {
-        ref.read(seriesListViewModelProvider.notifier).search(value);
-        setState(() {});
-      },
-      decoration: InputDecoration(
-        hintText: 'Tìm kiếm tựa truyện, tác giả...',
-        hintStyle: TextStyle(color: colors.textDisabled, fontSize: 14),
-        prefixIcon: Icon(Icons.search, color: colors.textSecondary),
-        suffixIcon: _searchController.text.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.clear_rounded, size: 20),
-                onPressed: () {
-                  _searchController.clear();
-                  ref.read(seriesListViewModelProvider.notifier).search('');
-                  setState(() {});
-                },
-              )
-            : null,
-        filled: true,
-        fillColor: colors.bgSurface,
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.space4,
-          vertical: AppDimensions.space3,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-          borderSide: BorderSide(color: colors.borderDefault),
+  Widget _buildPlaceholderCover(AppColors colors) {
+    return Container(
+      color: colors.bgSurfaceSubtle,
+      child: Center(
+        child: Icon(
+          Icons.auto_stories_rounded,
+          size: 36,
+          color: colors.primaryBrand.withValues(alpha: 0.5),
         ),
       ),
     );
+  }
+
+  String _formatViews(int views) {
+    if (views >= 1000000) {
+      return '${(views / 1000000).toStringAsFixed(1).replaceAll('.', ',')}M';
+    }
+    if (views >= 1000) {
+      return '${(views / 1000).toStringAsFixed(1).replaceAll('.', ',')}K';
+    }
+    return '$views';
   }
 }

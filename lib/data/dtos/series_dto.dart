@@ -45,6 +45,12 @@ class SeriesDto {
   // Điểm đánh giá của người dùng hiện tại (1-5, null nếu chưa đánh giá)
   final int? userRating;
 
+  // Ngày tạo tác phẩm (từ createdAt của backend)
+  final DateTime? createdAt;
+
+  // Lượt xem thực tế từ API (null nếu backend chưa có trường này)
+  final int? viewCount;
+
   const SeriesDto({
     required this.id,
     required this.title,
@@ -59,6 +65,8 @@ class SeriesDto {
     this.averageRating = 0.0,
     this.totalRatings = 0,
     this.userRating,
+    this.createdAt,
+    this.viewCount,
   });
 
   /// Hàm khởi tạo từ Map JSON nhận từ API
@@ -125,6 +133,15 @@ class SeriesDto {
 
       // Điểm đánh giá của người dùng
       userRating: json['userRating'] as int?,
+
+      // Thời gian tạo từ API
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+
+      // Lượt xem thực tế từ API (chỉ lấy nếu backend trả về số thật)
+      viewCount: (metrics?['views'] as int?) ??
+          (metrics?['viewCount'] as int?) ??
+          (json['views'] as int?) ??
+          (json['viewCount'] as int?),
     );
   }
 
@@ -143,6 +160,8 @@ class SeriesDto {
       'averageRating': averageRating,
       'totalRatings': totalRatings,
       if (userRating != null) 'userRating': userRating,
+      if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+      if (viewCount != null) 'viewCount': viewCount,
     };
   }
 }

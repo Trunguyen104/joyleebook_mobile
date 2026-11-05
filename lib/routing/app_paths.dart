@@ -2,8 +2,9 @@
 /// Màn hình dùng các hằng/hàm ở đây thay vì tự gõ chuỗi URL,
 /// nên khi đổi đường dẫn chỉ cần sửa 1 chỗ.
 abstract final class AppPaths {
-  // 3 tab chính
+  // Các tab chính trên NavigationBar
   static const series = '/series';
+  static const search = '/search';
   static const bookmarks = '/bookmarks';
   static const profile = '/profile';
   static const gateway = '/gateway';

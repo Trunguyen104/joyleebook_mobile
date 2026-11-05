@@ -8,20 +8,20 @@ import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_button.dart';
 import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
-import '../view_models/genre_list_view_model.dart';
-import '../view_models/series_list_view_model.dart';
+import '../../series/view_models/genre_list_view_model.dart';
+import '../view_models/search_view_model.dart';
 
-/// MODAL BOTTOM SHEET: Xem toàn bộ thể loại và bộ lọc nâng cao
+/// MODAL BOTTOM SHEET: Xem toàn bộ thể loại và bộ lọc nâng cao trên trang Tìm kiếm
 /// Tuân thủ Design System (bo góc radiusLg, drag handle, Warm Editorial tokens).
-class GenreBottomSheet extends ConsumerWidget {
-  const GenreBottomSheet({super.key});
+class SearchGenreBottomSheet extends ConsumerWidget {
+  const SearchGenreBottomSheet({super.key});
 
   static Future<void> show(BuildContext context) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const GenreBottomSheet(),
+      builder: (_) => const SearchGenreBottomSheet(),
     );
   }
 
@@ -29,9 +29,9 @@ class GenreBottomSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
     final genresState = ref.watch(genreListViewModelProvider);
-    final seriesVm = ref.watch(seriesListViewModelProvider.notifier);
-    final selectedGenre = seriesVm.selectedGenre;
-    final selectedStatus = seriesVm.selectedStatus;
+    final searchVm = ref.watch(searchViewModelProvider.notifier);
+    final selectedGenre = searchVm.selectedGenre;
+    final selectedStatus = searchVm.selectedStatus;
 
     return Container(
       constraints: BoxConstraints(
@@ -125,29 +125,29 @@ class GenreBottomSheet extends ConsumerWidget {
                           isSelected: selectedStatus == null,
                           onSelected: () {
                             ref
-                                .read(seriesListViewModelProvider.notifier)
+                                .read(searchViewModelProvider.notifier)
                                 .filterByStatus(null);
                           },
                           colors: colors,
                         ),
                         _buildStatusChip(
                           context: context,
-                          label: SeriesStatus.ongoing.label,
+                          label: 'Đang tiến hành',
                           isSelected: selectedStatus == SeriesStatus.ongoing,
                           onSelected: () {
                             ref
-                                .read(seriesListViewModelProvider.notifier)
+                                .read(searchViewModelProvider.notifier)
                                 .filterByStatus(SeriesStatus.ongoing);
                           },
                           colors: colors,
                         ),
                         _buildStatusChip(
                           context: context,
-                          label: SeriesStatus.completed.label,
+                          label: 'Hoàn thành',
                           isSelected: selectedStatus == SeriesStatus.completed,
                           onSelected: () {
                             ref
-                                .read(seriesListViewModelProvider.notifier)
+                                .read(searchViewModelProvider.notifier)
                                 .filterByStatus(SeriesStatus.completed);
                           },
                           colors: colors,
@@ -157,9 +157,8 @@ class GenreBottomSheet extends ConsumerWidget {
 
                     const SizedBox(height: AppDimensions.space4),
 
-                    // PHẦN 2: DANH MỤC THỂ LOẠI (VIEW GENRES - BỘ 4 TRẠNG THÁI)
+                    // PHẦN 2: LỌC THEO THỂ LOẠI
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           'Danh mục Thể loại',
@@ -169,28 +168,32 @@ class GenreBottomSheet extends ConsumerWidget {
                             color: colors.textPrimary,
                           ),
                         ),
+                        const Spacer(),
                         if (selectedGenre != null)
                           TextButton(
                             onPressed: () {
                               ref
-                                  .read(seriesListViewModelProvider.notifier)
+                                  .read(searchViewModelProvider.notifier)
                                   .filterByGenre(null);
                             },
-                            child: const Text('Bỏ chọn thể loại'),
+                            child: Text(
+                              'Bỏ chọn',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: colors.primaryBrand,
+                              ),
+                            ),
                           ),
                       ],
                     ),
                     const SizedBox(height: AppDimensions.space2),
 
+                    // Xử lý 3 trạng thái bất đồng bộ của Thể loại
                     genresState.when(
-                      loading: () => Center(
+                      loading: () => const Center(
                         child: Padding(
-                          padding: const EdgeInsets.all(AppDimensions.space4),
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              colors.primaryBrand,
-                            ),
-                          ),
+                          padding: EdgeInsets.all(AppDimensions.space4),
+                          child: CircularProgressIndicator(),
                         ),
                       ),
                       error: (err, _) => JoyleeErrorView(
@@ -242,7 +245,7 @@ class GenreBottomSheet extends ConsumerWidget {
                       variant: JoyleeButtonVariant.secondary,
                       onPressed: () {
                         ref
-                            .read(seriesListViewModelProvider.notifier)
+                            .read(searchViewModelProvider.notifier)
                             .clearFilters();
                         Navigator.of(context).pop();
                       },
@@ -271,23 +274,22 @@ class GenreBottomSheet extends ConsumerWidget {
     required VoidCallback onSelected,
     required AppColors colors,
   }) {
-    return FilterChip(
+    return ChoiceChip(
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onSelected(),
+      selectedColor: colors.primaryBrand,
       labelStyle: TextStyle(
         fontSize: 13,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-        color: isSelected ? colors.primaryBrand : colors.textSecondary,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        color: isSelected ? colors.textOnBrand : colors.textPrimary,
       ),
       backgroundColor: colors.bgSurface,
-      selectedColor: colors.primaryBrand.withValues(alpha: 0.15),
-      checkmarkColor: colors.primaryBrand,
-      side: BorderSide(
-        color: isSelected ? colors.primaryBrand : colors.borderDefault,
-      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+        side: BorderSide(
+          color: isSelected ? colors.primaryBrand : colors.borderDefault,
+        ),
       ),
     );
   }
@@ -307,34 +309,72 @@ class GenreBottomSheet extends ConsumerWidget {
             (selectedGenre.toLowerCase() == genre.name.toLowerCase() ||
                 genre.name.toLowerCase().contains(selectedGenre.toLowerCase()));
 
-        return FilterChip(
-          label: Text(
-            genre.seriesCount > 0
-                ? '${genre.name} (${genre.seriesCount})'
-                : genre.name,
-          ),
-          selected: isSelected,
-          onSelected: (_) {
+        return _buildGenreChip(
+          genreName: genre.name,
+          count: genre.seriesCount,
+          isSelected: isSelected,
+          onTap: () {
             ref
-                .read(seriesListViewModelProvider.notifier)
-                .filterByGenre(genre.name);
+                .read(searchViewModelProvider.notifier)
+                .filterByGenre(isSelected ? null : genre.name);
           },
-          labelStyle: TextStyle(
-            fontSize: 13,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? colors.primaryBrand : colors.textPrimary,
-          ),
-          backgroundColor: colors.bgSurface,
-          selectedColor: colors.primaryBrand.withValues(alpha: 0.15),
-          checkmarkColor: colors.primaryBrand,
-          side: BorderSide(
-            color: isSelected ? colors.primaryBrand : colors.borderDefault,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-          ),
+          colors: colors,
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildGenreChip({
+    required String genreName,
+    required int? count,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required AppColors colors,
+  }) {
+    final hasCount = count != null && count > 0;
+
+    return FilterChip(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(genreName),
+          if (hasCount) ...[
+            const SizedBox(width: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? colors.bgCanvas.withValues(alpha: 0.3)
+                    : colors.bgBrandSubtle,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? colors.textOnBrand : colors.primaryBrand,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      selected: isSelected,
+      onSelected: (_) => onTap(),
+      selectedColor: colors.primaryBrand,
+      labelStyle: TextStyle(
+        fontSize: 13,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        color: isSelected ? colors.textOnBrand : colors.textPrimary,
+      ),
+      backgroundColor: colors.bgSurface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+        side: BorderSide(
+          color: isSelected ? colors.primaryBrand : colors.borderDefault,
+        ),
+      ),
     );
   }
 }
