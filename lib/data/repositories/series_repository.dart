@@ -2,9 +2,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/api_endpoints.dart';
+import '../../domain/models/reading_history.dart';
 import '../../domain/models/series.dart';
 import '../dtos/bookmark_dto.dart';
+import '../dtos/reading_history_dto.dart';
+import '../dtos/reading_progress_dto.dart';
 import '../dtos/series_dto.dart';
+import '../dtos/upsert_reading_progress_dto.dart';
 import '../services/api_client.dart';
 import '../services/api_exceptions.dart';
 
@@ -61,9 +65,7 @@ class SeriesRepository {
           data: BookmarkSeriesDto(seriesId: seriesId).toJson(),
         );
       } else {
-        await _dio.delete<void>(
-          ApiEndpoints.libraryBookmarkDelete(seriesId),
-        );
+        await _dio.delete<void>(ApiEndpoints.libraryBookmarkDelete(seriesId));
       }
     } on DioException catch (e) {
       throw AppException.fromDio(e);
@@ -81,30 +83,59 @@ class SeriesRepository {
       final series = <Series>[];
 
       for (final row in rows) {
-        if (row is! Map<String, dynamic>) {
+        if (row is! Map) {
           throw const AppException(
             message: 'Dữ liệu tủ sách không đúng định dạng.',
           );
         }
 
-        final bookmark = BookmarkSeriesDto.fromJson(row);
+        final rowMap = Map<String, dynamic>.from(row);
+        final bookmark = BookmarkSeriesDto.fromJson(rowMap);
         if (bookmark.seriesId.isEmpty) {
           throw const AppException(
             message: 'Thiếu mã tác phẩm trong dữ liệu tủ sách.',
           );
         }
 
-        final rawSeries = bookmark.series ?? row;
+        final rawSeries = bookmark.series ?? rowMap;
         if (_hasSeriesDetails(rawSeries)) {
-          final json = Map<String, dynamic>.from(rawSeries)
-            // Bản ghi bookmark có thể có id riêng; thao tác API cần seriesId.
-            ..['id'] = bookmark.seriesId;
-          series.add(
-            Series.fromDto(SeriesDto.fromJson(json), isBookmarked: true),
+          final normalizedJson = Map<String, dynamic>.from(rawSeries)
+            ..['id'] = bookmark.seriesId
+            ..['title'] = rawSeries['title'] ??
+                rawSeries['Title'] ??
+                rawSeries['seriesTitle'] ??
+                rawSeries['SeriesTitle']
+            ..['coverImageUrl'] = rawSeries['coverImageUrl'] ??
+                rawSeries['CoverImageUrl'] ??
+                rawSeries['coverUrl'] ??
+                rawSeries['CoverUrl']
+            ..['authorId'] = rawSeries['authorId'] ?? rawSeries['AuthorId']
+            ..['authorName'] = rawSeries['authorName'] ??
+                rawSeries['AuthorName'] ??
+                rawSeries['author'] ??
+                rawSeries['Author'];
+          final parsedSeries = Series.fromDto(
+            SeriesDto.fromJson(normalizedJson),
+            isBookmarked: true,
           );
+          if (parsedSeries.title == 'Chưa có tiêu đề' ||
+              parsedSeries.coverImageUrl.isEmpty) {
+            try {
+              final details = await getSeriesById(bookmark.seriesId);
+              series.add(details.copyWith(isBookmarked: true));
+              continue;
+            } on AppException catch (error) {
+              if (error.statusCode != 404) rethrow;
+            }
+          }
+          series.add(parsedSeries);
         } else {
-          final details = await getSeriesById(bookmark.seriesId);
-          series.add(details.copyWith(isBookmarked: true));
+          try {
+            final details = await getSeriesById(bookmark.seriesId);
+            series.add(details.copyWith(isBookmarked: true));
+          } on AppException catch (error) {
+            if (error.statusCode != 404) rethrow;
+          }
         }
       }
 
@@ -117,11 +148,104 @@ class SeriesRepository {
     }
   }
 
+  /// Lấy các bộ truyện đã đọc gần đây cùng thông tin chương và tiến độ nếu API có trả về.
+  Future<List<ReadingHistory>> getReadingHistory() async {
+    try {
+      final response = await _dio.get<dynamic>(ApiEndpoints.libraryHistory);
+      final rows = _historyRows(response.data);
+      final entries = <ReadingHistory>[];
+
+      for (final row in rows) {
+        if (row is! Map) {
+          throw const AppException(
+            message: 'Dữ liệu lịch sử đọc không đúng định dạng.',
+          );
+        }
+
+        var entry = ReadingHistory.fromDto(
+          ReadingHistoryDto.fromJson(Map<String, dynamic>.from(row)),
+        );
+        if (entry.seriesId.isEmpty) {
+          throw const AppException(
+            message: 'Thiếu mã tác phẩm trong lịch sử đọc.',
+          );
+        }
+        if (entry.series.title == 'Chưa có tiêu đề' ||
+            entry.series.coverImageUrl.isEmpty) {
+          try {
+            final series = await getSeriesById(entry.seriesId);
+            entry = ReadingHistory(
+              seriesId: entry.seriesId,
+              series: series,
+              chapterId: entry.chapterId,
+              chapterTitle: entry.chapterTitle,
+              chapterNumber: entry.chapterNumber,
+              progress: entry.progress,
+              lastReadAt: entry.lastReadAt,
+            );
+          } on AppException catch (error) {
+            if (error.statusCode != 404) rethrow;
+          }
+        }
+        entries.add(entry);
+      }
+
+      entries.sort((a, b) {
+        final aDate = a.lastReadAt;
+        final bDate = b.lastReadAt;
+        if (aDate == null) return bDate == null ? 0 : 1;
+        if (bDate == null) return -1;
+        return bDate.compareTo(aDate);
+      });
+
+      final seenSeries = <String>{};
+      return entries
+          .where((entry) => seenSeries.add(entry.seriesId))
+          .toList(growable: false);
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    } catch (e) {
+      if (e is AppException) rethrow;
+      throw AppException(message: 'Không thể tải lịch sử đọc: $e');
+    }
+  }
+
+  /// Lấy tiến độ hiện tại của một bộ truyện từ Library API.
+  Future<double?> getReadingProgress(String seriesId) async {
+    try {
+      final response = await _dio.get<dynamic>(
+        ApiEndpoints.libraryProgress,
+        queryParameters: {'seriesId': seriesId},
+      );
+      return ReadingProgressDto.fromJson(response.data).progress;
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    } catch (e) {
+      if (e is AppException) rethrow;
+      throw AppException(message: 'Không thể tải tiến độ đọc: $e');
+    }
+  }
+
+  /// Ghi nhận tiến độ đọc hiện tại qua Library API.
+  Future<void> updateReadingProgress(UpsertReadingProgressDto progress) async {
+    try {
+      await _dio.put<void>(
+        ApiEndpoints.libraryProgress,
+        data: progress.toJson(),
+      );
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    } catch (e) {
+      if (e is AppException) rethrow;
+      throw AppException(message: 'Không thể cập nhật tiến độ đọc: $e');
+    }
+  }
+
   /// Kiểm tra tác phẩm đã được lưu vào tủ sách hay chưa.
   Future<bool> getBookmarkStatus(String seriesId) async {
     try {
       final response = await _dio.get<dynamic>(
-        '${ApiEndpoints.libraryBookmarks}/$seriesId/status',
+        ApiEndpoints.libraryBookmarkStatus(seriesId),
       );
       return _parseBookmarkStatus(response.data);
     } on DioException catch (e) {
@@ -134,17 +258,37 @@ class SeriesRepository {
 
   bool _parseBookmarkStatus(dynamic data) {
     if (data is bool) return data;
-    if (data is Map<String, dynamic>) {
+    if (data is Map) {
+      final json = Map<String, dynamic>.from(data);
       for (final key in const [
         'isBookmarked',
+        'IsBookmarked',
         'bookmarked',
+        'Bookmarked',
         'isSaved',
+        'IsSaved',
         'exists',
+        'Exists',
+        'hasBookmarked',
+        'HasBookmarked',
       ]) {
-        if (data[key] is bool) return data[key] as bool;
+        final val = json[key];
+        if (val is bool) return val;
+        if (val is num) return val != 0;
+        if (val is String) {
+          if (val.toLowerCase() == 'true') return true;
+          if (val.toLowerCase() == 'false') return false;
+        }
       }
-      for (final key in const ['data', 'status']) {
-        if (data.containsKey(key)) return _parseBookmarkStatus(data[key]);
+      for (final key in const [
+        'data',
+        'Data',
+        'status',
+        'Status',
+        'result',
+        'Result',
+      ]) {
+        if (json.containsKey(key)) return _parseBookmarkStatus(json[key]);
       }
     }
     throw const AppException(
@@ -153,24 +297,79 @@ class SeriesRepository {
   }
 
   List<dynamic> _bookmarkRows(dynamic data) {
-    if (data is List<dynamic>) return data;
-    if (data is Map<String, dynamic>) {
-      for (final key in const ['items', 'bookmarks', 'results', 'data']) {
-        final value = data[key];
-        if (value is List<dynamic>) return value;
-        if (value is Map<String, dynamic>) {
+    if (data == null) return const [];
+    if (data is List) return data;
+    if (data is Map) {
+      final json = Map<String, dynamic>.from(data);
+      for (final key in const [
+        'items',
+        'Items',
+        'bookmarks',
+        'Bookmarks',
+        'results',
+        'Results',
+        'data',
+        'Data',
+      ]) {
+        final value = json[key];
+        if (value is List) return value;
+        if (value is Map) {
           return _bookmarkRows(value);
         }
       }
-      if (data.containsKey('seriesId') || data.containsKey('id')) {
-        return [data];
+      if (json.containsKey('seriesId') ||
+          json.containsKey('SeriesId') ||
+          json.containsKey('series') ||
+          json.containsKey('Series') ||
+          json.containsKey('id') ||
+          json.containsKey('Id')) {
+        return [json];
       }
     }
     throw const AppException(message: 'Dữ liệu tủ sách không đúng định dạng.');
   }
 
-  bool _hasSeriesDetails(Map<String, dynamic> json) =>
-      json['title'] is String && json['title'].toString().isNotEmpty;
+  List<dynamic> _historyRows(dynamic data) {
+    if (data is List<dynamic>) return data;
+    if (data is Map) {
+      final json = Map<String, dynamic>.from(data);
+      for (final key in const [
+        'items',
+        'Items',
+        'history',
+        'History',
+        'readingHistory',
+        'ReadingHistory',
+        'results',
+        'Results',
+        'data',
+        'Data',
+      ]) {
+        final value = json[key];
+        if (value is List<dynamic>) return value;
+        if (value is Map) return _historyRows(value);
+      }
+      if (json.containsKey('seriesId') ||
+          json.containsKey('SeriesId') ||
+          json.containsKey('series') ||
+          json.containsKey('Series')) {
+        return [json];
+      }
+    }
+    throw const AppException(
+      message: 'Dữ liệu lịch sử đọc không đúng định dạng.',
+    );
+  }
+
+  bool _hasSeriesDetails(Map<String, dynamic> json) {
+    final title = json['title'] ??
+        json['Title'] ??
+        json['seriesTitle'] ??
+        json['SeriesTitle'];
+    return title is String &&
+        title.trim().isNotEmpty &&
+        title != 'Chưa có tiêu đề';
+  }
 
   /// 3. Lấy thông tin chi tiết một bộ truyện theo [seriesId] từ Gateway
   /// Kết hợp dữ liệu từ:
@@ -249,10 +448,7 @@ class SeriesRepository {
     try {
       await _dio.post<Map<String, dynamic>>(
         ApiEndpoints.ratings,
-        data: {
-          'seriesId': seriesId,
-          'score': score,
-        },
+        data: {'seriesId': seriesId, 'score': score},
       );
     } on DioException catch (e) {
       throw AppException.fromDio(e);

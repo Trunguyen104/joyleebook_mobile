@@ -144,10 +144,23 @@ Khi độc giả bấm lưu truyện vào Tủ sách cá nhân (Bookmark), ứng
 
 | Thao tác | API |
 |---|---|
+| Tải lịch sử đọc | `GET /api/library/history` |
+| Tải tiến độ của một truyện | `GET /api/library/progress?seriesId={id}` |
+| Cập nhật tiến độ khi đọc | `PUT /api/library/progress` |
 | Tải danh sách đã lưu | `GET /api/library/bookmarks` |
 | Kiểm tra trạng thái một truyện | `GET /api/library/bookmarks/{seriesId}/status` |
 | Thêm vào tủ sách | `POST /api/library/bookmarks` với `{ "seriesId": "GUID" }` |
 | Bỏ khỏi tủ sách | `DELETE /api/library/bookmarks/{seriesId}` |
+
+Màn hình Tủ sách hiển thị tối đa 4 truyện gần đây và 4 truyện đã lưu trong lưới
+tự co giãn theo chiều rộng màn hình; liên kết ở tiêu đề mở danh sách đầy đủ.
+Các trang “Lịch sử đọc” và “Truyện đã lưu” tải đầy đủ danh sách. Tiến độ có trong lịch sử
+được ưu tiên; nếu không có, ứng dụng truy vấn tiến độ riêng theo `seriesId`.
+Nếu lịch sử không kèm thông tin tên hoặc ảnh bìa, ứng dụng lấy thông tin truyện
+từ `GET /api/series/{id}`. Trình đọc gửi tiến độ cuộn, mã/số chương và trạng thái
+hoàn tất lên API qua `PUT /api/library/progress` với `seriesId`, `chapterId`,
+`chapterSortOrder`, `scrollPercentage`, `isCompleted` và `readAtUtc`; bản lưu
+cục bộ hiện có vẫn được duy trì.
 
 ```mermaid
 sequenceDiagram

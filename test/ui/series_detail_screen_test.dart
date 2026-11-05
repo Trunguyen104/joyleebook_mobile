@@ -167,19 +167,20 @@ void main() {
   testWidgets(
     'Bấm nút Đọc ngay mở trang đọc chương đầu tiên (toàn màn hình, qua GoRouter)',
     (tester) async {
+      final fakeSeriesRepo = FakeSeriesRepository([mockSeries]);
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            seriesRepositoryProvider.overrideWithValue(
-              FakeSeriesRepository([mockSeries]),
-            ),
+            seriesRepositoryProvider.overrideWithValue(fakeSeriesRepo),
             chapterRepositoryProvider.overrideWithValue(
               FakeChapterRepository(mockChapters),
             ),
             profileRepositoryProvider.overrideWithValue(
               FakeProfileRepository(),
             ),
-            authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+            authRepositoryProvider.overrideWithValue(
+              FakeAuthRepository(savedSession: fakeSession),
+            ),
           ],
           child: const JoyleeBookApp(),
         ),
@@ -200,11 +201,19 @@ void main() {
       // Trang đọc mở toàn màn hình: không còn thanh tab
       expect(find.byType(ChapterDetailScreen), findsOneWidget);
       expect(find.byType(NavigationBar), findsNothing);
+      expect(
+        fakeSeriesRepo.readingProgressUpdateCount,
+        greaterThanOrEqualTo(1),
+      );
 
       // Sang chương sau: trang đọc được THAY THẾ, không chồng thêm trang mới
       await tester.tap(find.text('Chương sau'));
       await tester.pumpAndSettle();
       expect(find.byType(ChapterDetailScreen), findsOneWidget);
+      expect(
+        fakeSeriesRepo.readingProgressUpdateCount,
+        greaterThanOrEqualTo(2),
+      );
 
       // Back 1 lần -> về thẳng chi tiết truyện
       await tester.pageBack();
