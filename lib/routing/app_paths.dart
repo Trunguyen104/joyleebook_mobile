@@ -8,12 +8,14 @@ abstract final class AppPaths {
   static const bookmarkList = '/bookmarks/all';
   static const readingHistory = '/bookmarks/history';
   static const profile = '/profile';
+  static const changePassword = '/profile/change-password';
   static const gateway = '/gateway';
 
   // Xác thực (mở toàn màn hình, không có thanh tab)
   static const signIn = '/sign-in';
   static const signUp = '/sign-up';
   static const forgotPassword = '/forgot-password';
+  static const resetPassword = '/reset-password';
 
   /// Chi tiết một bộ truyện: /series/:seriesId
   static String seriesDetail(String seriesId) => '$series/$seriesId';

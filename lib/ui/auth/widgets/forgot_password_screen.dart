@@ -99,10 +99,22 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             ),
             const SizedBox(height: AppDimensions.space6),
             JoyleeButton(
-              label: 'Quay lại Đăng nhập',
+              label: 'Tôi đã có mã khôi phục',
               onPressed: () => context.go(
-                authPathWithFrom(AppPaths.signIn, widget.from),
+                Uri(
+                  path: AppPaths.resetPassword,
+                  queryParameters: {
+                    'email': state.submittedEmail ?? '',
+                    if (widget.from != null) 'from': widget.from!,
+                  },
+                ).toString(),
               ),
+            ),
+            const SizedBox(height: AppDimensions.space3),
+            JoyleeButton(
+              label: 'Quay lại Đăng nhập',
+              onPressed: () =>
+                  context.go(authPathWithFrom(AppPaths.signIn, widget.from)),
             ),
             const SizedBox(height: AppDimensions.space3),
             Center(
@@ -111,9 +123,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   _emailController.clear();
                   ref.read(forgotPasswordViewModelProvider.notifier).reset();
                 },
-                style: TextButton.styleFrom(
-                  foregroundColor: colors.textLink,
-                ),
+                style: TextButton.styleFrom(foregroundColor: colors.textLink),
                 child: const Text('Thử địa chỉ email khác'),
               ),
             ),
@@ -122,17 +132,15 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         footer: AuthSwitchLink(
           question: 'Đã nhớ mật khẩu?',
           actionLabel: 'Đăng nhập',
-          onPressed: () => context.go(
-            authPathWithFrom(AppPaths.signIn, widget.from),
-          ),
+          onPressed: () =>
+              context.go(authPathWithFrom(AppPaths.signIn, widget.from)),
         ),
       );
     }
 
     return AuthScaffold(
       title: 'Quên mật khẩu?',
-      subtitle:
-          'Nhập địa chỉ email liên kết với tài khoản của bạn để nhận liên kết đặt lại mật khẩu.',
+      subtitle: 'Nhập địa chỉ email liên kết với tài khoản của bạn để nhận liên kết đặt lại mật khẩu.',
       onSkip: () => context.go(AppPaths.series),
       form: AutofillGroup(
         child: Column(
@@ -160,9 +168,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       footer: AuthSwitchLink(
         question: 'Đã nhớ mật khẩu?',
         actionLabel: 'Đăng nhập',
-        onPressed: () => context.go(
-          authPathWithFrom(AppPaths.signIn, widget.from),
-        ),
+        onPressed: () =>
+            context.go(authPathWithFrom(AppPaths.signIn, widget.from)),
       ),
     );
   }

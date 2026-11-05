@@ -22,9 +22,34 @@ class FakeAuthRepository implements AuthRepository {
   int signInCallCount = 0;
   int signUpCallCount = 0;
   int signOutCallCount = 0;
+  int changePasswordCallCount = 0;
+  String? lastCurrentPassword;
+  String? lastNewPassword;
+  String? lastConfirmNewPassword;
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmNewPassword,
+  }) async {
+    changePasswordCallCount++;
+    lastCurrentPassword = currentPassword;
+    lastNewPassword = newPassword;
+    lastConfirmNewPassword = confirmNewPassword;
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (error != null) throw error!;
+    savedSession = null;
+  }
+
   int forgotPasswordCallCount = 0;
   String? lastForgotPasswordEmail;
   int resetPasswordCallCount = 0;
+  int validateResetTokenCallCount = 0;
+  String? lastResetEmail;
+  String? lastResetToken;
+  String? lastResetPassword;
+  String? lastResetConfirmPassword;
   bool isTokenValid = true;
 
   @override
@@ -76,6 +101,10 @@ class FakeAuthRepository implements AuthRepository {
     required String confirmPassword,
   }) async {
     resetPasswordCallCount++;
+    lastResetEmail = email;
+    lastResetToken = token;
+    lastResetPassword = newPassword;
+    lastResetConfirmPassword = confirmPassword;
     await Future<void>.delayed(const Duration(milliseconds: 50));
     if (error != null) throw error!;
   }
@@ -85,6 +114,7 @@ class FakeAuthRepository implements AuthRepository {
     required String email,
     required String token,
   }) async {
+    validateResetTokenCallCount++;
     await Future<void>.delayed(const Duration(milliseconds: 50));
     if (error != null) throw error!;
     return isTokenValid;

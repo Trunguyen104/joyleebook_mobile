@@ -31,6 +31,26 @@ class SignUpRequestDto {
   };
 }
 
+/// Body gửi lên PUT /api/auth/me/password
+@immutable
+class ChangePasswordRequestDto {
+  const ChangePasswordRequestDto({
+    required this.currentPassword,
+    required this.newPassword,
+    required this.confirmNewPassword,
+  });
+
+  final String currentPassword;
+  final String newPassword;
+  final String confirmNewPassword;
+
+  Map<String, dynamic> toJson() => {
+    'currentPassword': currentPassword,
+    'newPassword': newPassword,
+    'confirmNewPassword': confirmNewPassword,
+  };
+}
+
 /// Phản hồi chung của sign-in / sign-up / refresh
 @immutable
 class TokenResponseDto {

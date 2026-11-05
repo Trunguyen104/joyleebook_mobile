@@ -52,6 +52,24 @@ Cũng có thể đổi URL lúc chạy trong tab **Kiểm tra Gateway**.
 
 ---
 
+## Đổi mật khẩu
+
+Đăng nhập, mở tab **Cá nhân**, chọn biểu tượng khóa **Đổi mật khẩu** trên thanh tiêu đề. Nhập mật khẩu hiện tại, mật khẩu mới và xác nhận. Mật khẩu mới phải khác mật khẩu hiện tại, dài 8–128 ký tự, có chữ cái và chữ số. Đổi thành công sẽ xóa token trên máy và chuyển về đăng nhập bằng mật khẩu mới; đăng nhập xong trở lại trang Cá nhân.
+
+Ứng dụng gọi `PUT /api/auth/me/password` qua Gateway với body `{ currentPassword, newPassword, confirmNewPassword }`. Backend trả `204` khi thành công và thu hồi phiên hiện tại cùng các refresh token. Mật khẩu hiện tại sai được hiển thị ngay dưới ô nhập; lỗi mạng cho phép thử lại.
+
+## Khôi phục mật khẩu
+
+Từ màn hình **Đăng nhập**, chọn **Quên mật khẩu?**, nhập email và gửi yêu cầu. Sau khi nhận email, chọn **Tôi đã có mã khôi phục**, dán mã hoặc toàn bộ liên kết đặt lại mật khẩu, rồi bấm **Tiếp tục**. Khi mã hợp lệ, nhập mật khẩu mới và xác nhận; sau khi hoàn tất, quay lại đăng nhập. Mật khẩu phải có 8–128 ký tự, bao gồm chữ cái và chữ số.
+
+Luồng sử dụng các hàm đã có trong `AuthRepository`: `POST /api/auth/forgot-password`, `GET /api/auth/validate-reset-token` và `POST /api/auth/reset-password`. Route `/reset-password` nhận tham số `email`, `token` và `from` (tùy chọn); mã trong URL cần được URL-encode. Chưa cấu hình Android App Links/iOS Universal Links; người dùng có thể dán liên kết vào ứng dụng để tiếp tục. Việc gửi email phụ thuộc dịch vụ backend.
+
+Kiểm thử luồng với API giả:
+
+```bash
+flutter test test/ui/forgot_password_screen_test.dart test/ui/reset_password_screen_test.dart test/widget_test.dart
+```
+
 ## 🛠 Bộ Công nghệ & Thư viện Cốt lõi
 
 - **Framework**: Flutter 3.x (Dart 3.x)

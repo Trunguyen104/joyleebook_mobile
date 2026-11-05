@@ -7,6 +7,10 @@ import 'package:joyleebook_mobile/app.dart';
 import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
+import 'package:joyleebook_mobile/routing/app_router.dart';
+import 'package:joyleebook_mobile/routing/app_paths.dart';
+import 'package:joyleebook_mobile/ui/auth/widgets/reset_password_screen.dart';
+import 'package:joyleebook_mobile/ui/auth/widgets/change_password_screen.dart';
 import 'package:joyleebook_mobile/ui/auth/widgets/sign_in_screen.dart';
 import 'package:joyleebook_mobile/ui/auth/widgets/sign_up_screen.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_button.dart';
@@ -26,6 +30,99 @@ ProviderScope _buildApp(FakeAuthRepository auth) => ProviderScope(
 );
 
 void main() {
+  testWidgets('Cá nhân → Đổi mật khẩu → thành công yêu cầu đăng nhập lại', (
+    tester,
+  ) async {
+    final fake = FakeAuthRepository(savedSession: fakeSession);
+    await tester.pumpWidget(_buildApp(fake));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cá nhân'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Đổi mật khẩu'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ChangePasswordScreen), findsOneWidget);
+    await tester.enterText(find.byType(TextField).at(0), 'oldPassword123');
+    await tester.enterText(find.byType(TextField).at(1), 'newPassword123');
+    await tester.enterText(find.byType(TextField).at(2), 'newPassword123');
+    await tester.ensureVisible(
+      find.widgetWithText(JoyleeButton, 'Đổi mật khẩu'),
+    );
+    await tester.tap(find.widgetWithText(JoyleeButton, 'Đổi mật khẩu'));
+    await tester.pumpAndSettle();
+    expect(fake.changePasswordCallCount, 1);
+    expect(find.byType(SignInScreen), findsOneWidget);
+    expect(
+      tester.widget<SignInScreen>(find.byType(SignInScreen)).from,
+      AppPaths.profile,
+    );
+    expect(find.textContaining('Đổi mật khẩu thành công.'), findsOneWidget);
+  });
+
+  testWidgets('Chưa đăng nhập không truy cập trực tiếp trang đổi mật khẩu', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildApp(FakeAuthRepository()));
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(JoyleeBookApp)),
+    );
+    container.read(appRouterProvider).go(AppPaths.changePassword);
+    await tester.pumpAndSettle();
+    expect(find.byType(ChangePasswordScreen), findsNothing);
+    expect(find.byType(SignInScreen), findsOneWidget);
+  });
+
+  testWidgets('Quên mật khẩu từ Đăng nhập đến đặt lại giữ tham số from', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildApp(FakeAuthRepository()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cá nhân'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Quên mật khẩu?'));
+    await tester.tap(find.text('Quên mật khẩu?'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'reader@example.com');
+    await tester.ensureVisible(find.text('Gửi liên kết đặt lại'));
+    await tester.tap(find.text('Gửi liên kết đặt lại'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Tôi đã có mã khôi phục'));
+    await tester.tap(find.text('Tôi đã có mã khôi phục'));
+    await tester.pumpAndSettle();
+    final screen = tester.widget<ResetPasswordScreen>(
+      find.byType(ResetPasswordScreen),
+    );
+    expect(screen.email, 'reader@example.com');
+    expect(screen.from, AppPaths.profile);
+  });
+
+  testWidgets('Route đặt lại đọc email và token từ URL không cần extra', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildApp(FakeAuthRepository()));
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(JoyleeBookApp)),
+    );
+    container
+        .read(appRouterProvider)
+        .go(
+          Uri(
+            path: AppPaths.resetPassword,
+            queryParameters: {
+              'email': 'reader@example.com',
+              'token': 'code+with/slash==',
+            },
+          ).toString(),
+        );
+    await tester.pumpAndSettle();
+    final fields = tester
+        .widgetList<TextField>(find.byType(TextField))
+        .toList();
+    expect(fields[0].controller!.text, 'reader@example.com');
+    expect(fields[1].controller!.text, 'code+with/slash==');
+  });
+
   testWidgets('JoyleeBookApp render và chuyển đổi tab thành công', (
     WidgetTester tester,
   ) async {

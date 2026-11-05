@@ -32,4 +32,20 @@ class AuthSessionViewModel extends AsyncNotifier<AuthSession?> {
     await ref.read(authRepositoryProvider).signOut();
     state = const AsyncData(null);
   }
+
+  /// Cập nhật phiên ngay cả khi người dùng đã rời form trong lúc gửi yêu cầu.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmNewPassword,
+  }) async {
+    await ref
+        .read(authRepositoryProvider)
+        .changePassword(
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+          confirmNewPassword: confirmNewPassword,
+        );
+    if (ref.mounted) state = const AsyncData(null);
+  }
 }
