@@ -69,6 +69,8 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
           .getBookmarkStatus(seriesId);
     } catch (_) {
       // Giữ nguyên trạng thái bookmark nếu chưa đăng nhập hoặc gặp lỗi mạng
+      isBookmarked = ref.read(bookmarkStatusViewModelProvider)[seriesId] ??
+          series.isBookmarked;
     }
     final updated = series.copyWith(isBookmarked: isBookmarked);
     _syncBookmarkStatus(updated, isBookmarked);
@@ -94,16 +96,20 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
     if (current == null) return false;
 
     final original = current;
-    final newBookmarkState = !current.isBookmarked;
+    final currentStatus = ref.read(bookmarkStatusViewModelProvider)[seriesId] ??
+        current.isBookmarked;
+    final newBookmarkState = !currentStatus;
+
+    final updated = current.copyWith(isBookmarked: newBookmarkState);
 
     // BƯỚC 1: Cập nhật Lạc quan (Optimistic Update) trên giao diện chi tiết
-    state = AsyncData(current.copyWith(isBookmarked: newBookmarkState));
+    state = AsyncData(updated);
 
     // BƯỚC 2: Đồng bộ trạng thái mới sang danh sách truyện ngoài trang chủ (nếu có)
     ref
         .read(seriesListViewModelProvider.notifier)
         .updateBookmarkLocally(seriesId, newBookmarkState);
-    _syncBookmarkStatus(current, newBookmarkState);
+    _syncBookmarkStatus(updated, newBookmarkState);
 
     // BƯỚC 3: Gửi request ngầm lên API Gateway
     try {
@@ -113,8 +119,8 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
       return true;
     } catch (_) {
       // BƯỚC 4: Rollback phục hồi lại trạng thái cũ nếu gặp sự cố mạng
-      state = AsyncData(original);
-      _syncBookmarkStatus(original, original.isBookmarked);
+      state = AsyncData(original.copyWith(isBookmarked: currentStatus));
+      _syncBookmarkStatus(original, currentStatus);
       return false;
     }
   }

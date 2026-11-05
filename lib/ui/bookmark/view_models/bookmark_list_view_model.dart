@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/series_repository.dart';
 import '../../../domain/models/series.dart';
+import '../../auth/view_models/auth_session_view_model.dart';
 import 'bookmark_status_view_model.dart';
 
 final bookmarkListViewModelProvider =
@@ -14,7 +15,14 @@ class BookmarkListViewModel extends AsyncNotifier<List<Series>> {
   final Set<String> _inFlightIds = {};
 
   @override
-  Future<List<Series>> build() => _loadBookmarks();
+  Future<List<Series>> build() {
+    ref.listen(authSessionProvider, (prev, next) {
+      if (prev?.value?.userId != next.value?.userId) {
+        refresh();
+      }
+    });
+    return _loadBookmarks();
+  }
 
   Future<void> refresh() async {
     state = const AsyncLoading();
@@ -25,10 +33,25 @@ class BookmarkListViewModel extends AsyncNotifier<List<Series>> {
     final bookmarks = await ref
         .read(seriesRepositoryProvider)
         .getBookmarkedSeries();
+
+    // Giữ lại các truyện vừa được bookmark lạc quan ở local (nếu server chưa kịp phản hồi)
+    final localBookmarks = state.value ?? const <Series>[];
+    final serverIds = bookmarks.map((s) => s.id).toSet();
+    final statuses = ref.read(bookmarkStatusViewModelProvider);
+
+    final merged = List<Series>.from(bookmarks);
+    for (final local in localBookmarks) {
+      if (!serverIds.contains(local.id)) {
+        if (statuses[local.id] == true || local.isBookmarked) {
+          merged.insert(0, local);
+        }
+      }
+    }
+
     ref
         .read(bookmarkStatusViewModelProvider.notifier)
-        .replaceBookmarkedIds(bookmarks.map((series) => series.id));
-    return bookmarks;
+        .replaceBookmarkedIds(merged.map((series) => series.id));
+    return merged;
   }
 
   Future<bool> removeBookmark(String seriesId) async {
@@ -67,8 +90,7 @@ class BookmarkListViewModel extends AsyncNotifier<List<Series>> {
   }
 
   void updateBookmarkLocally(Series series, bool isBookmarked) {
-    final current = state.value;
-    if (current == null) return;
+    final current = state.value ?? <Series>[];
 
     final updated = current
         .where((item) => item.id != series.id)

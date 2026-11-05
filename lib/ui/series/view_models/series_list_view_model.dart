@@ -76,22 +76,25 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
     if (targetIndex == -1) return false;
 
     final originalItem = currentList[targetIndex];
-    final newBookmarkState = !originalItem.isBookmarked;
+    final currentStatus = ref.read(bookmarkStatusViewModelProvider)[seriesId] ??
+        originalItem.isBookmarked;
+    final newBookmarkState = !currentStatus;
     _bookmarkRequestsInFlight.add(seriesId);
 
     // BƯỚC A: Cập nhật Lạc quan (Optimistic Update)
     // Đổi trạng thái icon trên UI ngay lập tức để người dùng thấy phản hồi tức thì
-    final updatedList = List<Series>.from(currentList);
-    updatedList[targetIndex] = originalItem.copyWith(
+    final itemWithNewState = originalItem.copyWith(
       isBookmarked: newBookmarkState,
     );
+    final updatedList = List<Series>.from(currentList);
+    updatedList[targetIndex] = itemWithNewState;
     state = AsyncData(updatedList);
     ref
         .read(bookmarkStatusViewModelProvider.notifier)
         .setStatus(seriesId, newBookmarkState);
     ref
         .read(bookmarkListViewModelProvider.notifier)
-        .updateBookmarkLocally(originalItem, newBookmarkState);
+        .updateBookmarkLocally(itemWithNewState, newBookmarkState);
 
     // BƯỚC B: Gửi request ngầm lên server
     try {
@@ -102,14 +105,16 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
     } catch (_) {
       // BƯỚC C: Phục hồi lại (Rollback) nếu mạng lỗi hoặc server từ chối
       final rollbackList = List<Series>.from(state.value ?? currentList);
-      rollbackList[targetIndex] = originalItem;
+      rollbackList[targetIndex] = originalItem.copyWith(
+        isBookmarked: currentStatus,
+      );
       state = AsyncData(rollbackList);
       ref
           .read(bookmarkStatusViewModelProvider.notifier)
-          .setStatus(seriesId, originalItem.isBookmarked);
+          .setStatus(seriesId, currentStatus);
       ref
           .read(bookmarkListViewModelProvider.notifier)
-          .updateBookmarkLocally(originalItem, originalItem.isBookmarked);
+          .updateBookmarkLocally(originalItem, currentStatus);
       return false; // Báo về cho UI hiển thị SnackBar cảnh báo
     } finally {
       _bookmarkRequestsInFlight.remove(seriesId);

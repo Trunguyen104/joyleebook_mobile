@@ -5,6 +5,8 @@ abstract final class AppPaths {
   // 3 tab chính
   static const series = '/series';
   static const bookmarks = '/bookmarks';
+  static const bookmarkList = '/bookmarks/all';
+  static const readingHistory = '/bookmarks/history';
   static const profile = '/profile';
   static const gateway = '/gateway';
 

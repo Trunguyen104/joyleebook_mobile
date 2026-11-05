@@ -1,10 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../data/dtos/upsert_reading_progress_dto.dart';
+import '../../../data/repositories/series_repository.dart';
+import '../../../data/services/api_exceptions.dart';
 import '../../../data/services/reading_preferences_service.dart';
 import '../../../domain/models/chapter.dart';
+import '../../../domain/models/chapter_detail.dart';
 import '../../../routing/app_paths.dart';
+import '../../auth/view_models/auth_session_view_model.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 import '../../core/themes/theme_provider.dart';
@@ -42,17 +49,133 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
 
   // Controller cuộn trang để reset về đầu trang khi đổi chương
   final ScrollController _scrollController = ScrollController();
+  Timer? _progressDebounce;
+  ChapterDetail? _activeDetail;
+  String? _activeProgressChapterId;
+  String? _lastSyncedChapterId;
+  String? _lastStoredChapterId;
+  double? _lastSyncedProgress;
+  double? _lastStoredProgress;
+  double? _pendingProgress;
+  bool _isSyncingProgress = false;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_scheduleProgressSync);
     _loadSavedFontSize();
   }
 
   @override
   void dispose() {
+    _progressDebounce?.cancel();
+    _scrollController.removeListener(_scheduleProgressSync);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scheduleProgressSync() {
+    final detail = _activeDetail;
+    final progress = _currentProgress();
+    if (detail != null &&
+        (_lastStoredChapterId != detail.id ||
+            _lastStoredProgress == null ||
+            progress - _lastStoredProgress! >= 0.02)) {
+      _lastStoredChapterId = detail.id;
+      _lastStoredProgress = progress;
+      unawaited(
+        ref
+            .read(readingPreferencesServiceProvider)
+            .saveReadingProgress(
+              seriesId: detail.seriesId,
+              chapterId: detail.id,
+              sortOrder: detail.sortOrder,
+              readPercentage: progress,
+            ),
+      );
+    }
+
+    _progressDebounce?.cancel();
+    _progressDebounce = Timer(
+      const Duration(milliseconds: 700),
+      () => unawaited(_syncProgress(_currentProgress())),
+    );
+  }
+
+  double _currentProgress() {
+    if (!_scrollController.hasClients) return 0;
+    final position = _scrollController.position;
+    if (position.maxScrollExtent <= 0) return 1;
+    return (position.pixels / position.maxScrollExtent).clamp(0.0, 1.0);
+  }
+
+  Future<void> _syncProgress(double progress, {bool showError = true}) async {
+    if (_activeDetail == null) return;
+
+    _pendingProgress = progress > (_pendingProgress ?? 0)
+        ? progress
+        : _pendingProgress;
+    if (_isSyncingProgress) return;
+    _isSyncingProgress = true;
+    String? syncingChapterId;
+    final readingPreferences = ref.read(readingPreferencesServiceProvider);
+    final authSession = ref.read(authSessionProvider.future);
+    final seriesRepository = ref.read(seriesRepositoryProvider);
+
+    try {
+      while (_pendingProgress != null) {
+        final detail = _activeDetail;
+        if (detail == null) break;
+        syncingChapterId = detail.id;
+        final value = _pendingProgress!;
+        _pendingProgress = null;
+        if (_lastSyncedChapterId == detail.id &&
+            _lastSyncedProgress != null &&
+            value - _lastSyncedProgress! < 0.02 &&
+            value < 1) {
+          continue;
+        }
+
+        await readingPreferences.saveReadingProgress(
+          seriesId: detail.seriesId,
+          chapterId: detail.id,
+          sortOrder: detail.sortOrder,
+          readPercentage: value,
+        );
+        final session = await authSession;
+        if (session == null) {
+          _lastSyncedProgress = value;
+          _lastSyncedChapterId = detail.id;
+          continue;
+        }
+        await seriesRepository.updateReadingProgress(
+          UpsertReadingProgressDto(
+            seriesId: detail.seriesId,
+            chapterId: detail.id,
+            chapterSortOrder: detail.sortOrder,
+            scrollPercentage: value * 100,
+            isCompleted: value >= 0.99,
+            readAtUtc: DateTime.now().toUtc(),
+          ),
+        );
+        _lastSyncedProgress = value;
+        _lastSyncedChapterId = detail.id;
+      }
+    } catch (error) {
+      if (showError && mounted && _activeDetail?.id == syncingChapterId) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              error is AppException
+                  ? error.message
+                  : 'Không thể cập nhật tiến độ đọc.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      _isSyncingProgress = false;
+    }
   }
 
   /// Nạp cỡ chữ đã lưu từ SharedPreferences
@@ -83,6 +206,8 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
 
   /// Đổi sang chương khác: thay trang hiện tại để nút Back vẫn về màn trước đó
   void _navigateToChapter(Chapter chapter) {
+    _progressDebounce?.cancel();
+    unawaited(_syncProgress(_currentProgress()));
     context.pushReplacement(
       AppPaths.chapterReader(widget.seriesId, chapter.id),
       extra: widget.seriesTitle,
@@ -187,15 +312,20 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
             );
           }
 
-          // Tự động lưu tiến độ đọc chương gần nhất vào Local Storage
-          ref
-              .read(readingPreferencesServiceProvider)
-              .saveReadingProgress(
-                seriesId: detail.seriesId,
-                chapterId: detail.id,
-                sortOrder: detail.sortOrder,
-                readPercentage: 1.0,
-              );
+          _activeDetail = detail;
+          if (_activeProgressChapterId != detail.id) {
+            _activeProgressChapterId = detail.id;
+            _lastSyncedProgress = null;
+            _lastSyncedChapterId = null;
+            _lastStoredProgress = null;
+            _lastStoredChapterId = null;
+            _pendingProgress = null;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _activeDetail?.id == detail.id) {
+                unawaited(_syncProgress(_currentProgress()));
+              }
+            });
+          }
 
           // Tách nội dung thành từng đoạn văn
           final paragraphs = detail.content
