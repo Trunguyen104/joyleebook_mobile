@@ -14,6 +14,7 @@ import '../ui/chapter/widgets/chapter_detail_screen.dart';
 import '../ui/chapter/widgets/chapter_list_screen.dart';
 import '../ui/gateway_test/widgets/gateway_test_screen.dart';
 import '../ui/profile/widgets/profile_screen.dart';
+import '../ui/search/widgets/search_screen.dart';
 import '../ui/series/widgets/series_detail_screen.dart';
 import '../ui/series/widgets/series_list_screen.dart';
 import 'app_paths.dart';
@@ -31,7 +32,7 @@ bool _isPrivatePath(String path) =>
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 /// BỘ ĐỊNH TUYẾN CỦA APP
-/// - 4 tab giữ nguyên trạng thái khi chuyển tab.
+/// - 5 tab giữ nguyên trạng thái khi chuyển tab (Kho Truyện, Khám Phá, Tủ Sách, Cá Nhân, Gateway).
 /// - Chi tiết truyện và danh sách chương mở bên trong tab Kho Truyện (vẫn thấy thanh tab).
 /// - Trang đọc chương, /sign-in, /sign-up mở toàn màn hình, không có thanh tab.
 /// - [redirect] là nơi DUY NHẤT quyết định "chưa đăng nhập thì đi đâu".
@@ -69,6 +70,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state, navigationShell) =>
             AppShell(navigationShell: navigationShell),
         branches: [
+          // TAB 0: KHO TRUYỆN (HOME FEED)
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -110,12 +112,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+
+          // TAB 1: KHÁM PHÁ & TÌM KIẾM (SEARCH & GENRE FILTERS)
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppPaths.search,
+                builder: (context, state) => SearchScreen(
+                  initialGenre: state.uri.queryParameters['genre'],
+                ),
+              ),
+            ],
+          ),
+
+          // TAB 2: TỦ SÁCH (BOOKMARKS)
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: AppPaths.bookmarks,
                 builder: (context, state) => BookmarkScreen(
-                  onExplore: () => context.go(AppPaths.series),
+                  onExplore: () => context.go(AppPaths.search),
                 ),
                 routes: [
                   GoRoute(
@@ -134,6 +150,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+
+          // TAB 3: TRANG CÁ NHÂN (PROFILE)
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -142,6 +160,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+
+          // TAB 4: CHẨN ĐOÁN GATEWAY (DEV)
           StatefulShellBranch(
             routes: [
               GoRoute(

@@ -16,6 +16,7 @@ import '../../core/widgets/joylee_avatar.dart';
 import '../../core/widgets/joylee_button.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../view_models/series_detail_view_model.dart';
+import '../../search/view_models/search_view_model.dart';
 import 'series_rating_card.dart';
 
 /// MÀN HÌNH CHI TIẾT TÁC PHẨM (SeriesDetailScreen)
@@ -709,19 +710,37 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       spacing: 8,
       runSpacing: 8,
       children: genres.map((genre) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: colors.bgSurface,
-            borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-            border: Border.all(color: colors.borderDefault),
-          ),
-          child: Text(
-            genre,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: colors.textSecondary,
+        return InkWell(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+          onTap: () {
+            ref.read(searchViewModelProvider.notifier).filterByGenre(genre);
+            context.go('${AppPaths.search}?genre=${Uri.encodeComponent(genre)}');
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: colors.bgSurface,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+              border: Border.all(color: colors.borderDefault),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.label_outline_rounded,
+                  size: 13,
+                  color: colors.primaryBrand,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  genre,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
         );

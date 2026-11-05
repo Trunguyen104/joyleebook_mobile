@@ -30,10 +30,10 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
 
   @override
   Future<Series> build() async {
-    // 1. Lắng nghe khi phiên đăng nhập thay đổi (đăng nhập / đăng xuất)
+    // 1. Lắng nghe khi phiên đăng nhập thay đổi (đăng nhập / đăng xuất / đổi tài khoản)
     // để tự động cập nhật my-rating và điểm số mới nhất mà không block build ban đầu
     ref.listen(authSessionProvider, (previous, next) {
-      if (previous?.value != next.value) {
+      if (previous?.value?.userId != next.value?.userId) {
         refresh();
       }
     });
@@ -57,10 +57,8 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
   }
 
   Future<Series> _loadSeries() async {
-    final list = ref.read(seriesListViewModelProvider).value;
-    final cached = list?.where((series) => series.id == seriesId).firstOrNull;
+    // Luôn tải trực tiếp từ Repository để đảm bảo đồng bộ điểm đánh giá (userRating) của tài khoản hiện tại
     final series =
-        cached ??
         await ref.read(seriesRepositoryProvider).getSeriesById(seriesId);
     bool isBookmarked = series.isBookmarked;
     try {
@@ -167,6 +165,18 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
       await ref
           .read(seriesRepositoryProvider)
           .rateSeries(seriesId, score);
+
+      // Đồng bộ lại dữ liệu chuẩn xác nhất từ server
+      final fresh = await ref
+          .read(seriesRepositoryProvider)
+          .getSeriesById(seriesId);
+      state = AsyncData(fresh.copyWith(isBookmarked: current.isBookmarked));
+      ref.read(seriesListViewModelProvider.notifier).updateRatingLocally(
+        seriesId: seriesId,
+        averageRating: fresh.averageRating,
+        totalRatings: fresh.totalRatings,
+        userRating: fresh.userRating,
+      );
       return true;
     } catch (_) {
       // BƯỚC 3: Rollback khi lỗi
@@ -176,6 +186,7 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
         averageRating: original.averageRating,
         totalRatings: original.totalRatings,
         userRating: original.userRating,
+        clearUserRating: original.userRating == null,
       );
       return false;
     }
