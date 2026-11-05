@@ -417,7 +417,7 @@ class SeriesRepository {
       final dto = SeriesDto.fromJson(data);
       var averageRating = dto.averageRating;
       var totalRatings = dto.totalRatings;
-      var userRating = dto.userRating;
+      int? userRating;
 
       // 1. Đồng bộ điểm đánh giá từ Community Service nếu chưa có trong Series DTO
       try {
@@ -445,13 +445,15 @@ class SeriesRepository {
           userRating = (myRatingData['score'] as num?)?.toInt();
         }
       } catch (_) {
-        // Chưa đăng nhập (401) hoặc chưa đánh giá (404) -> userRating giữ nguyên
+        // Chưa đăng nhập (401) hoặc chưa đánh giá (404) -> userRating là null
+        userRating = null;
       }
 
       return Series.fromDto(dto).copyWith(
         averageRating: averageRating,
         totalRatings: totalRatings,
         userRating: userRating,
+        clearUserRating: userRating == null,
       );
     } on DioException catch (e) {
       throw AppException.fromDio(e);

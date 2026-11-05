@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/series_repository.dart';
 import '../../../domain/models/series.dart';
+import '../../auth/view_models/auth_session_view_model.dart';
 import '../../bookmark/view_models/bookmark_list_view_model.dart';
 import '../../bookmark/view_models/bookmark_status_view_model.dart';
 
@@ -41,6 +42,17 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
 
   @override
   Future<List<Series>> build() {
+    ref.listen(authSessionProvider, (prev, next) {
+      if (prev?.value?.userId != next.value?.userId) {
+        // Khi đổi tài khoản hoặc đăng xuất, xóa sạch điểm đánh giá cá nhân cũ
+        final current = state.value;
+        if (current != null) {
+          state = AsyncData(
+            current.map((s) => s.copyWith(clearUserRating: true)).toList(),
+          );
+        }
+      }
+    });
     return _fetch();
   }
 
@@ -181,6 +193,7 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
     required double averageRating,
     required int totalRatings,
     int? userRating,
+    bool clearUserRating = false,
   }) {
     final currentList = state.value;
     if (currentList == null) return;
@@ -193,6 +206,7 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
       averageRating: averageRating,
       totalRatings: totalRatings,
       userRating: userRating,
+      clearUserRating: clearUserRating || userRating == null,
     );
     state = AsyncData(updatedList);
   }
