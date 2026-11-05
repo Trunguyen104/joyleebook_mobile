@@ -13,7 +13,6 @@ import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../../series/view_models/genre_list_view_model.dart';
 import '../view_models/search_view_model.dart';
-import 'search_genre_bottom_sheet.dart';
 
 /// MÀN HÌNH KHÁM PHÁ & TÌM KIẾM (SearchScreen)
 /// Thiết kế giao diện xếp hạng theo chuẩn Wattpad (Image 2):
@@ -227,7 +226,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         setState(() {});
       },
       decoration: InputDecoration(
-        hintText: 'Tìm truyện hoặc người',
+        hintText: 'Tìm truyện',
         hintStyle: TextStyle(
           color: colors.textSecondary.withValues(alpha: 0.8),
           fontSize: 14,
@@ -510,42 +509,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  /// 3. Dòng thống kê số lượng + Nút [Lọc] (Image 2)
+  /// 3. Dòng thống kê số lượng truyện
   Widget _buildResultsHeader(int totalCount, AppColors colors) {
     final countText = _formatCount(totalCount);
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          '$countText Truyện',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: colors.textPrimary,
-          ),
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        '$countText Truyện',
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: colors.textPrimary,
         ),
-        OutlinedButton.icon(
-          icon: Icon(Icons.tune_rounded, size: 16, color: colors.textPrimary),
-          label: Text(
-            'Lọc',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: colors.textPrimary,
-            ),
-          ),
-          style: OutlinedButton.styleFrom(
-            visualDensity: VisualDensity.compact,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            side: BorderSide(color: colors.borderDefault),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-            ),
-          ),
-          onPressed: () => SearchGenreBottomSheet.show(context),
-        ),
-      ],
+      ),
     );
   }
 

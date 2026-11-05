@@ -8,7 +8,6 @@ import 'package:joyleebook_mobile/domain/models/series.dart';
 import 'package:joyleebook_mobile/ui/core/themes/app_theme.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_empty_state.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_error_view.dart';
-import 'package:joyleebook_mobile/ui/search/widgets/search_genre_bottom_sheet.dart';
 import 'package:joyleebook_mobile/ui/search/widgets/search_screen.dart';
 
 import '../../testing/fakes/fake_genre_repository.dart';
@@ -75,16 +74,13 @@ void main() {
   }
 
   group('SearchScreen - Widget Tests', () {
-    testWidgets('Hiển thị đầy đủ ô tìm kiếm, thanh danh mục thể loại, số lượng truyện và nút Lọc', (tester) async {
+    testWidgets('Hiển thị đầy đủ ô tìm kiếm, thanh danh mục thể loại và số lượng truyện', (tester) async {
       await tester.pumpWidget(createWidget());
       await tester.pumpAndSettle();
 
       // Kiểm tra ô tìm kiếm
       expect(find.byType(TextField), findsOneWidget);
-      expect(find.text('Tìm truyện hoặc người'), findsOneWidget);
-
-      // Kiểm tra nút Lọc
-      expect(find.text('Lọc'), findsOneWidget);
+      expect(find.text('Tìm truyện'), findsOneWidget);
 
       // Kiểm tra các tab thể loại
       expect(find.text('Tất cả'), findsOneWidget);
@@ -148,21 +144,6 @@ void main() {
 
       expect(find.text('Đấu Phá Thương Khung'), findsOneWidget);
       expect(find.text('Sát Thủ Về Hưu'), findsOneWidget);
-    });
-
-    testWidgets('Mở Modal Bottom Sheet xem tất cả thể loại và bộ lọc trạng thái', (tester) async {
-      await tester.pumpWidget(createWidget());
-      await tester.pumpAndSettle();
-
-      // Bấm nút "Lọc"
-      await tester.tap(find.text('Lọc'));
-      await tester.pumpAndSettle();
-
-      // Xác nhận Bottom Sheet hiển thị
-      expect(find.byType(SearchGenreBottomSheet), findsOneWidget);
-      expect(find.text('Tất cả Thể loại & Bộ lọc'), findsOneWidget);
-      expect(find.text('Trạng thái phát hành'), findsOneWidget);
-      expect(find.text('Danh mục Thể loại'), findsOneWidget);
     });
 
     testWidgets('Xử lý lỗi mạng khi tìm kiếm -> Hiển thị JoyleeErrorView và nút Thử lại', (tester) async {
