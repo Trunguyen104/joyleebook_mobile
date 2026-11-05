@@ -1,5 +1,7 @@
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
 import 'package:joyleebook_mobile/data/services/api_exceptions.dart';
+import 'package:joyleebook_mobile/data/dtos/upsert_reading_progress_dto.dart';
+import 'package:joyleebook_mobile/domain/models/reading_history.dart';
 import 'package:joyleebook_mobile/domain/models/series.dart';
 
 /// FAKE REPOSITORY - Giả lập kho dữ liệu trong bộ nhớ RAM
@@ -8,12 +10,23 @@ import 'package:joyleebook_mobile/domain/models/series.dart';
 class FakeSeriesRepository implements SeriesRepository {
   final List<Series> _items;
   final bool shouldThrowError;
+  final List<ReadingHistory> _readingHistory;
   int bookmarkListCallCount = 0;
+  int readingProgressCallCount = 0;
+  int readingProgressUpdateCount = 0;
+  UpsertReadingProgressDto? lastReadingProgressUpdate;
 
   FakeSeriesRepository([
     List<Series>? initialItems,
     this.shouldThrowError = false,
-  ]) : _items = initialItems != null ? List.of(initialItems) : [];
+  ]) : _items = initialItems != null ? List.of(initialItems) : [],
+       _readingHistory = const [];
+
+  FakeSeriesRepository.withHistory(
+    List<Series>? initialItems, {
+    this.shouldThrowError = false,
+    this._readingHistory = const [],
+  }) : _items = initialItems != null ? List.of(initialItems) : [];
 
   @override
   Future<List<Series>> getSeriesList({String? searchQuery}) async {
@@ -55,6 +68,38 @@ class FakeSeriesRepository implements SeriesRepository {
       throw AppException(message: 'Không thể tải tủ sách cá nhân.');
     }
     return List.unmodifiable(_items.where((series) => series.isBookmarked));
+  }
+
+  @override
+  Future<List<ReadingHistory>> getReadingHistory() async {
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (shouldThrowError) {
+      throw AppException(message: 'Không thể tải lịch sử đọc.');
+    }
+    return List.unmodifiable(_readingHistory);
+  }
+
+  @override
+  Future<double?> getReadingProgress(String seriesId) async {
+    readingProgressCallCount++;
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (shouldThrowError) {
+      throw AppException(message: 'Không thể tải tiến độ đọc.');
+    }
+    return _readingHistory
+        .where((entry) => entry.seriesId == seriesId)
+        .firstOrNull
+        ?.progress;
+  }
+
+  @override
+  Future<void> updateReadingProgress(UpsertReadingProgressDto progress) async {
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (shouldThrowError) {
+      throw AppException(message: 'Không thể cập nhật tiến độ đọc.');
+    }
+    readingProgressUpdateCount++;
+    lastReadingProgressUpdate = progress;
   }
 
   @override

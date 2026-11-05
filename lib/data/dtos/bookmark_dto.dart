@@ -5,13 +5,26 @@ class BookmarkSeriesDto {
   const BookmarkSeriesDto({required this.seriesId, this.series});
 
   factory BookmarkSeriesDto.fromJson(Map<String, dynamic> json) {
-    final series = json['series'];
-    final nestedSeriesId = series is Map<String, dynamic> ? series['id'] : null;
-    return BookmarkSeriesDto(
-      seriesId:
-          (json['seriesId'] ?? json['id'] ?? nestedSeriesId)?.toString() ?? '',
-      series: series is Map<String, dynamic> ? series : null,
-    );
+    final rawSeries = json['series'] ?? json['Series'];
+    final seriesMap = rawSeries is Map
+        ? Map<String, dynamic>.from(rawSeries)
+        : null;
+    final nestedSeriesId =
+        seriesMap?['id'] ??
+        seriesMap?['Id'] ??
+        seriesMap?['seriesId'] ??
+        seriesMap?['SeriesId'];
+
+    final resolvedSeriesId =
+        (json['seriesId'] ??
+                json['SeriesId'] ??
+                nestedSeriesId ??
+                json['id'] ??
+                json['Id'])
+            ?.toString() ??
+        '';
+
+    return BookmarkSeriesDto(seriesId: resolvedSeriesId, series: seriesMap);
   }
 
   Map<String, dynamic> toJson() {

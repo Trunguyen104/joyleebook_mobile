@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:joyleebook_mobile/app.dart';
 import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/chapter_repository.dart';
+import 'package:joyleebook_mobile/data/repositories/notification_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
 import 'package:joyleebook_mobile/data/services/api_client.dart';
@@ -18,6 +19,7 @@ import 'package:joyleebook_mobile/ui/series/widgets/series_detail_screen.dart';
 
 import '../../testing/fakes/fake_auth_repository.dart';
 import '../../testing/fakes/fake_chapter_repository.dart';
+import '../../testing/fakes/fake_notification_repository.dart';
 import '../../testing/fakes/fake_notification_socket_client.dart';
 import '../../testing/fakes/fake_profile_repository.dart';
 import '../../testing/fakes/fake_series_repository.dart';
@@ -171,19 +173,23 @@ void main() {
   testWidgets(
     'Bấm nút Đọc ngay mở trang đọc chương đầu tiên (toàn màn hình, qua GoRouter)',
     (tester) async {
+      final fakeSeriesRepo = FakeSeriesRepository([mockSeries]);
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            seriesRepositoryProvider.overrideWithValue(
-              FakeSeriesRepository([mockSeries]),
-            ),
+            seriesRepositoryProvider.overrideWithValue(fakeSeriesRepo),
             chapterRepositoryProvider.overrideWithValue(
               FakeChapterRepository(mockChapters),
             ),
             profileRepositoryProvider.overrideWithValue(
               FakeProfileRepository(),
             ),
-            authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+            authRepositoryProvider.overrideWithValue(
+              FakeAuthRepository(savedSession: fakeSession),
+            ),
+            notificationRepositoryProvider.overrideWithValue(
+              FakeNotificationRepository(),
+            ),
             tokenStorageProvider.overrideWithValue(
               FakeTokenStorage(accessToken: 'test-access-token'),
             ),
@@ -210,11 +216,19 @@ void main() {
       // Trang đọc mở toàn màn hình: không còn thanh tab
       expect(find.byType(ChapterDetailScreen), findsOneWidget);
       expect(find.byType(NavigationBar), findsNothing);
+      expect(
+        fakeSeriesRepo.readingProgressUpdateCount,
+        greaterThanOrEqualTo(1),
+      );
 
       // Sang chương sau: trang đọc được THAY THẾ, không chồng thêm trang mới
       await tester.tap(find.text('Chương sau'));
       await tester.pumpAndSettle();
       expect(find.byType(ChapterDetailScreen), findsOneWidget);
+      expect(
+        fakeSeriesRepo.readingProgressUpdateCount,
+        greaterThanOrEqualTo(2),
+      );
 
       // Back 1 lần -> về thẳng chi tiết truyện
       await tester.pageBack();
