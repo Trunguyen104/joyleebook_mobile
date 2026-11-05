@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
+import 'package:joyleebook_mobile/data/repositories/notification_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/services/api_exceptions.dart';
 import 'package:joyleebook_mobile/domain/models/user_profile.dart';
@@ -12,6 +13,7 @@ import 'package:joyleebook_mobile/ui/core/widgets/joylee_error_view.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/profile_screen.dart';
 
 import '../../testing/fakes/fake_auth_repository.dart';
+import '../../testing/fakes/fake_notification_repository.dart';
 import '../../testing/fakes/fake_profile_repository.dart';
 
 const _profile = UserProfile(
@@ -36,6 +38,9 @@ Widget _buildApp(FakeProfileRepository fake, {FakeAuthRepository? auth}) =>
     ProviderScope(
       overrides: [
         profileRepositoryProvider.overrideWithValue(fake),
+        notificationRepositoryProvider.overrideWithValue(
+          FakeNotificationRepository(),
+        ),
         authRepositoryProvider.overrideWithValue(
           auth ?? FakeAuthRepository(savedSession: fakeSession),
         ),

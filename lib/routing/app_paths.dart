@@ -6,6 +6,8 @@ abstract final class AppPaths {
   static const series = '/series';
   static const search = '/search';
   static const bookmarks = '/bookmarks';
+  static const bookmarkList = '/bookmarks/all';
+  static const readingHistory = '/bookmarks/history';
   static const profile = '/profile';
   static const gateway = '/gateway';
 

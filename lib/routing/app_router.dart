@@ -8,6 +8,8 @@ import '../ui/auth/widgets/forgot_password_screen.dart';
 import '../ui/auth/widgets/sign_in_screen.dart';
 import '../ui/auth/widgets/sign_up_screen.dart';
 import '../ui/bookmark/widgets/bookmark_screen.dart';
+import '../ui/bookmark/widgets/bookmark_list_screen.dart';
+import '../ui/bookmark/widgets/reading_history_screen.dart';
 import '../ui/chapter/widgets/chapter_detail_screen.dart';
 import '../ui/chapter/widgets/chapter_list_screen.dart';
 import '../ui/gateway_test/widgets/gateway_test_screen.dart';
@@ -19,8 +21,12 @@ import 'app_paths.dart';
 import 'app_shell.dart';
 
 /// Các trang bắt buộc đăng nhập. Kho Truyện xem được khi chưa đăng nhập.
-const _privatePaths = {AppPaths.bookmarks, AppPaths.profile};
 const _authPaths = {AppPaths.signIn, AppPaths.signUp, AppPaths.forgotPassword};
+
+bool _isPrivatePath(String path) =>
+    path == AppPaths.profile ||
+    path == AppPaths.bookmarks ||
+    path.startsWith('${AppPaths.bookmarks}/');
 
 /// Navigator gốc (nằm trên thanh tab). Trang nào gắn key này sẽ mở toàn màn hình.
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -51,7 +57,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isSignedIn = session.value != null;
       final path = state.matchedLocation;
 
-      if (!isSignedIn && _privatePaths.contains(path)) {
+      if (!isSignedIn && _isPrivatePath(path)) {
         return '${AppPaths.signIn}?from=$path';
       }
       if (isSignedIn && _authPaths.contains(path)) {
@@ -127,6 +133,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => BookmarkScreen(
                   onExplore: () => context.go(AppPaths.search),
                 ),
+                routes: [
+                  GoRoute(
+                    path: 'all',
+                    builder: (context, state) => BookmarkListScreen(
+                      onExplore: () => context.go(AppPaths.series),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'history',
+                    builder: (context, state) => ReadingHistoryScreen(
+                      onExplore: () => context.go(AppPaths.series),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

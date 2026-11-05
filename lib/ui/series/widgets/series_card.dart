@@ -16,6 +16,8 @@ class SeriesCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onBookmarkTap;
   final bool isBookmarkActionLoading;
+  final IconData? bookmarkActionIcon;
+  final String? bookmarkActionTooltip;
 
   const SeriesCard({
     super.key,
@@ -23,6 +25,8 @@ class SeriesCard extends StatelessWidget {
     required this.onTap,
     required this.onBookmarkTap,
     this.isBookmarkActionLoading = false,
+    this.bookmarkActionIcon,
+    this.bookmarkActionTooltip,
   });
 
   @override
@@ -132,15 +136,19 @@ class SeriesCard extends StatelessWidget {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : Icon(
-                          series.isBookmarked
-                              ? Icons.bookmark_rounded
-                              : Icons.bookmark_border_rounded,
-                          color: series.isBookmarked
+                          bookmarkActionIcon ??
+                              (series.isBookmarked
+                                  ? Icons.bookmark_rounded
+                                  : Icons.bookmark_border_rounded),
+                          color:
+                              bookmarkActionIcon != null || series.isBookmarked
                               ? colors.primaryBrand
                               : colors.textDisabled,
                           size: 26,
                         ),
-                  tooltip: series.isBookmarked ? 'Bỏ lưu' : 'Lưu vào tủ sách',
+                  tooltip:
+                      bookmarkActionTooltip ??
+                      (series.isBookmarked ? 'Bỏ lưu' : 'Lưu vào tủ sách'),
                   onPressed: isBookmarkActionLoading ? null : onBookmarkTap,
                 ),
               ),
