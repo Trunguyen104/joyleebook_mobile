@@ -27,6 +27,7 @@ String _fakeJwt({DateTime? expiresAt}) {
 class _FakeServer implements HttpClientAdapter {
   _FakeServer(this.statusCode, {this.withRefreshToken = true});
   final int statusCode;
+  RequestOptions? lastRequest;
 
   /// false = giống bản backend đang deploy (chưa trả refreshToken)
   final bool withRefreshToken;
@@ -37,8 +38,11 @@ class _FakeServer implements HttpClientAdapter {
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
-    final body = (options.path == ApiEndpoints.authSignOut ||
-            options.path == ApiEndpoints.authForgotPassword)
+    lastRequest = options;
+    final body = options.path == ApiEndpoints.authChangePassword
+        ? <String, dynamic>{'message': 'Current password is incorrect.'}
+        : (options.path == ApiEndpoints.authSignOut ||
+              options.path == ApiEndpoints.authForgotPassword)
         ? <String, dynamic>{'message': 'OK'}
         : {
             'accessToken': _fakeJwt(),
@@ -77,6 +81,63 @@ AuthRepository _buildRepository(
 }
 
 void main() {
+  test(
+    'Đổi mật khẩu gửi PUT đúng hợp đồng và xóa cả hai token khi thành công',
+    () async {
+      final storage = FakeTokenStorage(
+        accessToken: 'old-access',
+        refreshToken: 'old-refresh',
+      );
+      final server = _FakeServer(204);
+      final dio = createApiClient(
+        storage,
+        Uri.parse('https://gateway.test'),
+        onSessionExpired: () {},
+      )..httpClientAdapter = server;
+      await AuthRepository(dio, storage).changePassword(
+        currentPassword: ' oldPassword123 ',
+        newPassword: ' newPassword123 ',
+        confirmNewPassword: ' newPassword123 ',
+      );
+      expect(server.lastRequest!.method, 'PUT');
+      expect(server.lastRequest!.path, ApiEndpoints.authChangePassword);
+      expect(server.lastRequest!.headers['Authorization'], 'Bearer old-access');
+      expect(server.lastRequest!.data, {
+        'currentPassword': ' oldPassword123 ',
+        'newPassword': ' newPassword123 ',
+        'confirmNewPassword': ' newPassword123 ',
+      });
+      expect(storage.accessToken, isNull);
+      expect(storage.refreshToken, isNull);
+    },
+  );
+
+  test(
+    'Mật khẩu hiện tại sai được dịch sang tiếng Việt và giữ token',
+    () async {
+      final storage = FakeTokenStorage(
+        accessToken: 'old-access',
+        refreshToken: 'old-refresh',
+      );
+      await expectLater(
+        _buildRepository(storage, 400).changePassword(
+          currentPassword: 'wrongPassword1',
+          newPassword: 'newPassword123',
+          confirmNewPassword: 'newPassword123',
+        ),
+        throwsA(
+          isA<AppException>().having(
+            (e) => e.message,
+            'message',
+            'Mật khẩu hiện tại không đúng.',
+          ),
+        ),
+      );
+      expect(storage.accessToken, 'old-access');
+      expect(storage.refreshToken, 'old-refresh');
+    },
+  );
+
   test('Đăng nhập thành công: lưu token và đọc thông tin từ JWT', () async {
     final storage = FakeTokenStorage();
     final session = await _buildRepository(
@@ -181,13 +242,16 @@ void main() {
     );
   });
 
-  test('Gửi yêu cầu quên mật khẩu ném AppException khi máy chủ báo lỗi', () async {
-    final storage = FakeTokenStorage();
-    final repo = _buildRepository(storage, 500);
+  test(
+    'Gửi yêu cầu quên mật khẩu ném AppException khi máy chủ báo lỗi',
+    () async {
+      final storage = FakeTokenStorage();
+      final repo = _buildRepository(storage, 500);
 
-    await expectLater(
-      repo.forgotPassword(email: 'user@joyleebook.com'),
-      throwsA(isA<AppException>()),
-    );
-  });
+      await expectLater(
+        repo.forgotPassword(email: 'user@joyleebook.com'),
+        throwsA(isA<AppException>()),
+      );
+    },
+  );
 }

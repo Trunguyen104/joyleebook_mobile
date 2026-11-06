@@ -139,21 +139,23 @@ class _BrandMark extends StatelessWidget {
           ),
           const SizedBox(width: AppDimensions.space3),
           // Wordmark: chữ đậm, giãn chữ âm, dấu chấm màu brand (theo Design-System §2)
-          Text.rich(
-            TextSpan(
-              text: 'Joyleebook',
-              children: [
-                TextSpan(
-                  text: '.',
-                  style: TextStyle(color: colors.primaryBrand),
-                ),
-              ],
-            ),
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -1.1,
-              color: colors.textPrimary,
+          Flexible(
+            child: Text.rich(
+              TextSpan(
+                text: 'Joyleebook',
+                children: [
+                  TextSpan(
+                    text: '.',
+                    style: TextStyle(color: colors.primaryBrand),
+                  ),
+                ],
+              ),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -1.1,
+                color: colors.textPrimary,
+              ),
             ),
           ),
         ],

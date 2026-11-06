@@ -80,6 +80,36 @@ class AuthRepository {
     }
   }
 
+  /// Backend thu hồi phiên sau khi đổi mật khẩu; xóa token trên máy khi thành công.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmNewPassword,
+  }) async {
+    try {
+      await _dio.put<void>(
+        ApiEndpoints.authChangePassword,
+        data: ChangePasswordRequestDto(
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+          confirmNewPassword: confirmNewPassword,
+        ).toJson(),
+      );
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      if (e.response?.statusCode == 400 &&
+          data is Map &&
+          data['message'] == 'Current password is incorrect.') {
+        throw const AppException(
+          message: 'Mật khẩu hiện tại không đúng.',
+          statusCode: 400,
+        );
+      }
+      throw AppException.fromDio(e);
+    }
+    await _tokenStorage.clear();
+  }
+
   /// Gửi yêu cầu đặt lại mật khẩu qua email
   /// Theo OWASP: API luôn trả về 200 kể cả email không tồn tại để tránh rò rỉ thông tin
   Future<void> forgotPassword({required String email}) async {
@@ -125,10 +155,7 @@ class AuthRepository {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         ApiEndpoints.authValidateResetToken,
-        queryParameters: {
-          'email': email.trim(),
-          'token': token.trim(),
-        },
+        queryParameters: {'email': email.trim(), 'token': token.trim()},
         options: _skipRefresh,
       );
       return response.statusCode == 200;

@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../domain/models/series.dart';
 import '../ui/auth/view_models/auth_session_view_model.dart';
 import '../ui/auth/widgets/forgot_password_screen.dart';
+import '../ui/auth/widgets/change_password_screen.dart';
+import '../ui/auth/widgets/reset_password_screen.dart';
 import '../ui/auth/widgets/sign_in_screen.dart';
 import '../ui/auth/widgets/sign_up_screen.dart';
 import '../ui/bookmark/widgets/bookmark_screen.dart';
@@ -21,10 +23,16 @@ import 'app_paths.dart';
 import 'app_shell.dart';
 
 /// Các trang bắt buộc đăng nhập. Kho Truyện xem được khi chưa đăng nhập.
-const _authPaths = {AppPaths.signIn, AppPaths.signUp, AppPaths.forgotPassword};
+const _authPaths = {
+  AppPaths.signIn,
+  AppPaths.signUp,
+  AppPaths.forgotPassword,
+  AppPaths.resetPassword,
+};
 
 bool _isPrivatePath(String path) =>
     path == AppPaths.profile ||
+    path.startsWith('${AppPaths.profile}/') ||
     path == AppPaths.bookmarks ||
     path.startsWith('${AppPaths.bookmarks}/');
 
@@ -58,7 +66,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final path = state.matchedLocation;
 
       if (!isSignedIn && _isPrivatePath(path)) {
-        return '${AppPaths.signIn}?from=$path';
+        final from = path == AppPaths.changePassword ? AppPaths.profile : path;
+        return '${AppPaths.signIn}?from=$from';
       }
       if (isSignedIn && _authPaths.contains(path)) {
         return state.uri.queryParameters['from'] ?? AppPaths.series;
@@ -178,6 +187,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             SignInScreen(from: state.uri.queryParameters['from']),
       ),
       GoRoute(
+        path: AppPaths.changePassword,
+        builder: (context, state) => const ChangePasswordScreen(),
+      ),
+      GoRoute(
         path: AppPaths.signUp,
         builder: (context, state) =>
             SignUpScreen(from: state.uri.queryParameters['from']),
@@ -186,6 +199,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppPaths.forgotPassword,
         builder: (context, state) =>
             ForgotPasswordScreen(from: state.uri.queryParameters['from']),
+      ),
+      GoRoute(
+        path: AppPaths.resetPassword,
+        builder: (context, state) => ResetPasswordScreen(
+          email: state.uri.queryParameters['email'] ?? '',
+          token: state.uri.queryParameters['token'] ?? '',
+          from: state.uri.queryParameters['from'],
+        ),
       ),
     ],
   );
