@@ -9,6 +9,7 @@ import 'package:joyleebook_mobile/ui/core/themes/app_dimensions.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_button.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_empty_state.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_error_view.dart';
+import 'package:joyleebook_mobile/ui/notifications/widgets/notification_bell_button.dart';
 import 'package:joyleebook_mobile/ui/profile/view_models/profile_view_model.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/profile_header.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/reading_stat_tile.dart';
@@ -30,6 +31,7 @@ class ProfileScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Hồ sơ của tôi'),
         actions: [
+          if (isSignedIn) const NotificationBellButton(),
           if (isSignedIn)
             IconButton(
               tooltip: 'Đổi mật khẩu',

@@ -5,26 +5,43 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:joyleebook_mobile/app.dart';
 import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
+import 'package:joyleebook_mobile/data/repositories/notification_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
 import 'package:joyleebook_mobile/routing/app_router.dart';
 import 'package:joyleebook_mobile/routing/app_paths.dart';
 import 'package:joyleebook_mobile/ui/auth/widgets/reset_password_screen.dart';
 import 'package:joyleebook_mobile/ui/auth/widgets/change_password_screen.dart';
+import 'package:joyleebook_mobile/data/services/api_client.dart';
+import 'package:joyleebook_mobile/data/services/notification_socket_client.dart';
 import 'package:joyleebook_mobile/ui/auth/widgets/sign_in_screen.dart';
 import 'package:joyleebook_mobile/ui/auth/widgets/sign_up_screen.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_button.dart';
+import 'package:joyleebook_mobile/ui/notifications/widgets/notification_popup.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/profile_screen.dart';
+import 'package:joyleebook_mobile/ui/series/widgets/series_list_screen.dart';
 
 import '../testing/fakes/fake_auth_repository.dart';
+import '../testing/fakes/fake_notification_repository.dart';
+import '../testing/fakes/fake_notification_socket_client.dart';
 import '../testing/fakes/fake_profile_repository.dart';
 import '../testing/fakes/fake_series_repository.dart';
+import '../testing/fakes/fake_token_storage.dart';
 
 ProviderScope _buildApp(FakeAuthRepository auth) => ProviderScope(
   overrides: [
     seriesRepositoryProvider.overrideWithValue(FakeSeriesRepository([])),
     profileRepositoryProvider.overrideWithValue(FakeProfileRepository()),
     authRepositoryProvider.overrideWithValue(auth),
+    notificationRepositoryProvider.overrideWithValue(
+      FakeNotificationRepository(),
+    ),
+    tokenStorageProvider.overrideWithValue(
+      FakeTokenStorage(accessToken: 'test-access-token'),
+    ),
+    notificationSocketClientProvider.overrideWithValue(
+      FakeNotificationSocketClient(),
+    ),
   ],
   child: const JoyleeBookApp(),
 );
@@ -215,5 +232,33 @@ void main() {
 
     expect(find.byType(ProfileScreen), findsOneWidget);
     expect(find.byType(SignInScreen), findsNothing);
+  });
+
+  testWidgets('Chưa đăng nhập thì không hiện chuông thông báo', (tester) async {
+    await tester.pumpWidget(_buildApp(FakeAuthRepository()));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SeriesListScreen), findsOneWidget);
+    expect(find.byTooltip('Thông báo'), findsNothing);
+  });
+
+  testWidgets('Bấm chuông ở tab Cá nhân mở popup thông báo', (tester) async {
+    await tester.pumpWidget(
+      _buildApp(FakeAuthRepository(savedSession: fakeSession)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Cá nhân'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Thông báo'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NotificationPopup), findsOneWidget);
+    expect(find.text('Chưa có thông báo'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Đóng thông báo'));
+    await tester.pumpAndSettle();
+    expect(find.byType(NotificationPopup), findsNothing);
   });
 }
