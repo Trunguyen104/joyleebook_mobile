@@ -9,6 +9,7 @@ abstract final class AppPaths {
   static const bookmarkList = '/bookmarks/all';
   static const readingHistory = '/bookmarks/history';
   static const profile = '/profile';
+  static const editProfile = '/profile/edit';
   static const changePassword = '/profile/change-password';
   static const gateway = '/gateway';
 

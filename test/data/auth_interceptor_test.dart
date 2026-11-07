@@ -84,6 +84,22 @@ void main() {
   );
 
   test(
+    'Upload multipart gặp 401 vẫn retry được sau khi refresh token',
+    () async {
+      final response = await dio.post<dynamic>(
+        ApiEndpoints.mediaUploadAvatar,
+        data: FormData.fromMap({
+          'File': MultipartFile.fromBytes([1, 2, 3], filename: 'avatar.png'),
+        }),
+      );
+
+      expect(response.statusCode, 200);
+      expect(server.refreshCalls, 1);
+      expect(storage.accessToken, 'new-access');
+    },
+  );
+
+  test(
     'Refresh bị từ chối thì xóa token và báo hết phiên đúng 1 lần',
     () async {
       server.refreshFails = true;

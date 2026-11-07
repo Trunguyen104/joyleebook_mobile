@@ -89,6 +89,13 @@ Mọi màn hình có dữ liệu từ mạng hoặc database đều **bắt bu�
 | **Password** | - Không được để trống.<br>- Độ dài từ 8 đến 128 ký tự.<br>- Bắt buộc có **ít nhất 1 chữ cái** và **ít nhất 1 chữ số**. | *"Mật khẩu tối thiểu 8 ký tự, bao gồm cả chữ và số"* |
 | **Confirm Password** | - Giá trị nhập phải trùng khớp 100% với trường Password. | *"Mật khẩu xác nhận không trùng khớp"* |
 
+#### A2. Form Hồ sơ cá nhân (Profile)
+| Trường dữ liệu | Quy tắc kiểm tra (Validation Rules) | Thông báo lỗi hiển thị |
+| :--- | :--- | :--- |
+| **Tên hiển thị** | - Được để trống.<br>- Tối đa 64 ký tự sau khi trim. | *"Tên hiển thị tối đa 64 ký tự"* |
+| **Giới thiệu** | - Được để trống.<br>- Tối đa 500 ký tự sau khi trim. | *"Giới thiệu tối đa 500 ký tự"* |
+| **Ảnh đại diện** | - Chỉ chọn từ thư viện ảnh, không nhập URL thủ công.<br>- Chỉ nhận JPEG/PNG/WEBP, nhận diện bằng magic bytes.<br>- Tối đa 2MB sau khi resize/nén (tối đa 1024px, quality 85).<br>- Upload qua `POST /api/media/upload-avatar` trước khi `PUT /api/profiles/me`; xóa ảnh gửi `avatarUrl = null`. | *"Ảnh đại diện tối đa 2MB. Vui lòng chọn ảnh nhỏ hơn."*<br>*"Chỉ hỗ trợ ảnh JPG, PNG hoặc WEBP."* |
+
 #### B. Thao tác Quản lý Truyện & Chương (Series & Chapters)
 | Trường dữ liệu | Quy tắc kiểm tra (Validation Rules) | Ngăn chặn lỗi nghiệp vụ |
 | :--- | :--- | :--- |

@@ -63,6 +63,7 @@ void main() {
     expect(find.text('@phuc123'), findsOneWidget);
     expect(find.text('Tác giả'), findsOneWidget);
     expect(find.text('Mê truyện trinh thám.'), findsOneWidget);
+    expect(find.byTooltip('Chỉnh sửa hồ sơ'), findsOneWidget);
     expect(find.bySemanticsLabel('Truyện đã đọc: 12'), findsOneWidget);
     expect(find.bySemanticsLabel('Chuỗi dài nhất: 9 ngày'), findsOneWidget);
     expect(find.text('30 NGÀY QUA'), findsOneWidget);
@@ -119,8 +120,9 @@ void main() {
 
     expect(find.text('Bạn chưa đăng nhập'), findsOneWidget);
     expect(fake.callCount, 0);
-    // Chưa đăng nhập thì không có nút đăng xuất
+    // Chưa đăng nhập thì không có nút đăng xuất hay chỉnh sửa
     expect(find.byTooltip('Đăng xuất'), findsNothing);
+    expect(find.byTooltip('Chỉnh sửa hồ sơ'), findsNothing);
   });
 
   testWidgets('Đăng xuất: hỏi xác nhận, bấm Hủy thì vẫn giữ phiên', (

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../themes/app_colors.dart';
@@ -22,12 +24,14 @@ class JoyleeAvatar extends StatelessWidget {
     super.key,
     required this.initials,
     this.imageUrl,
+    this.imageBytes,
     this.size = JoyleeAvatarSize.md,
     this.semanticLabel,
   });
 
   final String initials;
   final String? imageUrl;
+  final Uint8List? imageBytes;
   final JoyleeAvatarSize size;
 
   /// Nhãn cho trình đọc màn hình, ví dụ "Ảnh đại diện của phuc123"
@@ -38,6 +42,10 @@ class JoyleeAvatar extends StatelessWidget {
     final colors = context.colors;
     final dimension = size.dimension;
     final url = imageUrl?.trim();
+    final ImageProvider<Object>? imageProvider =
+        imageBytes != null && imageBytes!.isNotEmpty
+        ? MemoryImage(imageBytes!)
+        : (url == null || url.isEmpty ? null : NetworkImage(url));
 
     final fallback = Container(
       width: dimension,
@@ -62,11 +70,11 @@ class JoyleeAvatar extends StatelessWidget {
       label: semanticLabel,
       image: true,
       excludeSemantics: true,
-      child: (url == null || url.isEmpty)
+      child: imageProvider == null
           ? fallback
           : ClipOval(
-              child: Image.network(
-                url,
+              child: Image(
+                image: imageProvider,
                 width: dimension,
                 height: dimension,
                 fit: BoxFit.cover,

@@ -13,6 +13,9 @@ abstract final class ApiEndpoints {
   static String seriesMyRating(String seriesId) =>
       '/api/ratings/series/$seriesId/my-rating';
 
+  // Media Microservice (via Gateway)
+  static const String mediaUploadAvatar = '/api/media/upload-avatar';
+
   // Authentication Microservice (via Gateway)
   static const String authSignIn = '/api/auth/sign-in';
   static const String authSignUp = '/api/auth/sign-up';

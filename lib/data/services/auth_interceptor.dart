@@ -66,6 +66,10 @@ class AuthInterceptor extends Interceptor {
       final newToken = await _tokenStorage.readAccessToken();
       options.headers['Authorization'] = 'Bearer $newToken';
       options.extra[_retried] = true; // chỉ gửi lại 1 lần, tránh vòng lặp
+      final data = options.data;
+      if (data is FormData) {
+        options.data = data.clone();
+      }
       handler.resolve(await _dio.fetch(options));
     } on DioException catch (e) {
       handler.next(e);

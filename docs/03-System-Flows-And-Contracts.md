@@ -464,7 +464,79 @@ Swagger: `https://api.joyleebook.duckdns.org/docs/notification/swagger/v1/swagge
 
 ---
 
-### 6.4. Base URL của Gateway
+### 6.4. Nhóm API Hồ sơ cá nhân (Profile)
+
+Hồ sơ thuộc User API, truy cập qua Gateway với Bearer token.
+
+#### 1. Xem hồ sơ của chính người gọi (`GET /api/profiles/me`)
+
+- **Quyền truy cập**: Đã đăng nhập.
+- **Response**:
+  ```json
+  {
+    "id": "115a1ebc-2cb0-41e5-9690-7166fc73b753",
+    "username": "phuc123",
+    "role": "Reader",
+    "displayName": "Phúc",
+    "bio": "Mê truyện trinh thám.",
+    "avatarUrl": "https://cdn.example.com/avatar.png",
+    "updatedAtUtc": "2026-11-07T10:00:00Z",
+    "account": {
+      "email": "reader@example.com",
+      "createdAtUtc": "2026-10-01T08:00:00Z",
+      "authorTermsVersion": null,
+      "authorTermsAcceptedAtUtc": null,
+      "pendingEmail": null
+    }
+  }
+  ```
+- `username` và `role` lấy từ token hiện tại. Người dùng chưa lưu hồ sơ nhận các trường hồ sơ rỗng và `updatedAtUtc = null`.
+- `account` là thông tin do Authentication sở hữu; có thể `null` khi dịch vụ này tạm thời không phản hồi.
+- Mobile gọi thêm `GET /api/library/stats?days=30&utcOffsetMinutes=...` để lấy thống kê đọc và ghép vào cùng màn Hồ sơ.
+
+#### 2. Cập nhật hồ sơ (`PUT /api/profiles/me`)
+
+- **Quyền truy cập**: Đã đăng nhập.
+- **Body**:
+  ```json
+  {
+    "displayName": "Phúc",
+    "bio": "Mê truyện trinh thám.",
+    "avatarUrl": "https://cdn.example.com/avatar.png"
+  }
+  ```
+- **Quy tắc**:
+  - `displayName` tối đa 64 ký tự.
+  - `bio` tối đa 500 ký tự.
+  - `avatarUrl` tối đa 500 ký tự và phải là URL HTTPS tuyệt đối; chuỗi rỗng hoặc `null` để xóa ảnh. Mobile lấy URL này từ Media API, không cho người dùng nhập tay.
+  - Các trường hồ sơ để trống được backend lưu thành `null`.
+- **Response**: giống `GET /api/profiles/me` (bao gồm `account`, không có thống kê đọc).
+- **Lỗi**: `400` khi dữ liệu không hợp lệ (ValidationProblemDetails theo từng trường), `401` khi hết phiên.
+- Mobile hiện chưa hỗ trợ đổi email qua endpoint này; đổi email cần mật khẩu hiện tại và luồng xác minh riêng của Authentication.
+
+#### 3. Upload ảnh đại diện (`POST /api/media/upload-avatar`)
+
+- **Quyền truy cập**: Đã đăng nhập.
+- **Request**: `multipart/form-data` với đúng một field tên `File`.
+- **Giới hạn**: tối đa **2MB**; chỉ nhận `.jpg`, `.jpeg`, `.png`, `.webp`.
+- **Response `200`**:
+  ```json
+  {
+    "url": "https://res.cloudinary.com/demo/image/upload/joyleebook/avatars/user-1.png",
+    "publicId": "joyleebook/avatars/user-1"
+  }
+  ```
+- `publicId` do Media service tạo từ `userId` và dùng `Overwrite = true`; upload lại cùng tài khoản sẽ ghi đè ảnh cũ trên Cloudinary.
+- **Lỗi**:
+  - `400` với `errorCode` `Media.FileEmpty`, `Media.FileTooLarge`, `Media.InvalidFormat`.
+  - `401` khi hết phiên; `413`/`415` khi Gateway hoặc Media service từ chối kích thước/định dạng.
+  - `502` khi Gateway không kết nối được Media service; `503` với `Media.NotConfigured`.
+  - `500` với `Media.CloudinaryError` hoặc `Media.UploadException`.
+- **Luồng mobile**: chọn ảnh từ thư viện → thu nhỏ/nén tối đa 1024px → kiểm tra magic bytes và dung lượng 2MB → upload → nhận `url` → gửi `PUT /api/profiles/me` với `avatarUrl`. Khi xóa ảnh, mobile gửi `avatarUrl = null` và không xóa asset Cloudinary.
+
+---
+
+### 6.5. Base URL của Gateway
 
 Dự án dùng chung một Gateway đã deploy qua HTTPS, không chạy backend local. `lib/config/environment.dart` mặc định trỏ tới `https://api.joyleebook.duckdns.org`, nên mọi emulator, simulator và thiết bị thật đều chạy cùng một lệnh:
 
