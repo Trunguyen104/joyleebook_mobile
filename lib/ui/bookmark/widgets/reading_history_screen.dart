@@ -23,16 +23,7 @@ class ReadingHistoryScreen extends ConsumerWidget {
     final viewModel = ref.read(readingHistoryViewModelProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lịch sử đọc'),
-        actions: [
-          IconButton(
-            tooltip: 'Làm mới lịch sử đọc',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: viewModel.refresh,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Lịch sử đọc')),
       body: SafeArea(
         child: state.when(
           loading: () => const Center(child: CircularProgressIndicator()),

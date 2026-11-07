@@ -18,10 +18,11 @@ import 'package:joyleebook_mobile/domain/models/user_profile.dart';
 import 'package:joyleebook_mobile/ui/auth/widgets/sign_in_screen.dart';
 import 'package:joyleebook_mobile/ui/auth/widgets/sign_up_screen.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_button.dart';
-import 'package:joyleebook_mobile/ui/notifications/widgets/notification_popup.dart';
+import 'package:joyleebook_mobile/ui/gateway_test/widgets/gateway_test_screen.dart';
+import 'package:joyleebook_mobile/ui/notifications/widgets/notification_screen.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/edit_profile_screen.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/profile_screen.dart';
-import 'package:joyleebook_mobile/ui/series/widgets/series_list_screen.dart';
+import 'package:joyleebook_mobile/ui/profile/widgets/settings_screen.dart';
 
 import '../testing/fakes/fake_auth_repository.dart';
 import '../testing/fakes/fake_notification_repository.dart';
@@ -62,7 +63,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cá nhân'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Đổi mật khẩu'));
+    await tester.tap(find.byTooltip('Cài đặt'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    await tester.tap(find.text('Đổi mật khẩu'));
     await tester.pumpAndSettle();
     expect(find.byType(ChangePasswordScreen), findsOneWidget);
     await tester.enterText(find.byType(TextField).at(0), 'oldPassword123');
@@ -100,7 +104,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cá nhân'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Chỉnh sửa hồ sơ'));
+    await tester.tap(find.byTooltip('Cài đặt'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    await tester.tap(find.text('Chỉnh sửa hồ sơ'));
     await tester.pumpAndSettle();
 
     expect(find.byType(EditProfileScreen), findsOneWidget);
@@ -201,14 +208,17 @@ void main() {
     // Tab 0 mặc định là Kho Truyện (xem được khi chưa đăng nhập)
     expect(find.text('Kho Truyện JoyleeBook'), findsOneWidget);
     expect(find.text('Kho Truyện'), findsOneWidget);
+    expect(find.text('Khám phá'), findsOneWidget);
     expect(find.text('Tủ sách'), findsOneWidget);
-    expect(find.text('Kiểm tra Gateway'), findsOneWidget);
+    expect(find.text('Thông báo'), findsOneWidget);
+    expect(find.text('Cá nhân'), findsOneWidget);
+    // Nút Kiểm tra Gateway đã được ẩn khỏi thanh navbar đáy
+    expect(find.text('Kiểm tra Gateway'), findsNothing);
 
-    await tester.tap(find.text('Kiểm tra Gateway'));
+    await tester.tap(find.text('Khám phá'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Kiểm tra Kết nối Gateway'), findsOneWidget);
-    expect(find.text('Bắt đầu Kiểm tra Kết nối'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
   });
 
   testWidgets('Chưa đăng nhập: bấm tab Tủ sách thì chuyển sang Đăng nhập', (
@@ -286,15 +296,38 @@ void main() {
     expect(find.byType(SignInScreen), findsNothing);
   });
 
-  testWidgets('Chưa đăng nhập thì không hiện chuông thông báo', (tester) async {
+  testWidgets('Chưa đăng nhập: bấm tab Thông báo thì chuyển sang Đăng nhập', (
+    tester,
+  ) async {
     await tester.pumpWidget(_buildApp(FakeAuthRepository()));
     await tester.pumpAndSettle();
 
-    expect(find.byType(SeriesListScreen), findsOneWidget);
-    expect(find.byTooltip('Thông báo'), findsNothing);
+    await tester.tap(find.text('Thông báo'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SignInScreen), findsOneWidget);
+    expect(find.byType(NotificationScreen), findsNothing);
   });
 
-  testWidgets('Bấm chuông ở tab Cá nhân mở popup thông báo', (tester) async {
+  testWidgets('Đã đăng nhập sẵn: bấm tab Thông báo mở màn hình Thông báo', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildApp(FakeAuthRepository(savedSession: fakeSession)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Thông báo'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NotificationScreen), findsOneWidget);
+    expect(find.text('Chưa có thông báo'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+  });
+
+  testWidgets('Cài đặt → Mở màn hình Kiểm tra Gateway thành công', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _buildApp(FakeAuthRepository(savedSession: fakeSession)),
     );
@@ -302,15 +335,16 @@ void main() {
 
     await tester.tap(find.text('Cá nhân'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Thông báo'));
+
+    await tester.tap(find.byTooltip('Cài đặt'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(NotificationPopup), findsOneWidget);
-    expect(find.text('Chưa có thông báo'), findsOneWidget);
-    expect(find.byType(NavigationBar), findsOneWidget);
-
-    await tester.tap(find.byTooltip('Đóng thông báo'));
+    await tester.ensureVisible(find.text('Kiểm tra Gateway'));
+    await tester.tap(find.text('Kiểm tra Gateway'));
     await tester.pumpAndSettle();
-    expect(find.byType(NotificationPopup), findsNothing);
+
+    expect(find.byType(GatewayTestScreen), findsOneWidget);
+    expect(find.text('Kiểm tra Kết nối Gateway'), findsOneWidget);
+    expect(find.text('Bắt đầu Kiểm tra Kết nối'), findsOneWidget);
   });
 }

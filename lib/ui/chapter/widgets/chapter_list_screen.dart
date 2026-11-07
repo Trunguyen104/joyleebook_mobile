@@ -52,15 +52,6 @@ class ChapterListScreen extends ConsumerWidget {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Làm mới',
-            onPressed: () => ref
-                .read(chapterListViewModelProvider(seriesId).notifier)
-                .refresh(),
-          ),
-        ],
       ),
       body: state.when(
         // 1. Trạng thái Loading

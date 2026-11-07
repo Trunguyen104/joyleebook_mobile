@@ -34,23 +34,22 @@ void main() {
     test('Khởi tạo ViewModel tải toàn bộ danh sách truyện', () async {
       final fakeRepo = FakeSeriesRepository(sampleSeries);
       final container = ProviderContainer(
-        overrides: [
-          seriesRepositoryProvider.overrideWithValue(fakeRepo),
-        ],
+        overrides: [seriesRepositoryProvider.overrideWithValue(fakeRepo)],
       );
       addTearDown(container.dispose);
 
       final initialValue = await container.read(searchViewModelProvider.future);
       expect(initialValue.length, 2);
-      expect(container.read(searchViewModelProvider.notifier).isFiltered, false);
+      expect(
+        container.read(searchViewModelProvider.notifier).isFiltered,
+        false,
+      );
     });
 
     test('Lọc theo thể loại cập nhật state chính xác', () async {
       final fakeRepo = FakeSeriesRepository(sampleSeries);
       final container = ProviderContainer(
-        overrides: [
-          seriesRepositoryProvider.overrideWithValue(fakeRepo),
-        ],
+        overrides: [seriesRepositoryProvider.overrideWithValue(fakeRepo)],
       );
       addTearDown(container.dispose);
 
@@ -74,9 +73,7 @@ void main() {
     test('Lọc theo trạng thái phát hành (ongoing / completed)', () async {
       final fakeRepo = FakeSeriesRepository(sampleSeries);
       final container = ProviderContainer(
-        overrides: [
-          seriesRepositoryProvider.overrideWithValue(fakeRepo),
-        ],
+        overrides: [seriesRepositoryProvider.overrideWithValue(fakeRepo)],
       );
       addTearDown(container.dispose);
 
@@ -94,9 +91,7 @@ void main() {
     test('Tìm kiếm với immediate = true trả kết quả tức thì', () async {
       final fakeRepo = FakeSeriesRepository(sampleSeries);
       final container = ProviderContainer(
-        overrides: [
-          seriesRepositoryProvider.overrideWithValue(fakeRepo),
-        ],
+        overrides: [seriesRepositoryProvider.overrideWithValue(fakeRepo)],
       );
       addTearDown(container.dispose);
 
@@ -113,9 +108,7 @@ void main() {
     test('Quản lý Lịch sử tìm kiếm (add, remove, clear)', () async {
       final fakeRepo = FakeSeriesRepository(sampleSeries);
       final container = ProviderContainer(
-        overrides: [
-          seriesRepositoryProvider.overrideWithValue(fakeRepo),
-        ],
+        overrides: [seriesRepositoryProvider.overrideWithValue(fakeRepo)],
       );
       addTearDown(container.dispose);
 
@@ -137,9 +130,7 @@ void main() {
     test('ClearFilters reset toàn bộ từ khóa và bộ lọc', () async {
       final fakeRepo = FakeSeriesRepository(sampleSeries);
       final container = ProviderContainer(
-        overrides: [
-          seriesRepositoryProvider.overrideWithValue(fakeRepo),
-        ],
+        overrides: [seriesRepositoryProvider.overrideWithValue(fakeRepo)],
       );
       addTearDown(container.dispose);
 

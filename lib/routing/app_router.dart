@@ -15,8 +15,10 @@ import '../ui/bookmark/widgets/reading_history_screen.dart';
 import '../ui/chapter/widgets/chapter_detail_screen.dart';
 import '../ui/chapter/widgets/chapter_list_screen.dart';
 import '../ui/gateway_test/widgets/gateway_test_screen.dart';
+import '../ui/notifications/widgets/notification_screen.dart';
 import '../ui/profile/widgets/edit_profile_screen.dart';
 import '../ui/profile/widgets/profile_screen.dart';
+import '../ui/profile/widgets/settings_screen.dart';
 import '../ui/search/widgets/search_screen.dart';
 import '../ui/series/widgets/series_detail_screen.dart';
 import '../ui/series/widgets/series_list_screen.dart';
@@ -35,13 +37,15 @@ bool _isPrivatePath(String path) =>
     path == AppPaths.profile ||
     path.startsWith('${AppPaths.profile}/') ||
     path == AppPaths.bookmarks ||
-    path.startsWith('${AppPaths.bookmarks}/');
+    path.startsWith('${AppPaths.bookmarks}/') ||
+    path == AppPaths.notifications ||
+    path.startsWith('${AppPaths.notifications}/');
 
 /// Navigator gốc (nằm trên thanh tab). Trang nào gắn key này sẽ mở toàn màn hình.
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 /// BỘ ĐỊNH TUYẾN CỦA APP
-/// - 5 tab giữ nguyên trạng thái khi chuyển tab (Kho Truyện, Khám Phá, Tủ Sách, Cá Nhân, Gateway).
+/// - 5 tab giữ nguyên trạng thái khi chuyển tab (Kho Truyện, Khám Phá, Tủ Sách, Thông Báo, Cá Nhân).
 /// - Chi tiết truyện và danh sách chương mở bên trong tab Kho Truyện (vẫn thấy thanh tab).
 /// - Trang đọc chương, /sign-in, /sign-up mở toàn màn hình, không có thanh tab.
 /// - [redirect] là nơi DUY NHẤT quyết định "chưa đăng nhập thì đi đâu".
@@ -161,7 +165,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // TAB 3: TRANG CÁ NHÂN (PROFILE)
+          // TAB 3: THÔNG BÁO (NOTIFICATIONS)
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppPaths.notifications,
+                builder: (context, state) => const NotificationScreen(),
+              ),
+            ],
+          ),
+
+          // TAB 4: TRANG CÁ NHÂN (PROFILE)
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -170,17 +184,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-
-          // TAB 4: CHẨN ĐOÁN GATEWAY (DEV)
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: AppPaths.gateway,
-                builder: (context, state) => const GatewayTestScreen(),
-              ),
-            ],
-          ),
         ],
+      ),
+      GoRoute(
+        path: AppPaths.gateway,
+        builder: (context, state) => const GatewayTestScreen(),
       ),
       GoRoute(
         path: AppPaths.signIn,
@@ -194,6 +202,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppPaths.changePassword,
         builder: (context, state) => const ChangePasswordScreen(),
+      ),
+      GoRoute(
+        path: AppPaths.settings,
+        builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
         path: AppPaths.signUp,

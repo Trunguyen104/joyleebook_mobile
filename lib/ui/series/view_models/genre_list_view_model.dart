@@ -6,9 +6,9 @@ import '../../../domain/models/genre.dart';
 /// RIVERPOD PROVIDER: Quản lý danh sách thể loại
 final genreListViewModelProvider =
     AsyncNotifierProvider<GenreListViewModel, List<Genre>>(
-  GenreListViewModel.new,
-  retry: (retryCount, error) => null,
-);
+      GenreListViewModel.new,
+      retry: (retryCount, error) => null,
+    );
 
 /// VIEWMODEL - Quản lý danh mục thể loại
 /// Bước 4 trong kiến trúc Compass App:

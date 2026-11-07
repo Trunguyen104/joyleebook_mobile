@@ -11,6 +11,7 @@ import '../dtos/series_dto.dart';
 import '../dtos/upsert_reading_progress_dto.dart';
 import '../services/api_client.dart';
 import '../services/api_exceptions.dart';
+import '../services/search_utils.dart';
 
 /// REPOSITORY - Kho lưu trữ dữ liệu
 /// Bước 3 trong kiến trúc Compass App:
@@ -52,21 +53,27 @@ class SeriesRepository {
 
       var domainList = dtoList.map(Series.fromDto).toList(growable: false);
 
-      if (genre != null && genre.trim().isNotEmpty) {
-        final targetGenre = genre.trim().toLowerCase();
+      if (searchQuery != null && searchQuery.trim().isNotEmpty) {
         domainList = domainList
             .where(
-              (s) => s.genres.any(
-                (item) =>
-                    item.toLowerCase() == targetGenre ||
-                    item.toLowerCase().contains(targetGenre),
-              ),
+              (s) =>
+                  SearchUtils.matches(s.title, searchQuery) ||
+                  SearchUtils.matches(s.authorName, searchQuery) ||
+                  s.genres.any((g) => SearchUtils.matches(g, searchQuery)),
+            )
+            .toList(growable: false);
+      }
+      if (genre != null && genre.trim().isNotEmpty) {
+        domainList = domainList
+            .where(
+              (s) => s.genres.any((item) => SearchUtils.matches(item, genre)),
             )
             .toList(growable: false);
       }
       if (status != null) {
-        domainList =
-            domainList.where((s) => s.status == status).toList(growable: false);
+        domainList = domainList
+            .where((s) => s.status == status)
+            .toList(growable: false);
       }
 
       return domainList;
@@ -128,16 +135,19 @@ class SeriesRepository {
         if (_hasSeriesDetails(rawSeries)) {
           final normalizedJson = Map<String, dynamic>.from(rawSeries)
             ..['id'] = bookmark.seriesId
-            ..['title'] = rawSeries['title'] ??
+            ..['title'] =
+                rawSeries['title'] ??
                 rawSeries['Title'] ??
                 rawSeries['seriesTitle'] ??
                 rawSeries['SeriesTitle']
-            ..['coverImageUrl'] = rawSeries['coverImageUrl'] ??
+            ..['coverImageUrl'] =
+                rawSeries['coverImageUrl'] ??
                 rawSeries['CoverImageUrl'] ??
                 rawSeries['coverUrl'] ??
                 rawSeries['CoverUrl']
             ..['authorId'] = rawSeries['authorId'] ?? rawSeries['AuthorId']
-            ..['authorName'] = rawSeries['authorName'] ??
+            ..['authorName'] =
+                rawSeries['authorName'] ??
                 rawSeries['AuthorName'] ??
                 rawSeries['author'] ??
                 rawSeries['Author'];
@@ -389,7 +399,8 @@ class SeriesRepository {
   }
 
   bool _hasSeriesDetails(Map<String, dynamic> json) {
-    final title = json['title'] ??
+    final title =
+        json['title'] ??
         json['Title'] ??
         json['seriesTitle'] ??
         json['SeriesTitle'];

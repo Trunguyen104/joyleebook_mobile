@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 
@@ -90,9 +91,7 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
       decoration: BoxDecoration(
         color: colors.bgSurface,
         borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        border: Border.all(
-          color: colors.borderDefault.withValues(alpha: 0.8),
-        ),
+        border: Border.all(color: colors.borderDefault.withValues(alpha: 0.8)),
         boxShadow: [
           BoxShadow(
             color: colors.textPrimary.withValues(alpha: 0.03),
@@ -117,7 +116,9 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
                       height: 36,
                       decoration: BoxDecoration(
                         color: colors.primaryBrand.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                        borderRadius: BorderRadius.circular(
+                          AppDimensions.radiusSm,
+                        ),
                       ),
                       child: Icon(
                         Icons.rate_review_outlined,
@@ -169,15 +170,24 @@ class _SeriesRatingCardState extends State<SeriesRatingCard> {
                 )
               else if (widget.userRating != null && widget.userRating! > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: colors.success.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                    borderRadius: BorderRadius.circular(
+                      AppDimensions.radiusFull,
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check_circle_rounded, size: 13, color: colors.success),
+                      Icon(
+                        Icons.check_circle_rounded,
+                        size: 13,
+                        color: colors.success,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'Đã đánh giá',

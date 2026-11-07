@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:joyleebook_mobile/domain/models/series.dart';
+
 import '../../testing/fakes/fake_series_repository.dart';
 
 void main() {
@@ -46,7 +47,9 @@ void main() {
     });
 
     test('Tìm kiếm theo từ khóa tên truyện hoặc tác giả', () async {
-      final byTitle = await repository.getSeriesList(searchQuery: 'Phương Đông');
+      final byTitle = await repository.getSeriesList(
+        searchQuery: 'Phương Đông',
+      );
       expect(byTitle.length, equals(1));
       expect(byTitle.first.title, equals('Hành Trình Về Phương Đông'));
 
@@ -60,19 +63,22 @@ void main() {
       expect(fantasySeries.length, equals(1));
       expect(fantasySeries.first.id, equals('2'));
 
-      final nonExistentGenre =
-          await repository.getSeriesList(genre: 'Không Tồn Tại');
+      final nonExistentGenre = await repository.getSeriesList(
+        genre: 'Không Tồn Tại',
+      );
       expect(nonExistentGenre, isEmpty);
     });
 
     test('Lọc tác phẩm theo trạng thái phát hành', () async {
-      final ongoingList =
-          await repository.getSeriesList(status: SeriesStatus.ongoing);
+      final ongoingList = await repository.getSeriesList(
+        status: SeriesStatus.ongoing,
+      );
       expect(ongoingList.length, equals(1));
       expect(ongoingList.first.id, equals('2'));
 
-      final completedList =
-          await repository.getSeriesList(status: SeriesStatus.completed);
+      final completedList = await repository.getSeriesList(
+        status: SeriesStatus.completed,
+      );
       expect(completedList.length, equals(2));
     });
 

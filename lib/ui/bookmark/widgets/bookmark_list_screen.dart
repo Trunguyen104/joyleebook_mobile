@@ -29,16 +29,7 @@ class _BookmarkListScreenState extends ConsumerState<BookmarkListScreen> {
     final viewModel = ref.read(bookmarkListViewModelProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Truyện đã lưu'),
-        actions: [
-          IconButton(
-            tooltip: 'Làm mới tủ sách',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: viewModel.refresh,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Truyện đã lưu')),
       body: SafeArea(
         child: state.when(
           loading: () => const Center(child: CircularProgressIndicator()),

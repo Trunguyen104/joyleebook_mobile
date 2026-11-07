@@ -1,5 +1,6 @@
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
 import 'package:joyleebook_mobile/data/services/api_exceptions.dart';
+import 'package:joyleebook_mobile/data/services/search_utils.dart';
 import 'package:joyleebook_mobile/data/dtos/upsert_reading_progress_dto.dart';
 import 'package:joyleebook_mobile/domain/models/reading_history.dart';
 import 'package:joyleebook_mobile/domain/models/series.dart';
@@ -43,26 +44,19 @@ class FakeSeriesRepository implements SeriesRepository {
     var result = List<Series>.of(_items);
 
     if (searchQuery != null && searchQuery.trim().isNotEmpty) {
-      final query = searchQuery.trim().toLowerCase();
       result = result
           .where(
             (s) =>
-                s.title.toLowerCase().contains(query) ||
-                s.authorName.toLowerCase().contains(query),
+                SearchUtils.matches(s.title, searchQuery) ||
+                SearchUtils.matches(s.authorName, searchQuery) ||
+                s.genres.any((g) => SearchUtils.matches(g, searchQuery)),
           )
           .toList();
     }
 
     if (genre != null && genre.trim().isNotEmpty) {
-      final targetGenre = genre.trim().toLowerCase();
       result = result
-          .where(
-            (s) => s.genres.any(
-              (g) =>
-                  g.toLowerCase() == targetGenre ||
-                  g.toLowerCase().contains(targetGenre),
-            ),
-          )
+          .where((s) => s.genres.any((g) => SearchUtils.matches(g, genre)))
           .toList();
     }
 

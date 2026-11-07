@@ -93,32 +93,38 @@ void main() {
     expect(socket.disconnectCallCount, greaterThanOrEqualTo(1));
   });
 
-  test('nhận notification realtime thì cập nhật feed và lastIncoming', () async {
-    final socket = FakeNotificationSocketClient();
-    final container = _container(socket: socket);
-    addTearDown(container.dispose);
+  test(
+    'nhận notification realtime thì cập nhật feed và lastIncoming',
+    () async {
+      final socket = FakeNotificationSocketClient();
+      final container = _container(socket: socket);
+      addTearDown(container.dispose);
 
-    await container.read(authSessionProvider.future);
-    await container.read(notificationFeedViewModelProvider.future);
-    container.read(notificationRealtimeViewModelProvider);
-    await Future<void>.delayed(const Duration(milliseconds: 20));
+      await container.read(authSessionProvider.future);
+      await container.read(notificationFeedViewModelProvider.future);
+      container.read(notificationRealtimeViewModelProvider);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
 
-    final notification = _notification();
-    socket.emit(notification);
-    await Future<void>.delayed(const Duration(milliseconds: 20));
+      final notification = _notification();
+      socket.emit(notification);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
 
-    final feed = container.read(notificationFeedViewModelProvider).value!;
-    expect(feed.items.map((item) => item.id), contains('realtime-1'));
-    expect(
-      container.read(notificationRealtimeViewModelProvider).lastIncoming?.id,
-      'realtime-1',
-    );
+      final feed = container.read(notificationFeedViewModelProvider).value!;
+      expect(feed.items.map((item) => item.id), contains('realtime-1'));
+      expect(
+        container.read(notificationRealtimeViewModelProvider).lastIncoming?.id,
+        'realtime-1',
+      );
 
-    socket.emit(notification);
-    await Future<void>.delayed(const Duration(milliseconds: 20));
-    final deduped = container.read(notificationFeedViewModelProvider).value!;
-    expect(deduped.items.where((item) => item.id == 'realtime-1'), hasLength(1));
-  });
+      socket.emit(notification);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      final deduped = container.read(notificationFeedViewModelProvider).value!;
+      expect(
+        deduped.items.where((item) => item.id == 'realtime-1'),
+        hasLength(1),
+      );
+    },
+  );
 
   testWidgets('hiện SnackBar khi có thông báo realtime', (tester) async {
     final socket = FakeNotificationSocketClient();

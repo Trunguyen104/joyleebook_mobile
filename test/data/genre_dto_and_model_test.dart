@@ -22,19 +22,22 @@ void main() {
       expect(dto.seriesCount, equals(15));
     });
 
-    test('GenreDto.fromJson xử lý an toàn khi thiếu trường hoặc giá trị null', () {
-      final json = <String, dynamic>{
-        'id': 456, // id là số nguyên
-      };
+    test(
+      'GenreDto.fromJson xử lý an toàn khi thiếu trường hoặc giá trị null',
+      () {
+        final json = <String, dynamic>{
+          'id': 456, // id là số nguyên
+        };
 
-      final dto = GenreDto.fromJson(json);
+        final dto = GenreDto.fromJson(json);
 
-      expect(dto.id, equals('456'));
-      expect(dto.name, equals('Chưa đặt tên'));
-      expect(dto.description, isNull);
-      expect(dto.slug, isNull);
-      expect(dto.seriesCount, equals(0));
-    });
+        expect(dto.id, equals('456'));
+        expect(dto.name, equals('Chưa đặt tên'));
+        expect(dto.description, isNull);
+        expect(dto.slug, isNull);
+        expect(dto.seriesCount, equals(0));
+      },
+    );
 
     test('GenreDto.toJson xuất đúng cấu trúc Map', () {
       const dto = GenreDto(
@@ -69,11 +72,7 @@ void main() {
     });
 
     test('Genre.copyWith tạo bản sao mới với thuộc tính được thay đổi', () {
-      const original = Genre(
-        id: 'g1',
-        name: 'Khoa Huyễn',
-        seriesCount: 3,
-      );
+      const original = Genre(id: 'g1', name: 'Khoa Huyễn', seriesCount: 3);
 
       final updated = original.copyWith(
         name: 'Khoa Học Viễn Tưởng',

@@ -47,16 +47,7 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
     final bookmarksState = ref.watch(bookmarkListViewModelProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tủ sách của tôi'),
-        actions: [
-          IconButton(
-            tooltip: 'Làm mới tủ sách',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: _refresh,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Tủ sách của tôi')),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(

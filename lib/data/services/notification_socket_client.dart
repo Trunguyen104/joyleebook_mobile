@@ -38,8 +38,7 @@ class SignalRNotificationSocketClient implements NotificationSocketClient {
         .withUrl(
           hubUrl,
           options: HttpConnectionOptions(
-            accessTokenFactory: () async =>
-                await accessTokenFactory() ?? '',
+            accessTokenFactory: () async => await accessTokenFactory() ?? '',
             transport: HttpTransportType.WebSockets,
             requestTimeout: 15000,
           ),
@@ -59,9 +58,7 @@ class SignalRNotificationSocketClient implements NotificationSocketClient {
 
       try {
         final json = Map<String, dynamic>.from(payload);
-        onNotification(
-          AppNotification.fromDto(NotificationDto.fromJson(json)),
-        );
+        onNotification(AppNotification.fromDto(NotificationDto.fromJson(json)));
       } catch (_) {
         // Payload lạ không được làm sập kết nối realtime.
       }

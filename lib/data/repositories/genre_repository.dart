@@ -31,7 +31,8 @@ class GenreRepository {
       if (rawData is List) {
         rawList = rawData;
       } else if (rawData is Map<String, dynamic>) {
-        final nestedList = rawData['data'] ??
+        final nestedList =
+            rawData['data'] ??
             rawData['items'] ??
             rawData['genres'] ??
             rawData['results'];

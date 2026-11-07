@@ -72,37 +72,41 @@ void main() {
 
       // Chuyển sang giao diện thông báo thành công
       expect(find.text('Đã gửi liên kết đặt lại'), findsOneWidget);
+      expect(find.textContaining('reader@joyleebook.com'), findsOneWidget);
       expect(
-        find.textContaining('reader@joyleebook.com'),
+        find.widgetWithText(JoyleeButton, 'Quay lại Đăng nhập'),
         findsOneWidget,
       );
-      expect(find.widgetWithText(JoyleeButton, 'Quay lại Đăng nhập'), findsOneWidget);
       expect(find.text('Thử địa chỉ email khác'), findsOneWidget);
     },
   );
 
-  testWidgets('Màn hình thành công: bấm Thử địa chỉ email khác quay lại form nhập', (
-    tester,
-  ) async {
-    final fake = FakeAuthRepository();
-    await _pumpScreen(tester, fake);
+  testWidgets(
+    'Màn hình thành công: bấm Thử địa chỉ email khác quay lại form nhập',
+    (tester) async {
+      final fake = FakeAuthRepository();
+      await _pumpScreen(tester, fake);
 
-    await tester.enterText(find.byType(TextField), 'reader@joyleebook.com');
-    await tester.tap(_submitButton);
-    await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'reader@joyleebook.com');
+      await tester.tap(_submitButton);
+      await tester.pumpAndSettle();
 
-    expect(find.text('Đã gửi liên kết đặt lại'), findsOneWidget);
+      expect(find.text('Đã gửi liên kết đặt lại'), findsOneWidget);
 
-    // Cuộn tới và bấm "Thử địa chỉ email khác"
-    final retryButton = find.text('Thử địa chỉ email khác');
-    await tester.ensureVisible(retryButton);
-    await tester.tap(retryButton);
-    await tester.pumpAndSettle();
+      // Cuộn tới và bấm "Thử địa chỉ email khác"
+      final retryButton = find.text('Thử địa chỉ email khác');
+      await tester.ensureVisible(retryButton);
+      await tester.tap(retryButton);
+      await tester.pumpAndSettle();
 
-    // Quay lại màn hình form nhập ban đầu
-    expect(find.text('Quên mật khẩu?'), findsOneWidget);
-    expect(find.widgetWithText(JoyleeButton, 'Gửi liên kết đặt lại'), findsOneWidget);
-  });
+      // Quay lại màn hình form nhập ban đầu
+      expect(find.text('Quên mật khẩu?'), findsOneWidget);
+      expect(
+        find.widgetWithText(JoyleeButton, 'Gửi liên kết đặt lại'),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('Lỗi máy chủ / mạng thì hiển thị SnackBar thông báo', (
     tester,

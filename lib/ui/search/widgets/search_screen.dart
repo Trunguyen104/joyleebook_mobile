@@ -8,7 +8,6 @@ import '../../../domain/models/series.dart';
 import '../../../routing/app_paths.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
-import '../../core/themes/theme_provider.dart';
 import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../../series/view_models/genre_list_view_model.dart';
@@ -50,6 +49,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   @override
+  void didUpdateWidget(SearchScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialGenre != oldWidget.initialGenre &&
+        widget.initialGenre != null &&
+        widget.initialGenre!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref
+            .read(searchViewModelProvider.notifier)
+            .filterByGenre(widget.initialGenre);
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -73,26 +86,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       appBar: AppBar(
         titleSpacing: AppDimensions.space3,
         title: _buildSearchBar(colors),
-        actions: [
-          IconButton(
-            icon: Icon(
-              ref.watch(themeModeProvider) == ThemeMode.dark
-                  ? Icons.light_mode_rounded
-                  : Icons.dark_mode_rounded,
-            ),
-            tooltip: 'Đổi giao diện Sáng / Tối',
-            onPressed: () {
-              ref.read(themeModeProvider.notifier).toggleTheme();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Làm mới',
-            onPressed: () =>
-                ref.read(searchViewModelProvider.notifier).refresh(),
-          ),
-          const SizedBox(width: AppDimensions.space1),
-        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(44),
           child: _buildGenreTabBar(genresState, selectedGenre, colors),
@@ -109,7 +102,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(colors.primaryBrand),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      colors.primaryBrand,
+                    ),
                   ),
                   const SizedBox(height: AppDimensions.space3),
                   Text(
@@ -122,7 +117,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
             // TRẠNG THÁI 2: ERROR
             error: (err, stack) => JoyleeErrorView(
-              message: err is AppException ? err.message : 'Đã có lỗi xảy ra khi tra cứu.',
+              message: err is AppException
+                  ? err.message
+                  : 'Đã có lỗi xảy ra khi tra cứu.',
               onRetry: () =>
                   ref.read(searchViewModelProvider.notifier).refresh(),
             ),
@@ -131,17 +128,32 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             data: (seriesList) {
               // A. Danh sách rỗng -> Empty State
               if (seriesList.isEmpty) {
+                final hasGenreFilter = searchVm.selectedGenre != null;
+                final hasQuery = _searchController.text.trim().isNotEmpty;
+
                 return JoyleeEmptyState(
                   title: 'Không tìm thấy tác phẩm nào',
-                  message: searchVm.isFiltered
-                      ? (_searchController.text.isNotEmpty
-                          ? 'Không có kết quả nào khớp với từ khóa "${_searchController.text}".'
-                          : 'Không có tác phẩm nào phù hợp với bộ lọc đã chọn.')
-                      : 'Hiện tại chưa có tác phẩm nào được xuất bản trên hệ thống.',
-                  actionLabel: searchVm.isFiltered ? 'Xóa bộ lọc' : 'Tải lại toàn bộ',
+                  message: hasGenreFilter && hasQuery
+                      ? 'Không có kết quả khớp với "${_searchController.text.trim()}" trong thể loại "${searchVm.selectedGenre}".'
+                      : (searchVm.isFiltered
+                            ? (_searchController.text.isNotEmpty
+                                  ? 'Không có kết quả nào khớp với từ khóa "${_searchController.text}".'
+                                  : 'Không có tác phẩm nào phù hợp với bộ lọc đã chọn.')
+                            : 'Hiện tại chưa có tác phẩm nào được xuất bản trên hệ thống.'),
+                  actionLabel: hasGenreFilter && hasQuery
+                      ? 'Tìm trong Tất cả thể loại'
+                      : (searchVm.isFiltered
+                            ? 'Xóa bộ lọc'
+                            : 'Tải lại toàn bộ'),
                   onAction: () {
-                    _searchController.clear();
-                    ref.read(searchViewModelProvider.notifier).clearFilters();
+                    if (hasGenreFilter && hasQuery) {
+                      ref
+                          .read(searchViewModelProvider.notifier)
+                          .filterByGenre(null);
+                    } else {
+                      _searchController.clear();
+                      ref.read(searchViewModelProvider.notifier).clearFilters();
+                    }
                   },
                 );
               }
@@ -167,7 +179,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     ...List.generate(seriesList.length, (index) {
                       final series = seriesList[index];
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: AppDimensions.space4),
+                        padding: const EdgeInsets.only(
+                          bottom: AppDimensions.space4,
+                        ),
                         child: _buildRankedBookTile(
                           rank: index + 1,
                           series: series,
@@ -201,7 +215,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               child: genresState.maybeWhen(
                 data: (genres) {
                   final sortedGenres = List<Genre>.from(genres)
-                    ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+                    ..sort(
+                      (a, b) =>
+                          a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+                    );
                   return _buildExpandedGenrePanel(
                     sortedGenres: sortedGenres,
                     selectedGenre: selectedGenre,
@@ -221,9 +238,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget _buildSearchBar(AppColors colors) {
     return TextField(
       controller: _searchController,
+      textInputAction: TextInputAction.search,
       onChanged: (value) {
         ref.read(searchViewModelProvider.notifier).search(value);
         setState(() {});
+      },
+      onSubmitted: (value) {
+        ref
+            .read(searchViewModelProvider.notifier)
+            .search(value, immediate: true);
       },
       decoration: InputDecoration(
         hintText: 'Tìm truyện',
@@ -237,7 +260,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 icon: const Icon(Icons.clear_rounded, size: 18),
                 onPressed: () {
                   _searchController.clear();
-                  ref.read(searchViewModelProvider.notifier).search('', immediate: true);
+                  ref
+                      .read(searchViewModelProvider.notifier)
+                      .search('', immediate: true);
                   setState(() {});
                 },
               )
@@ -276,8 +301,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       error: (_, _) => const SizedBox(height: 44),
       data: (genres) {
         // SẮP XẾP THỂ LOẠI THEO THỨ TỰ BẢNG CHỮ CÁI (A-Z / ABC)
-        final sortedGenres = List<Genre>.from(genres)
-          ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        final sortedGenres = List<Genre>.from(
+          genres,
+        )..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
         return Container(
           height: 44,
@@ -292,7 +318,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               Expanded(
                 child: ListView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: AppDimensions.space4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.space4,
+                  ),
                   children: [
                     // Tab "Tất cả" luôn đứng đầu
                     _buildGenreTabItem(
@@ -300,7 +328,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       isSelected: selectedGenre == null,
                       colors: colors,
                       onTap: () {
-                        if (_isGenreExpanded) setState(() => _isGenreExpanded = false);
+                        if (_isGenreExpanded) {
+                          setState(() => _isGenreExpanded = false);
+                        }
                         ref
                             .read(searchViewModelProvider.notifier)
                             .filterByGenre(null);
@@ -314,7 +344,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         isSelected: isSelected,
                         colors: colors,
                         onTap: () {
-                          if (_isGenreExpanded) setState(() => _isGenreExpanded = false);
+                          if (_isGenreExpanded) {
+                            setState(() => _isGenreExpanded = false);
+                          }
                           ref
                               .read(searchViewModelProvider.notifier)
                               .filterByGenre(g.name);
@@ -361,10 +393,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         decoration: BoxDecoration(
           border: isSelected
               ? Border(
-                  bottom: BorderSide(
-                    color: colors.primaryBrand,
-                    width: 3.0,
-                  ),
+                  bottom: BorderSide(color: colors.primaryBrand, width: 3.0),
                 )
               : null,
         ),
@@ -481,7 +510,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }) {
     final chipBg = isSelected ? colors.textPrimary : colors.bgSurfaceSubtle;
     final textColor = isSelected ? colors.bgSurface : colors.textPrimary;
-    final borderColor = isSelected ? colors.textPrimary : colors.borderDefault.withValues(alpha: 0.6);
+    final borderColor = isSelected
+        ? colors.textPrimary
+        : colors.borderDefault.withValues(alpha: 0.6);
 
     return InkWell(
       onTap: onTap,
@@ -607,10 +638,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 // Tác giả
                 Text(
                   series.authorName,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: colors.textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 13, color: colors.textSecondary),
                 ),
 
                 const SizedBox(height: 6),
@@ -659,11 +687,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ),
                       ),
                     ] else if (series.averageRating > 0) ...[
-                      Icon(
-                        Icons.star_rounded,
-                        size: 14,
-                        color: colors.accent,
-                      ),
+                      Icon(Icons.star_rounded, size: 14, color: colors.accent),
                       const SizedBox(width: 3),
                       Text(
                         series.averageRating.toStringAsFixed(1),
@@ -694,7 +718,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   spacing: 6,
                   runSpacing: 4,
                   children: [
-                    ...series.genres.take(3).map(
+                    ...series.genres
+                        .take(3)
+                        .map(
                           (genre) => _buildTagPill(genre.toLowerCase(), colors),
                         ),
                     if (series.genres.length > 3)
@@ -718,10 +744,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ),
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: 11,
-          color: colors.textPrimary,
-        ),
+        style: TextStyle(fontSize: 11, color: colors.textPrimary),
       ),
     );
   }

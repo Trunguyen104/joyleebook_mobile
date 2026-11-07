@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:joyleebook_mobile/ui/core/themes/theme_provider.dart';
 
 import '../../../data/services/api_exceptions.dart';
 import '../../../domain/models/series.dart';
@@ -10,7 +9,6 @@ import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
-import '../../notifications/widgets/notification_bell_button.dart';
 import '../view_models/series_list_view_model.dart';
 
 /// MÀN HÌNH TRANG CHỦ / KHO TRUYỆN (SeriesListScreen)
@@ -45,28 +43,10 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
           ),
         ),
         actions: [
-          const NotificationBellButton(),
           IconButton(
             icon: const Icon(Icons.search_rounded),
             tooltip: 'Tìm kiếm & Khám phá',
             onPressed: () => context.go(AppPaths.search),
-          ),
-          IconButton(
-            icon: Icon(
-              ref.watch(themeModeProvider) == ThemeMode.dark
-                  ? Icons.light_mode_rounded
-                  : Icons.dark_mode_rounded,
-            ),
-            tooltip: 'Đổi giao diện Sáng / Tối',
-            onPressed: () {
-              ref.read(themeModeProvider.notifier).toggleTheme();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Làm mới danh sách',
-            onPressed: () =>
-                ref.read(seriesListViewModelProvider.notifier).refresh(),
           ),
         ],
       ),
@@ -92,7 +72,9 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
 
         // TRẠNG THÁI 2: ERROR
         error: (err, stack) => JoyleeErrorView(
-          message: err is AppException ? err.message : 'Đã có lỗi xảy ra khi tải kho truyện.',
+          message: err is AppException
+              ? err.message
+              : 'Đã có lỗi xảy ra khi tải kho truyện.',
           onRetry: () =>
               ref.read(seriesListViewModelProvider.notifier).refresh(),
         ),
@@ -103,7 +85,8 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
           if (seriesList.isEmpty) {
             return JoyleeEmptyState(
               title: 'Không tìm thấy truyện nào',
-              message: 'Hiện tại chưa có tác phẩm nào được xuất bản trên hệ thống.',
+              message:
+                  'Hiện tại chưa có tác phẩm nào được xuất bản trên hệ thống.',
               actionLabel: 'Tải lại toàn bộ',
               onAction: () =>
                   ref.read(seriesListViewModelProvider.notifier).refresh(),
@@ -112,8 +95,12 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
 
           // B. SẮP XẾP DỰA TRÊN THÔNG SỐ THỰC TẾ TỪ API:
           // 1. "Truyện tiếp theo bạn đọc": Truyện độc giả đã đánh dấu (bookmark) hoặc thứ tự API
-          final bookmarkedList = seriesList.where((s) => s.isBookmarked).toList();
-          final nextToReadList = bookmarkedList.isNotEmpty ? bookmarkedList : seriesList;
+          final bookmarkedList = seriesList
+              .where((s) => s.isBookmarked)
+              .toList();
+          final nextToReadList = bookmarkedList.isNotEmpty
+              ? bookmarkedList
+              : seriesList;
 
           // 2. "Chúng tôi tin bạn sẽ thích": Sắp xếp theo điểm đánh giá thật (averageRating) & tổng lượt vote (totalRatings)
           final topRatedList = List<Series>.from(seriesList)
@@ -132,10 +119,12 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
               if (a.createdAt != null) return -1;
               if (b.createdAt != null) return 1;
               // Nếu API chưa trả createdAt: ưu tiên truyện đang ra (ongoing) rồi đến id
-              if (a.status == SeriesStatus.ongoing && b.status != SeriesStatus.ongoing) {
+              if (a.status == SeriesStatus.ongoing &&
+                  b.status != SeriesStatus.ongoing) {
                 return -1;
               }
-              if (b.status == SeriesStatus.ongoing && a.status != SeriesStatus.ongoing) {
+              if (b.status == SeriesStatus.ongoing &&
+                  a.status != SeriesStatus.ongoing) {
                 return 1;
               }
               return b.id.compareTo(a.id);
@@ -150,7 +139,9 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
             onRefresh: () =>
                 ref.read(seriesListViewModelProvider.notifier).refresh(),
             child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: AppDimensions.space2),
+              padding: const EdgeInsets.symmetric(
+                vertical: AppDimensions.space2,
+              ),
               children: [
                 // SECTION 1: Truyện tiếp theo bạn đọc
                 _buildSection(
@@ -212,9 +203,12 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
           height: 275,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: AppDimensions.space4),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDimensions.space4,
+            ),
             itemCount: seriesList.length,
-            separatorBuilder: (_, _) => const SizedBox(width: AppDimensions.space3),
+            separatorBuilder: (_, _) =>
+                const SizedBox(width: AppDimensions.space3),
             itemBuilder: (context, index) {
               final series = seriesList[index];
               return _buildBookCard(series, colors);
@@ -262,7 +256,8 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
                     ? Image.network(
                         series.coverImageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => _buildPlaceholderCover(colors),
+                        errorBuilder: (_, _, _) =>
+                            _buildPlaceholderCover(colors),
                       )
                     : _buildPlaceholderCover(colors),
               ),
@@ -316,11 +311,7 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
               // Nếu không có view nhưng có rating thật từ API thì hiển thị điểm đánh giá thật
               Row(
                 children: [
-                  const Icon(
-                    Icons.star_rounded,
-                    size: 14,
-                    color: Colors.amber,
-                  ),
+                  const Icon(Icons.star_rounded, size: 14, color: Colors.amber),
                   const SizedBox(width: 3),
                   Text(
                     series.averageRating.toStringAsFixed(1),
@@ -360,10 +351,7 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
               series.authorName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                color: colors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 11, color: colors.textSecondary),
             ),
           ],
         ),

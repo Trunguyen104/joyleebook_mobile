@@ -24,10 +24,7 @@ class NotificationRealtimeState {
   final NotificationRealtimeStatus status;
   final AppNotification? lastIncoming;
 
-  const NotificationRealtimeState({
-    required this.status,
-    this.lastIncoming,
-  });
+  const NotificationRealtimeState({required this.status, this.lastIncoming});
 
   const NotificationRealtimeState.disconnected()
     : status = NotificationRealtimeStatus.disconnected,

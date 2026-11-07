@@ -17,8 +17,7 @@ class NotificationRealtimeListener extends ConsumerWidget {
       notificationRealtimeViewModelProvider,
       (previous, next) {
         final incoming = next.lastIncoming;
-        if (incoming == null ||
-            incoming.id == previous?.lastIncoming?.id) {
+        if (incoming == null || incoming.id == previous?.lastIncoming?.id) {
           return;
         }
         _showNotification(incoming);

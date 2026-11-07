@@ -27,7 +27,8 @@ class Genre {
     return Genre(
       id: dto.id,
       name: dto.name.trim().isNotEmpty ? dto.name.trim() : 'Chưa đặt tên',
-      description: (dto.description != null && dto.description!.trim().isNotEmpty)
+      description:
+          (dto.description != null && dto.description!.trim().isNotEmpty)
           ? dto.description!.trim()
           : null,
       slug: dto.slug,

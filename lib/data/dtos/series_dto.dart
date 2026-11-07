@@ -114,19 +114,22 @@ class SeriesDto {
       genreNames: parsedGenres,
 
       // Tổng số chương (ưu tiên metrics của backend)
-      totalChapters: (metrics?['publishedChapterCount'] as int?) ??
+      totalChapters:
+          (metrics?['publishedChapterCount'] as int?) ??
           (metrics?['chapterCount'] as int?) ??
           (json['totalChapters'] as int?) ??
           0,
 
       // Điểm đánh giá trung bình
-      averageRating: (metrics?['averageRating'] as num?)?.toDouble() ??
+      averageRating:
+          (metrics?['averageRating'] as num?)?.toDouble() ??
           (json['averageRating'] as num?)?.toDouble() ??
           (json['rating'] as num?)?.toDouble() ??
           0.0,
 
       // Tổng số lượt đánh giá
-      totalRatings: (metrics?['ratingCount'] as int?) ??
+      totalRatings:
+          (metrics?['ratingCount'] as int?) ??
           (json['totalRatings'] as int?) ??
           (json['ratingCount'] as int?) ??
           0,
@@ -138,7 +141,8 @@ class SeriesDto {
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
 
       // Lượt xem thực tế từ API (chỉ lấy nếu backend trả về số thật)
-      viewCount: (metrics?['views'] as int?) ??
+      viewCount:
+          (metrics?['views'] as int?) ??
           (metrics?['viewCount'] as int?) ??
           (json['views'] as int?) ??
           (json['viewCount'] as int?),

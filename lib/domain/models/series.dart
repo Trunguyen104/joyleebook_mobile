@@ -36,7 +36,8 @@ class Series {
   final String coverImageUrl; // Đường dẫn ảnh bìa
   final SeriesStatus status; // Trạng thái (Hoàn thành / Đang ra)
   final List<String> genres; // Danh sách thể loại
-  final bool isBookmarked; // Đã thêm vào tủ sách hay chưa (thuộc tính của app mobile)
+  final bool
+  isBookmarked; // Đã thêm vào tủ sách hay chưa (thuộc tính của app mobile)
   final int totalChapters; // Tổng số chương của bộ truyện
   final double averageRating; // Điểm đánh giá trung bình (0.0 - 5.0)
   final int totalRatings; // Tổng số lượt độc giả đã đánh giá
@@ -138,19 +139,19 @@ class Series {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        title,
-        authorName,
-        description,
-        coverImageUrl,
-        status,
-        Object.hashAll(genres),
-        isBookmarked,
-        totalChapters,
-        averageRating,
-        totalRatings,
-        userRating,
-        createdAt,
-        viewCount,
-      );
+    id,
+    title,
+    authorName,
+    description,
+    coverImageUrl,
+    status,
+    Object.hashAll(genres),
+    isBookmarked,
+    totalChapters,
+    averageRating,
+    totalRatings,
+    userRating,
+    createdAt,
+    viewCount,
+  );
 }

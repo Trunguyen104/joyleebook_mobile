@@ -10,7 +10,6 @@ import '../../chapter/view_models/chapter_list_view_model.dart';
 import '../../chapter/widgets/chapter_item.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
-import '../../core/themes/theme_provider.dart';
 import '../../auth/view_models/auth_session_view_model.dart';
 import '../../core/widgets/joylee_avatar.dart';
 import '../../core/widgets/joylee_button.dart';
@@ -33,14 +32,11 @@ import 'series_rating_card.dart';
 /// 6. Read-Only tuyệt đối: Không hiển thị bất kỳ nút tác vụ quản trị nào (Sửa, Xóa, Thêm chương).
 /// 7. Tích hợp liền mạch với Chapter Reader: Mở thẳng chương tương ứng qua GoRouter.
 class SeriesDetailScreen extends ConsumerStatefulWidget {
-  const SeriesDetailScreen({
-    super.key,
-    this.initialSeries,
-    this.seriesId,
-  }) : assert(
-          initialSeries != null || seriesId != null,
-          'Phải cung cấp initialSeries hoặc seriesId để khởi tạo màn hình.',
-        );
+  const SeriesDetailScreen({super.key, this.initialSeries, this.seriesId})
+    : assert(
+        initialSeries != null || seriesId != null,
+        'Phải cung cấp initialSeries hoặc seriesId để khởi tạo màn hình.',
+      );
 
   final Series? initialSeries;
   final String? seriesId;
@@ -77,8 +73,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         ),
         body: JoyleeErrorView(
           message: error is AppException ? error.message : 'Đã có lỗi xảy ra.',
-          onRetry: () =>
-              ref.read(seriesDetailViewModelProvider(seriesId).notifier).refresh(),
+          onRetry: () => ref
+              .read(seriesDetailViewModelProvider(seriesId).notifier)
+              .refresh(),
         ),
       );
     }
@@ -172,8 +169,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     final displayChapterCount = chapters.isNotEmpty
         ? chapters.length
         : (series.totalChapters > 0
-            ? series.totalChapters
-            : (chaptersAsync.value?.length ?? 0));
+              ? series.totalChapters
+              : (chaptersAsync.value?.length ?? 0));
 
     // Tìm chương đang đọc dở (nếu có)
     Chapter? activeChapter;
@@ -206,18 +203,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
               fontSize: 18,
             ),
           ),
-                    actions: [
-            // Nút chuyển đổi giao diện Sáng / Tối
-            IconButton(
-              icon: Icon(
-                ref.watch(themeModeProvider) == ThemeMode.dark
-                    ? Icons.light_mode_rounded
-                    : Icons.dark_mode_rounded,
-                color: colors.textPrimary,
-              ),
-              tooltip: 'Đổi giao diện sáng/tối',
-              onPressed: () => ref.read(themeModeProvider.notifier).toggleTheme(),
-            ),
+          actions: [
             // Nút Bookmark nhanh trên AppBar
             IconButton(
               icon: Icon(
@@ -228,7 +214,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                     ? colors.primaryBrand
                     : colors.textSecondary,
               ),
-              tooltip: series.isBookmarked ? 'Bỏ lưu tủ sách' : 'Lưu vào tủ sách',
+              tooltip: series.isBookmarked
+                  ? 'Bỏ lưu tủ sách'
+                  : 'Lưu vào tủ sách',
               onPressed: _isBookmarkInFlight || isBookmarkStatusLoading
                   ? null
                   : () => _handleToggleBookmark(context, series, colors.danger),
@@ -288,12 +276,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                     ),
                     indicatorWeight: 3,
                     tabs: [
-                      const Tab(
-                        text: 'Tóm tắt',
-                      ),
-                      Tab(
-                        text: 'Chương ($displayChapterCount)',
-                      ),
+                      const Tab(text: 'Tóm tắt'),
+                      Tab(text: 'Chương ($displayChapterCount)'),
                     ],
                   ),
                   backgroundColor: colors.bgCanvas,
@@ -485,12 +469,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       backgroundColor: colors.bgSurface,
       onRefresh: () async {
         await Future.wait([
-          ref
-              .read(seriesDetailViewModelProvider(series.id).notifier)
-              .refresh(),
-          ref
-              .read(chapterListViewModelProvider(series.id).notifier)
-              .refresh(),
+          ref.read(seriesDetailViewModelProvider(series.id).notifier).refresh(),
+          ref.read(chapterListViewModelProvider(series.id).notifier).refresh(),
         ]);
       },
       child: SingleChildScrollView(
@@ -539,7 +519,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: colors.bgSurfaceSubtle,
-                      borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusSm,
+                      ),
                       border: Border.all(
                         color: colors.borderDefault.withValues(alpha: 0.5),
                       ),
@@ -577,15 +559,15 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                   decoration: BoxDecoration(
                     color: series.totalRatings > 0
                         ? (Theme.of(context).brightness == Brightness.dark
-                            ? Colors.amber.withValues(alpha: 0.2)
-                            : Colors.amber.withValues(alpha: 0.12))
+                              ? Colors.amber.withValues(alpha: 0.2)
+                              : Colors.amber.withValues(alpha: 0.12))
                         : colors.bgSurfaceSubtle,
                     borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
                     border: Border.all(
                       color: series.totalRatings > 0
                           ? (Theme.of(context).brightness == Brightness.dark
-                              ? Colors.amber.withValues(alpha: 0.5)
-                              : Colors.amber.withValues(alpha: 0.4))
+                                ? Colors.amber.withValues(alpha: 0.5)
+                                : Colors.amber.withValues(alpha: 0.4))
                           : colors.borderDefault.withValues(alpha: 0.5),
                     ),
                   ),
@@ -599,8 +581,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                         size: 14,
                         color: series.totalRatings > 0
                             ? (Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFFFBBF24)
-                                : Colors.amber[700])
+                                  ? const Color(0xFFFBBF24)
+                                  : Colors.amber[700])
                             : colors.textDisabled,
                       ),
                       const SizedBox(width: 4),
@@ -613,8 +595,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                           fontWeight: FontWeight.w600,
                           color: series.totalRatings > 0
                               ? (Theme.of(context).brightness == Brightness.dark
-                                  ? const Color(0xFFFDE68A)
-                                  : const Color(0xFF92400E))
+                                    ? const Color(0xFFFDE68A)
+                                    : const Color(0xFF92400E))
                               : colors.textSecondary,
                         ),
                       ),
@@ -714,7 +696,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
           borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
           onTap: () {
             ref.read(searchViewModelProvider.notifier).filterByGenre(genre);
-            context.go('${AppPaths.search}?genre=${Uri.encodeComponent(genre)}');
+            context.go(
+              '${AppPaths.search}?genre=${Uri.encodeComponent(genre)}',
+            );
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -797,10 +781,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                   const SizedBox(height: AppDimensions.space2),
                   Text(
                     'Tác giả hiện chưa xuất bản chương nào.',
-                    style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: colors.textSecondary, fontSize: 14),
                   ),
                   const SizedBox(height: AppDimensions.space3),
                   TextButton.icon(
@@ -817,9 +798,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
 
           // Hiển thị TOÀN BỘ danh sách chương
           return ListView.separated(
-            padding: const EdgeInsets.symmetric(
-              vertical: AppDimensions.space2,
-            ),
+            padding: const EdgeInsets.symmetric(vertical: AppDimensions.space2),
             itemCount: allChapters.length,
             separatorBuilder: (_, _) => Divider(
               height: 1,

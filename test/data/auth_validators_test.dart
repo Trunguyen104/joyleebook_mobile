@@ -53,11 +53,26 @@ void main() {
     });
 
     test('Định dạng email không hợp lệ', () {
-      expect(validateEmail('plainaddress'), 'Địa chỉ email không đúng định dạng');
-      expect(validateEmail('@missingusername.com'), 'Địa chỉ email không đúng định dạng');
-      expect(validateEmail('username@.com'), 'Địa chỉ email không đúng định dạng');
-      expect(validateEmail('username@com'), 'Địa chỉ email không đúng định dạng');
-      expect(validateEmail('user name@example.com'), 'Địa chỉ email không đúng định dạng');
+      expect(
+        validateEmail('plainaddress'),
+        'Địa chỉ email không đúng định dạng',
+      );
+      expect(
+        validateEmail('@missingusername.com'),
+        'Địa chỉ email không đúng định dạng',
+      );
+      expect(
+        validateEmail('username@.com'),
+        'Địa chỉ email không đúng định dạng',
+      );
+      expect(
+        validateEmail('username@com'),
+        'Địa chỉ email không đúng định dạng',
+      );
+      expect(
+        validateEmail('user name@example.com'),
+        'Địa chỉ email không đúng định dạng',
+      );
     });
 
     test('Định dạng email hợp lệ', () {

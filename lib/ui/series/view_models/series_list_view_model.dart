@@ -11,9 +11,9 @@ import '../../bookmark/view_models/bookmark_status_view_model.dart';
 /// RIVERPOD PROVIDER: Đăng ký ViewModel cho toàn bộ màn hình danh sách truyện & tra cứu
 final seriesListViewModelProvider =
     AsyncNotifierProvider<SeriesListViewModel, List<Series>>(
-  SeriesListViewModel.new,
-  retry: (retryCount, error) => null,
-);
+      SeriesListViewModel.new,
+      retry: (retryCount, error) => null,
+    );
 
 /// VIEWMODEL - Quản lý trạng thái và nghiệp vụ màn hình Khám phá & Tra cứu truyện
 /// Bước 4 trong kiến trúc Compass App:
@@ -57,7 +57,9 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
   }
 
   Future<List<Series>> _fetch() {
-    return ref.read(seriesRepositoryProvider).getSeriesList(
+    return ref
+        .read(seriesRepositoryProvider)
+        .getSeriesList(
           searchQuery: _currentQuery.isNotEmpty ? _currentQuery : null,
           genre: _selectedGenre,
           status: _selectedStatus,
@@ -127,7 +129,8 @@ class SeriesListViewModel extends AsyncNotifier<List<Series>> {
     if (targetIndex == -1) return false;
 
     final originalItem = currentList[targetIndex];
-    final currentStatus = ref.read(bookmarkStatusViewModelProvider)[seriesId] ??
+    final currentStatus =
+        ref.read(bookmarkStatusViewModelProvider)[seriesId] ??
         originalItem.isBookmarked;
     final newBookmarkState = !currentStatus;
     _bookmarkRequestsInFlight.add(seriesId);

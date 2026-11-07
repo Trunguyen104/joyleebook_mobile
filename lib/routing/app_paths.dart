@@ -8,9 +8,11 @@ abstract final class AppPaths {
   static const bookmarks = '/bookmarks';
   static const bookmarkList = '/bookmarks/all';
   static const readingHistory = '/bookmarks/history';
+  static const notifications = '/notifications';
   static const profile = '/profile';
   static const editProfile = '/profile/edit';
   static const changePassword = '/profile/change-password';
+  static const settings = '/settings';
   static const gateway = '/gateway';
 
   // Xác thực (mở toàn màn hình, không có thanh tab)

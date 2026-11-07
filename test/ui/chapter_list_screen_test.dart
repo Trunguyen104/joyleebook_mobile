@@ -45,9 +45,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          chapterRepositoryProvider.overrideWithValue(fakeRepo),
-        ],
+        overrides: [chapterRepositoryProvider.overrideWithValue(fakeRepo)],
         child: MaterialApp(
           theme: AppTheme.light,
           home: const ChapterListScreen(
@@ -72,9 +70,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            chapterRepositoryProvider.overrideWithValue(fakeRepo),
-          ],
+          overrides: [chapterRepositoryProvider.overrideWithValue(fakeRepo)],
           child: MaterialApp(
             theme: AppTheme.light,
             home: const ChapterListScreen(
@@ -99,9 +95,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            chapterRepositoryProvider.overrideWithValue(fakeRepo),
-          ],
+          overrides: [chapterRepositoryProvider.overrideWithValue(fakeRepo)],
           child: MaterialApp(
             theme: AppTheme.light,
             home: const ChapterListScreen(
@@ -136,9 +130,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            chapterRepositoryProvider.overrideWithValue(fakeRepo),
-          ],
+          overrides: [chapterRepositoryProvider.overrideWithValue(fakeRepo)],
           child: MaterialApp(
             theme: AppTheme.light,
             home: const ChapterListScreen(

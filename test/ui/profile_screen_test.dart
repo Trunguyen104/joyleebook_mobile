@@ -7,7 +7,6 @@ import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/services/api_exceptions.dart';
 import 'package:joyleebook_mobile/domain/models/user_profile.dart';
 import 'package:joyleebook_mobile/ui/core/themes/app_theme.dart';
-import 'package:joyleebook_mobile/ui/core/widgets/joylee_button.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_empty_state.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_error_view.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/profile_screen.dart';
@@ -63,7 +62,7 @@ void main() {
     expect(find.text('@phuc123'), findsOneWidget);
     expect(find.text('Tác giả'), findsOneWidget);
     expect(find.text('Mê truyện trinh thám.'), findsOneWidget);
-    expect(find.byTooltip('Chỉnh sửa hồ sơ'), findsOneWidget);
+    expect(find.byTooltip('Cài đặt'), findsOneWidget);
     expect(find.bySemanticsLabel('Truyện đã đọc: 12'), findsOneWidget);
     expect(find.bySemanticsLabel('Chuỗi dài nhất: 9 ngày'), findsOneWidget);
     expect(find.text('30 NGÀY QUA'), findsOneWidget);
@@ -120,46 +119,7 @@ void main() {
 
     expect(find.text('Bạn chưa đăng nhập'), findsOneWidget);
     expect(fake.callCount, 0);
-    // Chưa đăng nhập thì không có nút đăng xuất hay chỉnh sửa
-    expect(find.byTooltip('Đăng xuất'), findsNothing);
-    expect(find.byTooltip('Chỉnh sửa hồ sơ'), findsNothing);
-  });
-
-  testWidgets('Đăng xuất: hỏi xác nhận, bấm Hủy thì vẫn giữ phiên', (
-    tester,
-  ) async {
-    final auth = FakeAuthRepository(savedSession: fakeSession);
-    await tester.pumpWidget(
-      _buildApp(FakeProfileRepository(profile: _profile), auth: auth),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byTooltip('Đăng xuất'));
-    await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsOneWidget);
-
-    await tester.tap(find.text('Hủy'));
-    await tester.pumpAndSettle();
-    expect(auth.signOutCallCount, 0);
-    expect(find.text('Phúc'), findsOneWidget);
-  });
-
-  testWidgets('Đăng xuất: xác nhận thì xóa phiên và hiện gợi ý đăng nhập', (
-    tester,
-  ) async {
-    final auth = FakeAuthRepository(savedSession: fakeSession);
-    await tester.pumpWidget(
-      _buildApp(FakeProfileRepository(profile: _profile), auth: auth),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byTooltip('Đăng xuất'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(JoyleeButton, 'Đăng xuất'));
-    await tester.pumpAndSettle();
-
-    expect(auth.signOutCallCount, 1);
-    expect(find.text('Đã đăng xuất'), findsOneWidget);
-    expect(find.text('Bạn chưa đăng nhập'), findsOneWidget);
+    // Chưa đăng nhập thì không có nút Cài đặt
+    expect(find.byTooltip('Cài đặt'), findsNothing);
   });
 }

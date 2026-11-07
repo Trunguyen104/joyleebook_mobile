@@ -58,8 +58,9 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
 
   Future<Series> _loadSeries() async {
     // Luôn tải trực tiếp từ Repository để đảm bảo đồng bộ điểm đánh giá (userRating) của tài khoản hiện tại
-    final series =
-        await ref.read(seriesRepositoryProvider).getSeriesById(seriesId);
+    final series = await ref
+        .read(seriesRepositoryProvider)
+        .getSeriesById(seriesId);
     bool isBookmarked = series.isBookmarked;
     try {
       isBookmarked = await ref
@@ -67,7 +68,8 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
           .getBookmarkStatus(seriesId);
     } catch (_) {
       // Giữ nguyên trạng thái bookmark nếu chưa đăng nhập hoặc gặp lỗi mạng
-      isBookmarked = ref.read(bookmarkStatusViewModelProvider)[seriesId] ??
+      isBookmarked =
+          ref.read(bookmarkStatusViewModelProvider)[seriesId] ??
           series.isBookmarked;
     }
     final updated = series.copyWith(isBookmarked: isBookmarked);
@@ -94,7 +96,8 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
     if (current == null) return false;
 
     final original = current;
-    final currentStatus = ref.read(bookmarkStatusViewModelProvider)[seriesId] ??
+    final currentStatus =
+        ref.read(bookmarkStatusViewModelProvider)[seriesId] ??
         current.isBookmarked;
     final newBookmarkState = !currentStatus;
 
@@ -137,7 +140,9 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
 
     final original = current;
     final isFirstRate = current.userRating == null;
-    final newTotal = isFirstRate ? current.totalRatings + 1 : current.totalRatings;
+    final newTotal = isFirstRate
+        ? current.totalRatings + 1
+        : current.totalRatings;
     final currentSum = current.averageRating * current.totalRatings;
     final newSum = isFirstRate
         ? (currentSum + score)
@@ -146,48 +151,54 @@ class SeriesDetailViewModel extends AsyncNotifier<Series> {
     final roundedAvg = double.parse(newAvg.toStringAsFixed(1));
 
     // BƯỚC 1: Cập nhật Lạc quan (Optimistic Update)
-    state = AsyncData(current.copyWith(
-      userRating: score,
-      totalRatings: newTotal,
-      averageRating: roundedAvg,
-    ));
+    state = AsyncData(
+      current.copyWith(
+        userRating: score,
+        totalRatings: newTotal,
+        averageRating: roundedAvg,
+      ),
+    );
 
     // Đồng bộ sang danh sách ngoài trang chủ
-    ref.read(seriesListViewModelProvider.notifier).updateRatingLocally(
-      seriesId: seriesId,
-      averageRating: roundedAvg,
-      totalRatings: newTotal,
-      userRating: score,
-    );
+    ref
+        .read(seriesListViewModelProvider.notifier)
+        .updateRatingLocally(
+          seriesId: seriesId,
+          averageRating: roundedAvg,
+          totalRatings: newTotal,
+          userRating: score,
+        );
 
     // BƯỚC 2: Gửi request lên Gateway
     try {
-      await ref
-          .read(seriesRepositoryProvider)
-          .rateSeries(seriesId, score);
+      await ref.read(seriesRepositoryProvider).rateSeries(seriesId, score);
 
       // Đồng bộ lại dữ liệu chuẩn xác nhất từ server
       final fresh = await ref
           .read(seriesRepositoryProvider)
           .getSeriesById(seriesId);
       state = AsyncData(fresh.copyWith(isBookmarked: current.isBookmarked));
-      ref.read(seriesListViewModelProvider.notifier).updateRatingLocally(
-        seriesId: seriesId,
-        averageRating: fresh.averageRating,
-        totalRatings: fresh.totalRatings,
-        userRating: fresh.userRating,
-      );
+      ref
+          .read(seriesListViewModelProvider.notifier)
+          .updateRatingLocally(
+            seriesId: seriesId,
+            averageRating: fresh.averageRating,
+            totalRatings: fresh.totalRatings,
+            userRating: fresh.userRating,
+          );
       return true;
     } catch (_) {
       // BƯỚC 3: Rollback khi lỗi
       state = AsyncData(original);
-      ref.read(seriesListViewModelProvider.notifier).updateRatingLocally(
-        seriesId: seriesId,
-        averageRating: original.averageRating,
-        totalRatings: original.totalRatings,
-        userRating: original.userRating,
-        clearUserRating: original.userRating == null,
-      );
+      ref
+          .read(seriesListViewModelProvider.notifier)
+          .updateRatingLocally(
+            seriesId: seriesId,
+            averageRating: original.averageRating,
+            totalRatings: original.totalRatings,
+            userRating: original.userRating,
+            clearUserRating: original.userRating == null,
+          );
       return false;
     }
   }

@@ -6,10 +6,8 @@ import 'package:joyleebook_mobile/domain/models/user_profile.dart';
 import 'package:joyleebook_mobile/ui/auth/view_models/auth_session_view_model.dart';
 import 'package:joyleebook_mobile/ui/core/themes/app_colors.dart';
 import 'package:joyleebook_mobile/ui/core/themes/app_dimensions.dart';
-import 'package:joyleebook_mobile/ui/core/widgets/joylee_button.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_empty_state.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_error_view.dart';
-import 'package:joyleebook_mobile/ui/notifications/widgets/notification_bell_button.dart';
 import 'package:joyleebook_mobile/ui/profile/view_models/profile_view_model.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/profile_header.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/reading_stat_tile.dart';
@@ -31,24 +29,11 @@ class ProfileScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Hồ sơ của tôi'),
         actions: [
-          if (isSignedIn) const NotificationBellButton(),
           if (isSignedIn)
             IconButton(
-              tooltip: 'Chỉnh sửa hồ sơ',
-              icon: const Icon(Icons.edit_outlined),
-              onPressed: () => context.push(AppPaths.editProfile),
-            ),
-          if (isSignedIn)
-            IconButton(
-              tooltip: 'Đổi mật khẩu',
-              icon: const Icon(Icons.lock_outline),
-              onPressed: () => context.push(AppPaths.changePassword),
-            ),
-          if (isSignedIn)
-            IconButton(
-              tooltip: 'Đăng xuất',
-              icon: const Icon(Icons.logout),
-              onPressed: () => _confirmSignOut(context, ref),
+              tooltip: 'Cài đặt',
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () => context.push(AppPaths.settings),
             ),
         ],
       ),
@@ -110,39 +95,6 @@ class ProfileScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// Đăng xuất là hành động nguy hiểm -> bắt buộc hỏi lại trước khi thực hiện
-Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('Đăng xuất?'),
-      content: const Text(
-        'Bạn sẽ cần đăng nhập lại để xem hồ sơ và thống kê đọc của mình.',
-      ),
-      actions: [
-        JoyleeButton(
-          label: 'Hủy',
-          variant: JoyleeButtonVariant.ghost,
-          isFullWidth: false,
-          onPressed: () => Navigator.of(dialogContext).pop(false),
-        ),
-        JoyleeButton(
-          label: 'Đăng xuất',
-          variant: JoyleeButtonVariant.danger,
-          isFullWidth: false,
-          onPressed: () => Navigator.of(dialogContext).pop(true),
-        ),
-      ],
-    ),
-  );
-  if (confirmed != true || !context.mounted) return;
-
-  final messenger = ScaffoldMessenger.of(context);
-  await ref.read(authSessionProvider.notifier).signOut();
-  // Không cần điều hướng: GoRouter thấy hết phiên sẽ tự chuyển sang /sign-in
-  messenger.showSnackBar(const SnackBar(content: Text('Đã đăng xuất')));
 }
 
 /// Định dạng ngày kiểu Việt Nam: 18/10/2026

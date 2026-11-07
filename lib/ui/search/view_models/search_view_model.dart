@@ -13,9 +13,9 @@ import '../../bookmark/view_models/bookmark_status_view_model.dart';
 /// RIVERPOD PROVIDER: Quản lý trạng thái màn hình Khám phá & Tìm kiếm truyện
 final searchViewModelProvider =
     AsyncNotifierProvider<SearchViewModel, List<Series>>(
-  SearchViewModel.new,
-  retry: (retryCount, error) => null,
-);
+      SearchViewModel.new,
+      retry: (retryCount, error) => null,
+    );
 
 /// VIEWMODEL - Quản lý trạng thái và nghiệp vụ cho màn hình Khám phá & Tìm kiếm (SearchScreen)
 /// Tuân thủ Compass App Hybrid Architecture & Barem PRN232 (15% - 15% - 50%):
@@ -72,7 +72,9 @@ class SearchViewModel extends AsyncNotifier<List<Series>> {
   }
 
   Future<List<Series>> _fetch() {
-    return ref.read(seriesRepositoryProvider).getSeriesList(
+    return ref
+        .read(seriesRepositoryProvider)
+        .getSeriesList(
           searchQuery: _currentQuery.isNotEmpty ? _currentQuery : null,
           genre: _selectedGenre,
           status: _selectedStatus,
@@ -102,7 +104,9 @@ class SearchViewModel extends AsyncNotifier<List<Series>> {
     final trimmed = keyword.trim();
     if (trimmed.isEmpty) return;
 
-    _recentSearches.removeWhere((item) => item.toLowerCase() == trimmed.toLowerCase());
+    _recentSearches.removeWhere(
+      (item) => item.toLowerCase() == trimmed.toLowerCase(),
+    );
     _recentSearches.insert(0, trimmed);
     if (_recentSearches.length > _maxRecentSearches) {
       _recentSearches = _recentSearches.sublist(0, _maxRecentSearches);
@@ -118,7 +122,9 @@ class SearchViewModel extends AsyncNotifier<List<Series>> {
 
   /// 3. Xóa một từ khóa khỏi lịch sử
   Future<void> removeRecentSearch(String keyword) async {
-    _recentSearches.removeWhere((item) => item.toLowerCase() == keyword.trim().toLowerCase());
+    _recentSearches.removeWhere(
+      (item) => item.toLowerCase() == keyword.trim().toLowerCase(),
+    );
     try {
       final p = _safePrefs;
       if (p != null) {
@@ -149,17 +155,19 @@ class SearchViewModel extends AsyncNotifier<List<Series>> {
     _debounceTimer?.cancel();
     _currentQuery = query.trim();
 
-    if (_currentQuery.isNotEmpty) {
-      addRecentSearch(_currentQuery);
-    }
-
     if (immediate) {
+      if (_currentQuery.isNotEmpty) {
+        addRecentSearch(_currentQuery);
+      }
       state = const AsyncLoading();
       state = await AsyncValue.guard(_fetch);
       return;
     }
 
     _debounceTimer = Timer(const Duration(milliseconds: 400), () async {
+      if (_currentQuery.isNotEmpty) {
+        addRecentSearch(_currentQuery);
+      }
       state = const AsyncLoading();
       state = await AsyncValue.guard(_fetch);
     });
