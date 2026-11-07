@@ -30,4 +30,23 @@ class ProfileViewModel extends AsyncNotifier<UserProfile> {
       () => ref.read(profileRepositoryProvider).getMyProfile(),
     );
   }
+
+  /// API cập nhật hồ sơ không trả thống kê đọc; giữ lại số liệu đang có.
+  void applyUpdatedProfile(UserProfile updated) {
+    final current = state.value;
+    state = AsyncData(
+      current == null
+          ? updated
+          : UserProfile(
+              id: updated.id,
+              username: updated.username,
+              displayName: updated.displayName,
+              bio: updated.bio,
+              avatarUrl: updated.avatarUrl,
+              email: updated.email,
+              role: updated.role,
+              stats: current.stats,
+            ),
+    );
+  }
 }

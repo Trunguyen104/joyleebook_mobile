@@ -14,10 +14,12 @@ import 'package:joyleebook_mobile/ui/auth/widgets/reset_password_screen.dart';
 import 'package:joyleebook_mobile/ui/auth/widgets/change_password_screen.dart';
 import 'package:joyleebook_mobile/data/services/api_client.dart';
 import 'package:joyleebook_mobile/data/services/notification_socket_client.dart';
+import 'package:joyleebook_mobile/domain/models/user_profile.dart';
 import 'package:joyleebook_mobile/ui/auth/widgets/sign_in_screen.dart';
 import 'package:joyleebook_mobile/ui/auth/widgets/sign_up_screen.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_button.dart';
 import 'package:joyleebook_mobile/ui/notifications/widgets/notification_popup.dart';
+import 'package:joyleebook_mobile/ui/profile/widgets/edit_profile_screen.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/profile_screen.dart';
 import 'package:joyleebook_mobile/ui/series/widgets/series_list_screen.dart';
 
@@ -28,10 +30,15 @@ import '../testing/fakes/fake_profile_repository.dart';
 import '../testing/fakes/fake_series_repository.dart';
 import '../testing/fakes/fake_token_storage.dart';
 
-ProviderScope _buildApp(FakeAuthRepository auth) => ProviderScope(
+ProviderScope _buildApp(
+  FakeAuthRepository auth, {
+  FakeProfileRepository? profiles,
+}) => ProviderScope(
   overrides: [
     seriesRepositoryProvider.overrideWithValue(FakeSeriesRepository([])),
-    profileRepositoryProvider.overrideWithValue(FakeProfileRepository()),
+    profileRepositoryProvider.overrideWithValue(
+      profiles ?? FakeProfileRepository(),
+    ),
     authRepositoryProvider.overrideWithValue(auth),
     notificationRepositoryProvider.overrideWithValue(
       FakeNotificationRepository(),
@@ -75,6 +82,32 @@ void main() {
     expect(find.textContaining('Đổi mật khẩu thành công.'), findsOneWidget);
   });
 
+  testWidgets('Cá nhân → Chỉnh sửa hồ sơ mở form đúng dữ liệu', (tester) async {
+    final fake = FakeAuthRepository(savedSession: fakeSession);
+    await tester.pumpWidget(
+      _buildApp(
+        fake,
+        profiles: FakeProfileRepository(
+          profile: const UserProfile(
+            id: 'user-1',
+            username: 'phuc123',
+            displayName: 'Phúc',
+            role: UserRole.reader,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cá nhân'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Chỉnh sửa hồ sơ'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(EditProfileScreen), findsOneWidget);
+    expect(find.text('Chỉnh sửa hồ sơ'), findsOneWidget);
+    expect(find.text('@phuc123'), findsOneWidget);
+  });
+
   testWidgets('Chưa đăng nhập không truy cập trực tiếp trang đổi mật khẩu', (
     tester,
   ) async {
@@ -87,6 +120,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(ChangePasswordScreen), findsNothing);
     expect(find.byType(SignInScreen), findsOneWidget);
+  });
+
+  testWidgets('Chưa đăng nhập không truy cập trực tiếp trang chỉnh sửa hồ sơ', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildApp(FakeAuthRepository()));
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(JoyleeBookApp)),
+    );
+    container.read(appRouterProvider).go(AppPaths.editProfile);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(EditProfileScreen), findsNothing);
+    expect(find.byType(SignInScreen), findsOneWidget);
+    expect(
+      tester.widget<SignInScreen>(find.byType(SignInScreen)).from,
+      AppPaths.editProfile,
+    );
   });
 
   testWidgets('Quên mật khẩu từ Đăng nhập đến đặt lại giữ tham số from', (

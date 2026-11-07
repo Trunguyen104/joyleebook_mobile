@@ -7,7 +7,14 @@ class AppException implements Exception {
   final String message;
   final int? statusCode;
 
-  const AppException({required this.message, this.statusCode});
+  /// Lỗi theo từng trường của form, key là tên trường phía client.
+  final Map<String, String>? fieldErrors;
+
+  const AppException({
+    required this.message,
+    this.statusCode,
+    this.fieldErrors,
+  });
 
   /// Hàm tiện ích: Chuyển đổi mã lỗi từ thư viện Dio thành AppException tiếng Việt
   factory AppException.fromDio(DioException error) {

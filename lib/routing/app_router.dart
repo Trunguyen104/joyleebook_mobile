@@ -15,6 +15,7 @@ import '../ui/bookmark/widgets/reading_history_screen.dart';
 import '../ui/chapter/widgets/chapter_detail_screen.dart';
 import '../ui/chapter/widgets/chapter_list_screen.dart';
 import '../ui/gateway_test/widgets/gateway_test_screen.dart';
+import '../ui/profile/widgets/edit_profile_screen.dart';
 import '../ui/profile/widgets/profile_screen.dart';
 import '../ui/search/widgets/search_screen.dart';
 import '../ui/series/widgets/series_detail_screen.dart';
@@ -185,6 +186,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppPaths.signIn,
         builder: (context, state) =>
             SignInScreen(from: state.uri.queryParameters['from']),
+      ),
+      GoRoute(
+        path: AppPaths.editProfile,
+        builder: (context, state) => const EditProfileScreen(),
       ),
       GoRoute(
         path: AppPaths.changePassword,

@@ -34,6 +34,12 @@ class ProfileScreen extends ConsumerWidget {
           if (isSignedIn) const NotificationBellButton(),
           if (isSignedIn)
             IconButton(
+              tooltip: 'Chỉnh sửa hồ sơ',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () => context.push(AppPaths.editProfile),
+            ),
+          if (isSignedIn)
+            IconButton(
               tooltip: 'Đổi mật khẩu',
               icon: const Icon(Icons.lock_outline),
               onPressed: () => context.push(AppPaths.changePassword),

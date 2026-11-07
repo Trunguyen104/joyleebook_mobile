@@ -13,6 +13,8 @@ class JoyleeTextField extends StatelessWidget {
     this.errorText,
     this.obscureText = false,
     this.keyboardType,
+    this.maxLines = 1,
+    this.minLines,
     this.prefixIcon,
     this.suffixIcon,
     this.onChanged,
@@ -30,6 +32,8 @@ class JoyleeTextField extends StatelessWidget {
   final String? errorText;
   final bool obscureText;
   final TextInputType? keyboardType;
+  final int maxLines;
+  final int? minLines;
   final Widget? prefixIcon;
   final Widget? suffixIcon;
   final ValueChanged<String>? onChanged;
@@ -57,6 +61,8 @@ class JoyleeTextField extends StatelessWidget {
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
+          maxLines: maxLines,
+          minLines: minLines,
           onChanged: onChanged,
           textInputAction: textInputAction,
           onSubmitted: onSubmitted,
