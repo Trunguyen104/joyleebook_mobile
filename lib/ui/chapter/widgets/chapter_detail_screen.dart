@@ -10,6 +10,7 @@ import '../../../data/services/api_exceptions.dart';
 import '../../../data/services/reading_preferences_service.dart';
 import '../../../domain/models/chapter.dart';
 import '../../../domain/models/chapter_detail.dart';
+import '../../../domain/models/reading_progress.dart';
 import '../../../routing/app_paths.dart';
 import '../../auth/view_models/auth_session_view_model.dart';
 import '../../core/themes/app_colors.dart';
@@ -59,6 +60,9 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
   double? _lastStoredProgress;
   double? _pendingProgress;
   bool _isSyncingProgress = false;
+  bool _isRestoringProgress = false;
+  bool _hasRestoredProgress = false;
+  Future<void>? _fontSizeFuture;
 
   // Trạng thái ẩn/hiện thanh header & footer để tối đa không gian đọc
   static const Duration _chromeAnimationDuration = Duration(milliseconds: 250);
@@ -70,7 +74,7 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_scheduleProgressSync);
-    _loadSavedFontSize();
+    _fontSizeFuture = _loadSavedFontSize();
   }
 
   @override
@@ -86,6 +90,7 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
   }
 
   void _scheduleProgressSync() {
+    if (_isRestoringProgress) return;
     final detail = _activeDetail;
     final progress = _currentProgress();
     if (detail != null &&
@@ -121,7 +126,7 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
   }
 
   Future<void> _syncProgress(double progress, {bool showError = true}) async {
-    if (_activeDetail == null) return;
+    if (_isRestoringProgress || _activeDetail == null) return;
 
     _pendingProgress = progress > (_pendingProgress ?? 0)
         ? progress
@@ -153,6 +158,16 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
           sortOrder: detail.sortOrder,
           readPercentage: value,
         );
+        // Cập nhật ngay danh sách chương đang nằm dưới trình đọc để khi quay ra
+        // không còn hiển thị chương cũ.
+        ref
+            .read(chapterListViewModelProvider(detail.seriesId).notifier)
+            .updateProgressLocally(
+              chapterId: detail.id,
+              sortOrder: detail.sortOrder,
+              progress: value,
+              isCompleted: value >= 0.99,
+            );
         final session = await authSession;
         if (session == null) {
           _lastSyncedProgress = value;
@@ -187,6 +202,76 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
     } finally {
       _isSyncingProgress = false;
     }
+  }
+
+  /// Khôi phục vị trí cuộn đã lưu của chương hiện tại rồi mới ghi nhận tiến độ.
+  /// Server là nguồn chính; bản local chỉ dùng khi chưa đăng nhập hoặc lỗi mạng.
+  Future<void> _restoreProgressAndSync(ChapterDetail detail) async {
+    if (_hasRestoredProgress) return;
+    _hasRestoredProgress = true;
+    _isRestoringProgress = true;
+
+    // Chờ cỡ chữ đã lưu được áp dụng để đo đúng chiều cao nội dung.
+    await _fontSizeFuture;
+    final saved = await _loadSavedProgress(detail.seriesId);
+    if (!mounted || _activeDetail?.id != detail.id) {
+      _isRestoringProgress = false;
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _activeDetail?.id != detail.id) {
+        _isRestoringProgress = false;
+        return;
+      }
+
+      if (saved != null &&
+          _matchesChapter(saved, detail) &&
+          _scrollController.hasClients &&
+          _scrollController.position.pixels <= 0) {
+        final maxExtent = _scrollController.position.maxScrollExtent;
+        final target = saved.progress.clamp(0.0, 1.0) * maxExtent;
+        if (target > 0) {
+          _scrollController.jumpTo(target);
+        }
+      }
+
+      _isRestoringProgress = false;
+      unawaited(_syncProgress(_currentProgress()));
+    });
+  }
+
+  Future<ReadingProgress?> _loadSavedProgress(String seriesId) async {
+    final session = ref.read(authSessionProvider).value;
+    if (session != null) {
+      try {
+        final serverProgress = await ref
+            .read(seriesRepositoryProvider)
+            .getReadingProgressDetail(seriesId);
+        // Server xác nhận chưa có tiến độ -> không dùng bản local cũ.
+        return serverProgress;
+      } catch (_) {
+        // Lỗi mạng: tạm dùng tiến độ lưu cục bộ.
+      }
+    }
+
+    final local = await ref
+        .read(readingPreferencesServiceProvider)
+        .getLastReadProgress(seriesId);
+    if (local == null) return null;
+    return ReadingProgress(
+      seriesId: local.seriesId,
+      chapterId: local.chapterId,
+      chapterSortOrder: local.sortOrder,
+      progress: local.readPercentage,
+    );
+  }
+
+  bool _matchesChapter(ReadingProgress progress, ChapterDetail detail) {
+    if (progress.chapterId != null && progress.chapterId!.isNotEmpty) {
+      return progress.chapterId == detail.id;
+    }
+    return progress.chapterSortOrder == detail.sortOrder;
   }
 
   /// Nạp cỡ chữ đã lưu từ SharedPreferences
@@ -499,9 +584,10 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
           _lastStoredProgress = null;
           _lastStoredChapterId = null;
           _pendingProgress = null;
+          _hasRestoredProgress = false;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && _activeDetail?.id == detail.id) {
-              unawaited(_syncProgress(_currentProgress()));
+              unawaited(_restoreProgressAndSync(detail));
             }
           });
         }

@@ -7,10 +7,12 @@ import 'package:joyleebook_mobile/domain/models/chapter_detail.dart';
 class FakeChapterRepository implements ChapterRepository {
   final List<Chapter> chapters;
   final bool shouldThrowError;
+  final ChapterDetail? detail;
 
   FakeChapterRepository([
     this.chapters = const [],
     this.shouldThrowError = false,
+    this.detail,
   ]);
 
   @override
@@ -28,6 +30,7 @@ class FakeChapterRepository implements ChapterRepository {
     if (shouldThrowError) {
       throw AppException(message: 'Lỗi tải nội dung chương giả lập.');
     }
+    if (detail != null) return detail!;
     return ChapterDetail(
       id: chapterId,
       seriesId: '1',

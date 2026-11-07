@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,6 +26,8 @@ class BookmarkScreen extends ConsumerStatefulWidget {
 
 class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
   final Set<String> _inFlightIds = {};
+  ValueListenable<TickerModeData>? _tickerModeNotifier;
+  bool _isTabVisible = true;
 
   @override
   void initState() {
@@ -30,15 +35,44 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final bookmarks = ref.read(bookmarkListViewModelProvider);
-        if (bookmarks.value == null || bookmarks.hasError) {
+        if (!bookmarks.isLoading &&
+            (bookmarks.value == null || bookmarks.hasError)) {
           ref.read(bookmarkListViewModelProvider.notifier).refresh();
         }
         final history = ref.read(readingHistoryViewModelProvider);
-        if (history.value == null || history.hasError) {
+        if (!history.isLoading && (history.value == null || history.hasError)) {
           ref.read(readingHistoryViewModelProvider.notifier).refresh();
         }
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Tab tủ sách nằm trong IndexedStack nên không bị hủy khi chuyển tab.
+    // Lắng nghe TickerMode để tải lại dữ liệu mỗi khi tab được mở lại.
+    final notifier = TickerMode.getValuesNotifier(context);
+    if (!identical(notifier, _tickerModeNotifier)) {
+      _tickerModeNotifier?.removeListener(_handleTickerModeChanged);
+      _tickerModeNotifier = notifier;
+      notifier.addListener(_handleTickerModeChanged);
+      _isTabVisible = notifier.value.enabled;
+    }
+  }
+
+  @override
+  void dispose() {
+    _tickerModeNotifier?.removeListener(_handleTickerModeChanged);
+    super.dispose();
+  }
+
+  void _handleTickerModeChanged() {
+    final isVisibleNow = _tickerModeNotifier?.value.enabled ?? true;
+    final becameVisible = isVisibleNow && !_isTabVisible;
+    _isTabVisible = isVisibleNow;
+    if (!becameVisible || !mounted) return;
+    unawaited(_refresh(silent: true));
   }
 
   @override
@@ -74,10 +108,14 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
     );
   }
 
-  Future<void> _refresh() async {
+  Future<void> _refresh({bool silent = false}) async {
     await Future.wait([
-      ref.read(readingHistoryViewModelProvider.notifier).refresh(),
-      ref.read(bookmarkListViewModelProvider.notifier).refresh(),
+      ref
+          .read(readingHistoryViewModelProvider.notifier)
+          .refresh(showLoading: !silent),
+      ref
+          .read(bookmarkListViewModelProvider.notifier)
+          .refresh(showLoading: !silent),
     ]);
   }
 

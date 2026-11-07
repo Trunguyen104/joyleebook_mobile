@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/api_endpoints.dart';
 import '../../domain/models/reading_history.dart';
+import '../../domain/models/reading_progress.dart';
 import '../../domain/models/series.dart';
 import '../dtos/bookmark_dto.dart';
 import '../dtos/reading_history_dto.dart';
@@ -256,6 +257,35 @@ class SeriesRepository {
       );
       return ReadingProgressDto.fromJson(response.data).progress;
     } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    } catch (e) {
+      if (e is AppException) rethrow;
+      throw AppException(message: 'Không thể tải tiến độ đọc: $e');
+    }
+  }
+
+  /// Lấy chi tiết tiến độ đọc (chương + vị trí cuộn) từ Library API.
+  /// Trả về null khi tài khoản chưa có tiến độ cho bộ truyện này.
+  Future<ReadingProgress?> getReadingProgressDetail(String seriesId) async {
+    try {
+      final response = await _dio.get<dynamic>(
+        ApiEndpoints.libraryProgress,
+        queryParameters: {'seriesId': seriesId},
+      );
+      final dto = ReadingProgressDto.fromJson(response.data);
+      if (dto.chapterId == null && dto.chapterSortOrder == null) {
+        return null;
+      }
+      return ReadingProgress(
+        seriesId: dto.seriesId,
+        chapterId: dto.chapterId,
+        chapterSortOrder: dto.chapterSortOrder,
+        progress: dto.progress ?? 0.0,
+        isCompleted: dto.isCompleted ?? false,
+        lastReadAtUtc: dto.lastReadAtUtc,
+      );
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
       throw AppException.fromDio(e);
     } catch (e) {
       if (e is AppException) rethrow;

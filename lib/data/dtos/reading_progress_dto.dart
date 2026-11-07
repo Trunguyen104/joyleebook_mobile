@@ -3,8 +3,20 @@ import 'package:flutter/foundation.dart';
 @immutable
 class ReadingProgressDto {
   final double? progress;
+  final String? seriesId;
+  final String? chapterId;
+  final int? chapterSortOrder;
+  final bool? isCompleted;
+  final DateTime? lastReadAtUtc;
 
-  const ReadingProgressDto({this.progress});
+  const ReadingProgressDto({
+    this.progress,
+    this.seriesId,
+    this.chapterId,
+    this.chapterSortOrder,
+    this.isCompleted,
+    this.lastReadAtUtc,
+  });
 
   factory ReadingProgressDto.fromJson(dynamic json) {
     if (json == null) return const ReadingProgressDto();
@@ -24,14 +36,52 @@ class ReadingProgressDto {
           json['Percentage'] ??
           json['progress'] ??
           json['Progress'];
+
+      double? normalizedProgress;
       if (value is num) {
-        return ReadingProgressDto(progress: _normalize(value));
+        normalizedProgress = _normalize(value);
+      } else if (value is Map) {
+        normalizedProgress = ReadingProgressDto.fromJson(value).progress;
       }
-      if (value is Map) return ReadingProgressDto.fromJson(value);
-      if (value == null) return const ReadingProgressDto();
+
+      final rawSortOrder =
+          json['chapterSortOrder'] ??
+          json['ChapterSortOrder'] ??
+          json['sortOrder'] ??
+          json['SortOrder'];
+      final rawCompleted = json['isCompleted'] ?? json['IsCompleted'];
+      final rawLastReadAt =
+          json['lastReadAtUtc'] ??
+          json['LastReadAtUtc'] ??
+          json['lastReadAt'] ??
+          json['LastReadAt'];
+
+      return ReadingProgressDto(
+        progress: normalizedProgress,
+        seriesId: (json['seriesId'] ?? json['SeriesId'])?.toString(),
+        chapterId: (json['chapterId'] ?? json['ChapterId'])?.toString(),
+        chapterSortOrder: _readInt(rawSortOrder),
+        isCompleted: _readBool(rawCompleted),
+        lastReadAtUtc: rawLastReadAt == null
+            ? null
+            : DateTime.tryParse(rawLastReadAt.toString()),
+      );
     }
 
     throw const FormatException('Dữ liệu tiến độ đọc không đúng định dạng.');
+  }
+
+  static int? _readInt(dynamic value) {
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  static bool? _readBool(dynamic value) {
+    if (value is bool) return value;
+    final text = value?.toString().toLowerCase();
+    if (text == 'true') return true;
+    if (text == 'false') return false;
+    return null;
   }
 
   static double _normalize(num value) {

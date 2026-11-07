@@ -79,6 +79,39 @@ void main() {
     expect(find.text('Khám phá truyện'), findsNWidgets(2));
   });
 
+  testWidgets('Tự tải lại dữ liệu khi quay lại tab tủ sách', (tester) async {
+    final repository = FakeSeriesRepository.withHistory([
+      _bookmarkedSeries,
+    ], readingHistory: _readingHistory);
+    final tickerEnabled = ValueNotifier<bool>(false);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [seriesRepositoryProvider.overrideWithValue(repository)],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: ValueListenableBuilder<bool>(
+            valueListenable: tickerEnabled,
+            builder: (context, enabled, child) =>
+                TickerMode(enabled: enabled, child: child!),
+            child: const BookmarkScreen(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final bookmarkCalls = repository.bookmarkListCallCount;
+    final historyCalls = repository.readingHistoryCallCount;
+
+    // Tab được mở lại -> cả hai phần dữ liệu đều được tải mới.
+    tickerEnabled.value = true;
+    await tester.pumpAndSettle();
+
+    expect(repository.bookmarkListCallCount, greaterThan(bookmarkCalls));
+    expect(repository.readingHistoryCallCount, greaterThan(historyCalls));
+  });
+
   testWidgets('Hiển thị lỗi độc lập và cho phép thử lại từng phần', (
     tester,
   ) async {

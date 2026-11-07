@@ -110,4 +110,66 @@ void main() {
       'readAtUtc': '2026-11-05T00:00:00.000Z',
     });
   });
+
+  test(
+    'Tải chi tiết tiến độ đọc gồm chương và vị trí cuộn từ server',
+    () async {
+      final dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            handler.resolve(
+              Response<dynamic>(
+                requestOptions: options,
+                data: {
+                  'seriesId': 'series-2',
+                  'chapterId': 'chapter-10',
+                  'chapterSortOrder': 10,
+                  'scrollPercentage': 45.0,
+                  'isCompleted': false,
+                  'lastReadAtUtc': '2026-11-04T10:00:00Z',
+                },
+              ),
+            );
+          },
+        ),
+      );
+
+      final progress = await SeriesRepository(dio)
+          .getReadingProgressDetail('series-2');
+
+      expect(progress, isNotNull);
+      expect(progress!.seriesId, 'series-2');
+      expect(progress.chapterId, 'chapter-10');
+      expect(progress.chapterSortOrder, 10);
+      expect(progress.progress, 0.45);
+      expect(progress.isCompleted, isFalse);
+      expect(progress.lastReadAtUtc, DateTime.parse('2026-11-04T10:00:00Z'));
+    },
+  );
+
+  test('Trả về null khi tài khoản chưa có tiến độ đọc (404)', () async {
+    final dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          handler.reject(
+            DioException(
+              requestOptions: options,
+              type: DioExceptionType.badResponse,
+              response: Response<dynamic>(
+                requestOptions: options,
+                statusCode: 404,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    final progress = await SeriesRepository(dio)
+        .getReadingProgressDetail('series-2');
+
+    expect(progress, isNull);
+  });
 }

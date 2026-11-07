@@ -165,12 +165,13 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     final chapters = chaptersAsync.value ?? [];
 
     // Số chương hiển thị trên Tab: Ưu tiên danh sách chapters đã tải,
-    // fallback ngay về series.totalChapters để không bị nhảy số 0 ở lần tải đầu.
-    final displayChapterCount = chapters.isNotEmpty
+    // fallback về series.totalChapters. Khi chưa biết chính xác thì để null
+    // để nhãn tab không hiển thị "Chương (0)" sai trong lúc đang tải.
+    final knownChapterCount = chapters.isNotEmpty
         ? chapters.length
-        : (series.totalChapters > 0
-              ? series.totalChapters
-              : (chaptersAsync.value?.length ?? 0));
+        : (series.totalChapters > 0 ? series.totalChapters : null);
+    final displayChapterCount =
+        knownChapterCount ?? (chaptersAsync.hasValue ? 0 : null);
 
     // Tìm chương đang đọc dở (nếu có)
     Chapter? activeChapter;
@@ -277,7 +278,11 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                     indicatorWeight: 3,
                     tabs: [
                       const Tab(text: 'Tóm tắt'),
-                      Tab(text: 'Chương ($displayChapterCount)'),
+                      Tab(
+                        text: displayChapterCount == null
+                            ? 'Chương'
+                            : 'Chương ($displayChapterCount)',
+                      ),
                     ],
                   ),
                   backgroundColor: colors.bgCanvas,
@@ -1013,6 +1018,17 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
-    return oldDelegate.backgroundColor != backgroundColor;
+    if (oldDelegate.backgroundColor != backgroundColor) return true;
+    final oldTabs = oldDelegate._tabBar.tabs;
+    final newTabs = _tabBar.tabs;
+    if (oldTabs.length != newTabs.length) return true;
+    for (var i = 0; i < newTabs.length; i++) {
+      final oldTab = oldTabs[i];
+      final newTab = newTabs[i];
+      if (oldTab is Tab && newTab is Tab && oldTab.text != newTab.text) {
+        return true;
+      }
+    }
+    return false;
   }
 }
