@@ -3,6 +3,7 @@ import 'package:joyleebook_mobile/data/services/api_exceptions.dart';
 import 'package:joyleebook_mobile/data/services/search_utils.dart';
 import 'package:joyleebook_mobile/data/dtos/upsert_reading_progress_dto.dart';
 import 'package:joyleebook_mobile/domain/models/reading_history.dart';
+import 'package:joyleebook_mobile/domain/models/reading_progress.dart';
 import 'package:joyleebook_mobile/domain/models/series.dart';
 
 /// FAKE REPOSITORY - Giả lập kho dữ liệu trong bộ nhớ RAM
@@ -13,9 +14,14 @@ class FakeSeriesRepository implements SeriesRepository {
   final bool shouldThrowError;
   final List<ReadingHistory> _readingHistory;
   int bookmarkListCallCount = 0;
+  int readingHistoryCallCount = 0;
   int readingProgressCallCount = 0;
   int readingProgressUpdateCount = 0;
+  int readingProgressDetailCallCount = 0;
   UpsertReadingProgressDto? lastReadingProgressUpdate;
+
+  /// Tiến độ server giả lập cho `getReadingProgressDetail`.
+  ReadingProgress? readingProgressDetail;
 
   FakeSeriesRepository([
     List<Series>? initialItems,
@@ -90,6 +96,7 @@ class FakeSeriesRepository implements SeriesRepository {
 
   @override
   Future<List<ReadingHistory>> getReadingHistory() async {
+    readingHistoryCallCount++;
     await Future<void>.delayed(const Duration(milliseconds: 50));
     if (shouldThrowError) {
       throw AppException(message: 'Không thể tải lịch sử đọc.');
@@ -108,6 +115,19 @@ class FakeSeriesRepository implements SeriesRepository {
         .where((entry) => entry.seriesId == seriesId)
         .firstOrNull
         ?.progress;
+  }
+
+  @override
+  Future<ReadingProgress?> getReadingProgressDetail(String seriesId) async {
+    readingProgressDetailCallCount++;
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (shouldThrowError) {
+      throw AppException(message: 'Không thể tải tiến độ đọc.');
+    }
+    final detail = readingProgressDetail;
+    if (detail == null) return null;
+    if (detail.seriesId != null && detail.seriesId != seriesId) return null;
+    return detail;
   }
 
   @override

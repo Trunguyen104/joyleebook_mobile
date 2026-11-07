@@ -106,6 +106,47 @@ void main() {
   );
 
   testWidgets(
+    'Tab Chương tự cập nhật tổng số khi series chưa có totalChapters',
+    (tester) async {
+      const seriesWithoutCount = Series(
+        id: 's1',
+        title: 'Hành Trình Về Phương Đông',
+        authorName: 'Nguyên Phong',
+        description: 'Tác phẩm kinh điển về tâm linh và văn hóa phương Đông...',
+        coverImageUrl: '',
+        status: SeriesStatus.completed,
+        totalChapters: 0,
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            seriesRepositoryProvider.overrideWithValue(
+              FakeSeriesRepository([seriesWithoutCount]),
+            ),
+            chapterRepositoryProvider.overrideWithValue(
+              FakeChapterRepository(mockChapters),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const SeriesDetailScreen(initialSeries: seriesWithoutCount),
+          ),
+        ),
+      );
+
+      // Đang tải: chưa biết tổng số chương nên không hiển thị "(0)".
+      expect(find.text('Chương (0)'), findsNothing);
+      expect(find.text('Chương'), findsOneWidget);
+
+      await tester.pumpAndSettle();
+
+      // Tải xong: nhãn tab tự cập nhật đúng tổng số chương đã có.
+      expect(find.text('Chương (2)'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'Bấm nút Bookmark thực hiện Optimistic UI chuyển đổi trạng thái',
     (tester) async {
       final fakeSeriesRepo = FakeSeriesRepository([mockSeries]);

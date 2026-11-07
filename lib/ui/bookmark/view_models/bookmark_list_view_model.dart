@@ -24,8 +24,8 @@ class BookmarkListViewModel extends AsyncNotifier<List<Series>> {
     return _loadBookmarks();
   }
 
-  Future<void> refresh() async {
-    state = const AsyncLoading();
+  Future<void> refresh({bool showLoading = true}) async {
+    if (showLoading) state = const AsyncLoading();
     state = await AsyncValue.guard(_loadBookmarks);
   }
 

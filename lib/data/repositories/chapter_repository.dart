@@ -8,24 +8,20 @@ import '../dtos/chapter_detail_dto.dart';
 import '../dtos/chapter_dto.dart';
 import '../services/api_client.dart';
 import '../services/api_exceptions.dart';
-import '../services/reading_preferences_service.dart';
 
 /// RIVERPOD PROVIDER: Đăng ký ChapterRepository
 final chapterRepositoryProvider = Provider<ChapterRepository>((ref) {
   final dio = ref.watch(apiClientProvider);
-  final readingPrefs = ref.watch(readingPreferencesServiceProvider);
-  return ChapterRepository(dio, readingPrefs);
+  return ChapterRepository(dio);
 });
 
 /// REPOSITORY - Kho lưu trữ dữ liệu chương truyện
 class ChapterRepository {
   final Dio _dio;
-  final ReadingPreferencesService? _readingPrefs;
 
-  ChapterRepository(this._dio, [this._readingPrefs]);
+  ChapterRepository(this._dio);
 
   /// 1. Lấy danh sách chương của một bộ truyện theo [seriesId]
-  /// Tự động nạp tiến độ đọc gần nhất từ Local Storage để gán cờ isActive và readPercentage.
   Future<List<Chapter>> getChaptersBySeries(String seriesId) async {
     try {
       final response = await _dio.get(
@@ -47,32 +43,10 @@ class ChapterRepository {
         rawList = data;
       }
 
-      final dtoList = rawList.cast<Map<String, dynamic>>().map(
-        ChapterDto.fromJson,
-      );
-
-      // Đọc tiến độ gần nhất từ Local Storage (nếu có)
-      final lastProgress = await _readingPrefs?.getLastReadProgress(seriesId);
-
-      // Chuyển đổi sang Domain Model thực tế kèm trạng thái đang đọc (isActive)
-      final chapters = dtoList
-          .map((dto) {
-            final isMatch =
-                lastProgress != null &&
-                (lastProgress.chapterId == dto.id ||
-                    lastProgress.sortOrder == dto.sortOrder);
-            return Chapter.fromDto(
-              dto,
-              isActive: isMatch,
-              readPercentage: isMatch ? lastProgress.readPercentage : 0.0,
-              isCompleted:
-                  lastProgress != null &&
-                  dto.sortOrder < lastProgress.sortOrder,
-            );
-          })
+      return rawList
+          .cast<Map<String, dynamic>>()
+          .map((json) => Chapter.fromDto(ChapterDto.fromJson(json)))
           .toList(growable: false);
-
-      return chapters;
     } on DioException catch (e) {
       throw AppException.fromDio(e);
     } catch (e) {

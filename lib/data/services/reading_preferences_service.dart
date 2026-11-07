@@ -3,15 +3,15 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// DTO / Model lưu tiến độ đọc của một bộ truyện trong Local Storage
-class ReadingProgress {
+/// Model lưu tiến độ đọc của một bộ truyện trong Local Storage
+class LocalReadingProgress {
   final String seriesId;
   final String chapterId;
   final int sortOrder;
   final double readPercentage;
   final DateTime updatedAt;
 
-  const ReadingProgress({
+  const LocalReadingProgress({
     required this.seriesId,
     required this.chapterId,
     required this.sortOrder,
@@ -27,8 +27,8 @@ class ReadingProgress {
     'updatedAt': updatedAt.toIso8601String(),
   };
 
-  factory ReadingProgress.fromJson(Map<String, dynamic> json) =>
-      ReadingProgress(
+  factory LocalReadingProgress.fromJson(Map<String, dynamic> json) =>
+      LocalReadingProgress(
         seriesId: json['seriesId'] as String? ?? '',
         chapterId: json['chapterId'] as String? ?? '',
         sortOrder: json['sortOrder'] as int? ?? 1,
@@ -81,7 +81,7 @@ class ReadingPreferencesService {
   }
 
   /// 2. Tiến độ đọc gần nhất theo seriesId (dùng cho ResumeReadingBar & Active Card)
-  Future<ReadingProgress?> getLastReadProgress(String seriesId) async {
+  Future<LocalReadingProgress?> getLastReadProgress(String seriesId) async {
     final key = '$_prefixSeriesProgress$seriesId';
     String? rawJson;
     try {
@@ -96,7 +96,7 @@ class ReadingPreferencesService {
     if (rawJson == null || rawJson.trim().isEmpty) return null;
     try {
       final map = jsonDecode(rawJson) as Map<String, dynamic>;
-      return ReadingProgress.fromJson(map);
+      return LocalReadingProgress.fromJson(map);
     } catch (_) {
       return null;
     }
@@ -108,7 +108,7 @@ class ReadingPreferencesService {
     required int sortOrder,
     double readPercentage = 1.0,
   }) async {
-    final progress = ReadingProgress(
+    final progress = LocalReadingProgress(
       seriesId: seriesId,
       chapterId: chapterId,
       sortOrder: sortOrder,

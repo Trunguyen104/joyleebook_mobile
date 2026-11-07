@@ -160,7 +160,11 @@ Nếu lịch sử không kèm thông tin tên hoặc ảnh bìa, ứng dụng l�
 từ `GET /api/series/{id}`. Trình đọc gửi tiến độ cuộn, mã/số chương và trạng thái
 hoàn tất lên API qua `PUT /api/library/progress` với `seriesId`, `chapterId`,
 `chapterSortOrder`, `scrollPercentage`, `isCompleted` và `readAtUtc`; bản lưu
-cục bộ hiện có vẫn được duy trì.
+cục bộ hiện có vẫn được duy trì làm dự phòng.
+Khi hiển thị danh sách chương hoặc mở lại trình đọc, ứng dụng ưu tiên tiến độ từ
+`GET /api/library/progress?seriesId={id}` cho tài khoản đã đăng nhập. Bản lưu cục bộ
+chỉ được dùng khi chưa đăng nhập hoặc không gọi được server, tránh hiển thị sai
+tiến độ cũ trên thiết bị.
 
 ```mermaid
 sequenceDiagram
@@ -195,9 +199,10 @@ sequenceDiagram
 1. **Mở chương đọc**: Độc giả chọn chương từ danh mục -> App mở `ChapterReadingScreen`.
 2. **Hiển thị nội dung**: Áp dụng giao diện đọc Warm Editorial (chữ mực trên nền giấy ngà dịu mắt, tùy chỉnh cỡ chữ).
 3. **Tự động lưu tiến độ**:
-   - Khi độc giả cuộn màn hình hoặc thoát khỏi chương: App ghi nhận `seriesId`, `chapterId`, `scrollOffset` vào `SharedPreferences` / SQLite.
+   - Khi độc giả cuộn màn hình hoặc thoát khỏi chương: App ghi nhận `seriesId`, `chapterId`, `scrollPercentage` vào `SharedPreferences` và gửi `PUT /api/library/progress` nếu đã đăng nhập.
 4. **Tiếp tục đọc (Resume Reading)**:
-   - Khi độc giả mở lại chi tiết bộ truyện hoặc trang chủ, ứng dụng hiển thị nút **"Đọc tiếp chương X"**, bấm vào sẽ mở đúng vị trí đọc dở gần nhất mà không cần tải lại toàn bộ từ mạng.
+   - Khi độc giả mở lại chi tiết bộ truyện, ứng dụng lấy tiến độ từ server (hoặc bản cục bộ khi offline) và hiển thị nút **"Đọc tiếp chương X"**.
+   - Khi mở trình đọc, ứng dụng khôi phục vị trí cuộn theo `scrollPercentage` đã lưu của đúng chương đó.
 
 ---
 
