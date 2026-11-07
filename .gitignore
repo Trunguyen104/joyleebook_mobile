@@ -3,7 +3,11 @@
 *.log
 *.pyc
 *.swp
+*.tmp
+*.orig
 .DS_Store
+Thumbs.db
+desktop.ini
 .atom/
 .build/
 .buildlog/
@@ -46,7 +50,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
-CHECKLIST_CHAPTER_READER.md
-CHECKLIST_CODE_REVIEW.md
 
-CHECKLIST_SERIES_DETAIL.md
+# Task Checklists & Planning Analysis (giữ ở local để dev/review, không push remote)
+CHECKLIST_*.md
+PHAN_TICH_*.md
