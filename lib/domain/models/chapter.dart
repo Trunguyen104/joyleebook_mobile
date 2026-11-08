@@ -40,8 +40,6 @@ class Chapter {
       seriesId: dto.seriesId,
       sortOrder: dto.sortOrder,
       title: dto.title.isNotEmpty ? dto.title : 'Chương ${dto.sortOrder}',
-      // Giả định nghiệp vụ: 3 chương đầu là miễn phí
-      isFree: dto.sortOrder <= 3,
       // Tính thời lượng đọc ước tính (trung bình 12-18 phút)
       durationMinutes: 12 + (dto.sortOrder % 7),
       readPercentage: readPercentage,

@@ -819,16 +819,6 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                   AppPaths.chapterReader(series.id, chapter.id),
                   extra: series.title,
                 ),
-                onDownloadTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Đã lưu Ch. ${chapter.sortOrder} vào bộ nhớ đọc offline.',
-                      ),
-                      duration: const Duration(seconds: 1),
-                    ),
-                  );
-                },
               );
             },
           );
