@@ -116,16 +116,6 @@ class ChapterListScreen extends ConsumerWidget {
                         AppPaths.chapterReader(seriesId, chapter.id),
                         extra: seriesTitle,
                       ),
-                      onDownloadTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Đã lưu Ch. ${chapter.sortOrder} vào bộ nhớ đọc offline.',
-                            ),
-                            duration: const Duration(seconds: 1),
-                          ),
-                        );
-                      },
                     );
                   },
                 ),

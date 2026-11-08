@@ -8,18 +8,12 @@ import '../../core/widgets/joylee_badge.dart';
 /// WIDGET THẺ CHƯƠNG (ChapterItem)
 /// Tự động chuyển đổi giữa 2 dạng hiển thị:
 /// 1. Active: Thẻ nổi bật có vạch cam, badge NOW, tiến độ đọc và nút Play.
-/// 2. Normal: Dòng danh sách gọn gàng có icon checkmark/circle, tag Free, thời lượng và nút tải.
+/// 2. Normal: Dòng danh sách gọn gàng có icon checkmark/circle, và thời lượng.
 class ChapterItem extends StatelessWidget {
-  const ChapterItem({
-    super.key,
-    required this.chapter,
-    required this.onTap,
-    this.onDownloadTap,
-  });
+  const ChapterItem({super.key, required this.chapter, required this.onTap});
 
   final Chapter chapter;
   final VoidCallback onTap;
-  final VoidCallback? onDownloadTap;
 
   @override
   Widget build(BuildContext context) {
@@ -185,7 +179,7 @@ class ChapterItem extends StatelessWidget {
                     size: 24,
                   ),
             const SizedBox(width: AppDimensions.space3),
-            // Tên chương + Badge Free + Thời lượng
+            // Tên chương + Thời lượng
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,38 +195,12 @@ class ChapterItem extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      if (chapter.isFree) ...[
-                        JoyleeBadge(
-                          label: 'Free',
-                          backgroundColor: colors.borderDefault.withValues(
-                            alpha: 0.4,
-                          ),
-                          textColor: colors.textSecondary,
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      Text(
-                        '${chapter.durationMinutes} mins',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    '${chapter.durationMinutes} mins',
+                    style: TextStyle(fontSize: 12, color: colors.textSecondary),
                   ),
                 ],
               ),
-            ),
-            // Nút tải offline
-            IconButton(
-              icon: Icon(
-                Icons.file_download_outlined,
-                color: colors.textSecondary,
-              ),
-              tooltip: 'Tải đọc offline',
-              onPressed: onDownloadTap,
             ),
           ],
         ),
