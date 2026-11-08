@@ -55,6 +55,18 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     }
   }
 
+  void _handleBack() {
+    if (GoRouter.maybeOf(context) != null && context.canPop()) {
+      context.pop();
+    } else if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      if (GoRouter.maybeOf(context) != null) {
+        context.go(AppPaths.series);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(signInViewModelProvider);
@@ -73,9 +85,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     final colors = context.colors;
 
     return AuthScaffold(
+      appBarTitle: 'Đăng nhập / Đăng ký',
       title: 'Chào mừng trở lại',
       subtitle: 'Đăng nhập để tiếp tục những trang truyện còn dang dở.',
-      onSkip: () => context.go(AppPaths.series),
+      onBack: _handleBack,
       // AutofillGroup: cho phép trình quản lý mật khẩu điền sẵn tài khoản
       form: AutofillGroup(
         child: Column(
@@ -83,6 +96,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           children: [
             JoyleeTextField(
               label: 'Tên đăng nhập hoặc email',
+              hintText: 'Nhập tên đăng nhập hoặc email',
               controller: _usernameController,
               errorText: state.usernameError,
               prefixIcon: Icon(Icons.person_outline, color: colors.textMuted),
@@ -92,6 +106,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             const SizedBox(height: AppDimensions.space4),
             JoyleeTextField(
               label: 'Mật khẩu',
+              hintText: 'Nhập mật khẩu',
               controller: _passwordController,
               errorText: state.passwordError,
               obscureText: _obscurePassword,

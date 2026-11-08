@@ -119,4 +119,28 @@ void main() {
 
     expect(find.text('Quên mật khẩu?'), findsOneWidget);
   });
+
+  testWidgets(
+    'Hiển thị AppBar với tiêu đề "Đăng nhập / Đăng ký" và nút quay về thay vì nút Để sau',
+    (tester) async {
+      final fake = FakeAuthRepository();
+      await _pumpScreen(tester, fake);
+
+      expect(find.byType(AppBar), findsOneWidget);
+      expect(find.text('Đăng nhập / Đăng ký'), findsOneWidget);
+      expect(find.byTooltip('Quay về'), findsOneWidget);
+      expect(find.text('Để sau'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Hiển thị nội dung gợi ý (placeholder/hintText) trong ô nhập',
+    (tester) async {
+      final fake = FakeAuthRepository();
+      await _pumpScreen(tester, fake);
+
+      expect(find.text('Nhập tên đăng nhập hoặc email'), findsOneWidget);
+      expect(find.text('Nhập mật khẩu'), findsOneWidget);
+    },
+  );
 }

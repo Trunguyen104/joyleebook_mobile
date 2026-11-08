@@ -55,6 +55,18 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     }
   }
 
+  void _handleBack() {
+    if (GoRouter.maybeOf(context) != null && context.canPop()) {
+      context.pop();
+    } else if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      if (GoRouter.maybeOf(context) != null) {
+        context.go(AppPaths.series);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(signUpViewModelProvider);
@@ -77,15 +89,17 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     final colors = context.colors;
 
     return AuthScaffold(
+      appBarTitle: 'Đăng nhập / Đăng ký',
       title: 'Tạo tài khoản',
       subtitle: 'Chỉ mất một phút để bắt đầu hành trình đọc của bạn.',
-      onSkip: () => context.go(AppPaths.series),
+      onBack: _handleBack,
       form: AutofillGroup(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             JoyleeTextField(
               label: 'Tên đăng nhập',
+              hintText: 'Nhập tên đăng nhập',
               controller: _usernameController,
               helperText: '3-64 ký tự, gồm chữ, số và dấu . _ -',
               errorText: state.usernameError,
@@ -96,6 +110,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             const SizedBox(height: AppDimensions.space4),
             JoyleeTextField(
               label: 'Mật khẩu',
+              hintText: 'Nhập mật khẩu',
               controller: _passwordController,
               errorText: state.passwordError,
               obscureText: _obscurePassword,
@@ -114,6 +129,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             const SizedBox(height: AppDimensions.space4),
             JoyleeTextField(
               label: 'Nhập lại mật khẩu',
+              hintText: 'Nhập lại mật khẩu',
               controller: _confirmPasswordController,
               errorText: state.confirmPasswordError,
               obscureText: _obscurePassword,

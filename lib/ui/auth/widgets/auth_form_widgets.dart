@@ -6,8 +6,8 @@ import '../view_models/auth_validators.dart';
 
 /// Các widget dùng chung cho màn Đăng nhập và Đăng ký
 
-/// Khung chung của 2 màn xác thực:
-/// dải màu plum nhạt ở đầu trang -> logo -> tiêu đề -> thẻ form -> dòng chuyển màn.
+/// Khung chung của các màn xác thực:
+/// AppBar có nút quay về và tiêu đề -> dải màu plum nhạt ở đầu trang -> logo -> tiêu đề -> thẻ form -> dòng chuyển màn.
 /// Nội dung giới hạn 440px để form không bị kéo giãn trên tablet.
 class AuthScaffold extends StatelessWidget {
   const AuthScaffold({
@@ -16,7 +16,9 @@ class AuthScaffold extends StatelessWidget {
     required this.subtitle,
     required this.form,
     required this.footer,
-    required this.onSkip,
+    this.appBarTitle = 'Đăng nhập / Đăng ký',
+    this.onBack,
+    this.onSkip,
   });
 
   final String title;
@@ -24,8 +26,14 @@ class AuthScaffold extends StatelessWidget {
   final Widget form;
   final Widget footer;
 
-  /// Nút "Để sau": quay lại Kho Truyện mà không đăng nhập
-  final VoidCallback onSkip;
+  /// Tiêu đề hiển thị trên AppBar, mặc định là "Đăng nhập / Đăng ký"
+  final String appBarTitle;
+
+  /// Callback khi nhấn nút quay về trên AppBar
+  final VoidCallback? onBack;
+
+  /// Giữ để tương thích ngược, làm fallback cho onBack nếu được truyền
+  final VoidCallback? onSkip;
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +41,30 @@ class AuthScaffold extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          appBarTitle,
+          style: textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: colors.textPrimary,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Quay về',
+          onPressed: onBack ??
+              onSkip ??
+              () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                }
+              },
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+      ),
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -43,68 +75,48 @@ class AuthScaffold extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppDimensions.space2),
-                  child: TextButton(
-                    onPressed: onSkip,
-                    style: TextButton.styleFrom(
-                      foregroundColor: colors.textLink,
-                    ),
-                    child: const Text('Để sau'),
-                  ),
-                ),
+          top: false,
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimensions.space6,
+                0,
+                AppDimensions.space6,
+                AppDimensions.space8,
               ),
-              // Center + ScrollView: form nằm giữa màn hình khi đủ chỗ,
-              // và cuộn được khi bàn phím bật lên
-              Expanded(
-                child: Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppDimensions.space6,
-                      0,
-                      AppDimensions.space6,
-                      AppDimensions.space8,
-                    ),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 440),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const _BrandMark(),
-                            const SizedBox(height: AppDimensions.space8),
-                            Text(
-                              title,
-                              style: textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.5,
-                                color: colors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: AppDimensions.space2),
-                            Text(
-                              subtitle,
-                              style: textTheme.bodyLarge?.copyWith(
-                                color: colors.textSecondary,
-                                height: 1.4,
-                              ),
-                            ),
-                            const SizedBox(height: AppDimensions.space6),
-                            _FormCard(child: form),
-                            const SizedBox(height: AppDimensions.space5),
-                            footer,
-                          ],
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const _BrandMark(),
+                      const SizedBox(height: AppDimensions.space8),
+                      Text(
+                        title,
+                        style: textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
+                          color: colors.textPrimary,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: AppDimensions.space2),
+                      Text(
+                        subtitle,
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: colors.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: AppDimensions.space6),
+                      _FormCard(child: form),
+                      const SizedBox(height: AppDimensions.space5),
+                      footer,
+                    ],
                   ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
