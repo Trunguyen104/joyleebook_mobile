@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 /// DTO (Data Transfer Object) - Đối tượng truyền dữ liệu
 /// Bước 1 trong kiến trúc Compass App:
 /// Lớp này ánh xạ CHÍNH XÁC cấu trúc JSON trả về từ JoyleeBook API Gateway (/api/series).
-/// Mục đích: Parse dữ liệu thô từ `Map<String, dynamic>` và xử lý an toàn kiểu dữ liệu (null-safety).
+/// Hỗ trợ cả cấu trúc SeriesResponse trực tiếp và đối tượng Metrics từ backend microservice.
 @immutable
 class SeriesDto {
   // Mã định danh truyện (Backend trả về UUID string, ví dụ: 11111111-1111-...)
@@ -33,6 +33,24 @@ class SeriesDto {
   // Danh sách tên các thể loại truyện (Hành Động, Phiêu Lưu...)
   final List<String> genreNames;
 
+  // Tổng số chương (nếu API trả về)
+  final int totalChapters;
+
+  // Điểm đánh giá trung bình (ví dụ: 4.8 / 5.0)
+  final double averageRating;
+
+  // Tổng số lượt độc giả đã đánh giá
+  final int totalRatings;
+
+  // Điểm đánh giá của người dùng hiện tại (1-5, null nếu chưa đánh giá)
+  final int? userRating;
+
+  // Ngày tạo tác phẩm (từ createdAt của backend)
+  final DateTime? createdAt;
+
+  // Lượt xem thực tế từ API (null nếu backend chưa có trường này)
+  final int? viewCount;
+
   const SeriesDto({
     required this.id,
     required this.title,
@@ -43,6 +61,12 @@ class SeriesDto {
     required this.status,
     this.isPublish = true,
     this.genreNames = const [],
+    this.totalChapters = 0,
+    this.averageRating = 0.0,
+    this.totalRatings = 0,
+    this.userRating,
+    this.createdAt,
+    this.viewCount,
   });
 
   /// Hàm khởi tạo từ Map JSON nhận từ API
@@ -51,9 +75,15 @@ class SeriesDto {
     // 1. Trích xuất danh sách thể loại từ mảng "genres" (nếu có)
     final rawGenres = json['genres'] as List<dynamic>? ?? [];
     final parsedGenres = rawGenres
-        .map((g) => (g is Map<String, dynamic>) ? (g['name'] as String? ?? '') : '')
+        .map(
+          (g) =>
+              (g is Map<String, dynamic>) ? (g['name'] as String? ?? '') : '',
+        )
         .where((name) => name.isNotEmpty)
         .toList();
+
+    // 2. Trích xuất metrics nếu backend trả về kèm theo (SeriesMetricsResponse)
+    final metrics = json['metrics'] as Map<String, dynamic>?;
 
     return SeriesDto(
       // Lấy id: Chuyển về dạng String để hỗ trợ cả Guid lẫn số nguyên
@@ -74,7 +104,7 @@ class SeriesDto {
       // Lấy ảnh bìa: Hỗ trợ cả 2 tên trường coverImageUrl hoặc coverUrl
       coverImageUrl: (json['coverImageUrl'] ?? json['coverUrl']) as String?,
 
-      // Lấy trạng thái truyện (0 hoặc 1, mặc định 1 = Ongoing)
+      // Lấy trạng thái truyện (0 = Completed, 1 = Ongoing)
       status: json['status'] as int? ?? 1,
 
       // Cờ xuất bản
@@ -82,6 +112,40 @@ class SeriesDto {
 
       // Danh sách thể loại
       genreNames: parsedGenres,
+
+      // Tổng số chương (ưu tiên metrics của backend)
+      totalChapters:
+          (metrics?['publishedChapterCount'] as int?) ??
+          (metrics?['chapterCount'] as int?) ??
+          (json['totalChapters'] as int?) ??
+          0,
+
+      // Điểm đánh giá trung bình
+      averageRating:
+          (metrics?['averageRating'] as num?)?.toDouble() ??
+          (json['averageRating'] as num?)?.toDouble() ??
+          (json['rating'] as num?)?.toDouble() ??
+          0.0,
+
+      // Tổng số lượt đánh giá
+      totalRatings:
+          (metrics?['ratingCount'] as int?) ??
+          (json['totalRatings'] as int?) ??
+          (json['ratingCount'] as int?) ??
+          0,
+
+      // Điểm đánh giá của người dùng
+      userRating: json['userRating'] as int?,
+
+      // Thời gian tạo từ API
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+
+      // Lượt xem thực tế từ API (chỉ lấy nếu backend trả về số thật)
+      viewCount:
+          (metrics?['views'] as int?) ??
+          (metrics?['viewCount'] as int?) ??
+          (json['views'] as int?) ??
+          (json['viewCount'] as int?),
     );
   }
 
@@ -96,6 +160,12 @@ class SeriesDto {
       'coverImageUrl': coverImageUrl,
       'status': status,
       'isPublish': isPublish,
+      'totalChapters': totalChapters,
+      'averageRating': averageRating,
+      'totalRatings': totalRatings,
+      if (userRating != null) 'userRating': userRating,
+      if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+      if (viewCount != null) 'viewCount': viewCount,
     };
   }
 }

@@ -1,6 +1,6 @@
 # Thiết lập Flutter Mobile cho JoyleeBook
 
-Tài liệu này hướng dẫn tạo ứng dụng Flutter mobile mới, dùng kiến trúc hiện đại và gọi **qua JoyleeBook Gateway**. Phạm vi API đã có thể tích hợp ngay là Authentication và Series. Chapters, Library, Community, Notification hiện mới có health check; không xây màn hình nghiệp vụ dựa trên các API đó cho đến khi contract được bổ sung.
+Tài liệu này hướng dẫn tạo ứng dụng Flutter mobile mới, dùng kiến trúc hiện đại và gọi **qua JoyleeBook Gateway**. Phạm vi API đã tích hợp gồm Authentication, Series và Notification in-app (danh sách, đánh dấu đã đọc, realtime qua SignalR `/hubs/notifications`). Chapters, Library, Community hiện mới có health check; không xây màn hình nghiệp vụ dựa trên các API đó cho đến khi contract được bổ sung.
 
 ## 1. Nguyên tắc tích hợp
 
@@ -52,7 +52,7 @@ cd joylee_book_mobile
 Dependencies khuyến nghị:
 
 ```powershell
-flutter pub add flutter_riverpod riverpod_annotation go_router dio flutter_secure_storage json_annotation
+flutter pub add flutter_riverpod riverpod_annotation go_router dio flutter_secure_storage json_annotation image_picker
 flutter pub add --dev build_runner riverpod_generator json_serializable
 ```
 
@@ -61,6 +61,9 @@ flutter pub add --dev build_runner riverpod_generator json_serializable
 - `dio`: HTTP client, timeout và interceptor token/refresh-ready.
 - `flutter_secure_storage`: giữ token trong Keychain/EncryptedSharedPreferences.
 - `json_serializable`: model typed, không parse JSON rải rác trong UI.
+- `image_picker`: chọn ảnh đại diện từ thư viện thiết bị; app resize tối đa 1024px và nén quality 85 trước khi upload Media API.
+
+Trên iOS, thêm `NSPhotoLibraryUsageDescription` vào `ios/Runner/Info.plist` với mô tả tiếng Việt trước khi dùng `image_picker`. Android hiện chỉ dùng thư viện ảnh nên không cần quyền camera.
 
 Nếu dùng code generation, chạy sau khi thêm các class `@JsonSerializable()` / `@riverpod`:
 
@@ -102,13 +105,17 @@ joylee_book_mobile/
 │   │   ├── services/                  # Network & local storage thấp tầng
 │   │   │   ├── api_client.dart        # Dio instance & Interceptors (Bearer token)
 │   │   │   ├── token_storage.dart     # FlutterSecureStorage wrapper
+│   │   │   ├── image_picker_service.dart # Chọn ảnh thư viện + nhận diện định dạng
 │   │   │   └── api_exceptions.dart    # Mapping lỗi HTTP/Gateway thành lỗi app
 │   │   ├── repositories/              # Repositories trung gian cấp dữ liệu cho UI
 │   │   │   ├── auth_repository.dart
+│   │   │   ├── media_repository.dart  # Upload ảnh đại diện qua Media API
+│   │   │   ├── profile_repository.dart
 │   │   │   └── series_repository.dart
 │   │   └── dtos/                      # Request / Response JSON serialization
 │   │       ├── sign_in_request.dart
-│   │       └── sign_in_response.dart
+│   │       ├── sign_in_response.dart
+│   │       └── upload_media_response_dto.dart
 │   │
 │   ├── ui/                            # UI Layer (Gom theo tính năng - by feature)
 │   │   ├── core/                      # Reusable UI & Styling cho toàn ứng dụng
@@ -128,6 +135,12 @@ joylee_book_mobile/
 │   │   │       ├── series_list_screen.dart
 │   │   │       ├── series_detail_screen.dart
 │   │   │       └── series_card.dart
+│   │   ├── profile/                   # Hồ sơ cá nhân
+│   │   │   ├── view_models/
+│   │   │   │   ├── profile_view_model.dart
+│   │   │   │   └── edit_profile_view_model.dart
+│   │   │   └── widgets/
+│   │   │       └── edit_profile_screen.dart
 │   │   ├── library/                   # Tủ sách cá nhân (mở rộng sau)
 │   │   └── reading/                   # Trình đọc chapter (mở rộng sau)
 │   │

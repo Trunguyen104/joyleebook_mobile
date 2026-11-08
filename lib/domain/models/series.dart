@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
+
 import '../../data/dtos/series_dto.dart';
 
 /// Enum đại diện cho trạng thái của bộ truyện
 /// Giúp code dễ đọc hơn thay vì dùng số 0 hoặc 1
 enum SeriesStatus {
   completed, // Đã hoàn thành (tương ứng với số 0 trên backend)
-  ongoing;   // Đang tiến hành (tương ứng với số 1 trên backend)
+  ongoing; // Đang tiến hành (tương ứng với số 1 trên backend)
 
   /// Hàm tiện ích chuyển đổi từ số nguyên sang Enum
   static SeriesStatus fromInt(int value) =>
@@ -13,29 +14,36 @@ enum SeriesStatus {
 
   /// Nhãn hiển thị tiếng Việt trên giao diện
   String get label => switch (this) {
-        SeriesStatus.completed => 'Hoàn thành',
-        SeriesStatus.ongoing => 'Đang tiến hành',
-      };
+    SeriesStatus.completed => 'Hoàn thành',
+    SeriesStatus.ongoing => 'Đang tiến hành',
+  };
 }
 
 /// PURE DOMAIN MODEL - Thực thể nghiệp vụ thuần túy
 /// Bước 2 trong kiến trúc Compass App:
 /// Lớp này là đối tượng "sạch" mà giao diện và logic của app sẽ dùng trực tiếp.
-/// 
+///
 /// NGUYÊN TẮC VÀNG CHO NGƯỜI MỚI HỌC:
 /// 1. Tuyệt đối không import thư viện 'flutter/material.dart' hay 'dio' vào đây.
 /// 2. Thuộc tính phải là final và bất biến (@immutable) để dữ liệu không bị sửa lung tung.
 /// 3. Không để lộ các chi tiết vụn vặt của DTO lên UI.
 @immutable
 class Series {
-  final String id;              // Mã truyện
-  final String title;           // Tên truyện
-  final String authorName;      // Tên tác giả
-  final String description;     // Tóm tắt nội dung
-  final String coverImageUrl;   // Đường dẫn ảnh bìa
-  final SeriesStatus status;    // Trạng thái (Hoàn thành / Đang ra)
-  final List<String> genres;    // Danh sách thể loại
-  final bool isBookmarked;      // Đã thêm vào tủ sách hay chưa (thuộc tính của app mobile)
+  final String id; // Mã truyện
+  final String title; // Tên truyện
+  final String authorName; // Tên tác giả
+  final String description; // Tóm tắt nội dung
+  final String coverImageUrl; // Đường dẫn ảnh bìa
+  final SeriesStatus status; // Trạng thái (Hoàn thành / Đang ra)
+  final List<String> genres; // Danh sách thể loại
+  final bool
+  isBookmarked; // Đã thêm vào tủ sách hay chưa (thuộc tính của app mobile)
+  final int totalChapters; // Tổng số chương của bộ truyện
+  final double averageRating; // Điểm đánh giá trung bình (0.0 - 5.0)
+  final int totalRatings; // Tổng số lượt độc giả đã đánh giá
+  final int? userRating; // Điểm đánh giá của người dùng hiện tại (1 - 5, null nếu chưa đánh giá)
+  final DateTime? createdAt; // Thời gian tạo truyện từ backend
+  final int? viewCount; // Lượt xem thực tế từ API (null nếu API chưa có)
 
   const Series({
     required this.id,
@@ -46,6 +54,12 @@ class Series {
     required this.status,
     this.genres = const [],
     this.isBookmarked = false,
+    this.totalChapters = 0,
+    this.averageRating = 0.0,
+    this.totalRatings = 0,
+    this.userRating,
+    this.createdAt,
+    this.viewCount,
   });
 
   /// Hàm chuyển đổi từ DTO (Data Layer) sang Domain Model (Domain Layer)
@@ -55,20 +69,34 @@ class Series {
       id: dto.id,
       title: dto.title,
       authorName: dto.authorName,
-      description: (dto.description != null && dto.description!.trim().isNotEmpty)
+      description:
+          (dto.description != null && dto.description!.trim().isNotEmpty)
           ? dto.description!
           : 'Chưa có tóm tắt cho tác phẩm này.',
       coverImageUrl: dto.coverImageUrl ?? '',
       status: SeriesStatus.fromInt(dto.status),
       genres: dto.genreNames,
       isBookmarked: isBookmarked,
+      totalChapters: dto.totalChapters,
+      averageRating: dto.averageRating,
+      totalRatings: dto.totalRatings,
+      userRating: dto.userRating,
+      createdAt: dto.createdAt,
+      viewCount: dto.viewCount,
     );
   }
 
   /// Hàm copyWith: Tạo bản sao mới với một vài thuộc tính thay đổi
-  /// Rất hữu ích khi muốn đổi trạng thái isBookmarked (Optimistic UI) mà không làm thay đổi các trường khác
+  /// Rất hữu ích khi muốn đổi trạng thái isBookmarked, userRating (Optimistic UI) mà không làm thay đổi các trường khác
   Series copyWith({
     bool? isBookmarked,
+    int? totalChapters,
+    double? averageRating,
+    int? totalRatings,
+    int? userRating,
+    DateTime? createdAt,
+    int? viewCount,
+    bool clearUserRating = false,
   }) {
     return Series(
       id: id,
@@ -79,15 +107,51 @@ class Series {
       status: status,
       genres: genres,
       isBookmarked: isBookmarked ?? this.isBookmarked,
+      totalChapters: totalChapters ?? this.totalChapters,
+      averageRating: averageRating ?? this.averageRating,
+      totalRatings: totalRatings ?? this.totalRatings,
+      userRating: clearUserRating ? null : (userRating ?? this.userRating),
+      createdAt: createdAt ?? this.createdAt,
+      viewCount: viewCount ?? this.viewCount,
     );
   }
 
-  /// So sánh hai đối tượng Series theo ID (dùng cho việc tìm kiếm hoặc kiểm thử)
+  /// So sánh hai đối tượng Series theo đầy đủ thuộc tính để Riverpod và UI nhận diện đúng sự thay đổi trạng thái
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Series && runtimeType == other.runtimeType && id == other.id;
+      other is Series &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          title == other.title &&
+          authorName == other.authorName &&
+          description == other.description &&
+          coverImageUrl == other.coverImageUrl &&
+          status == other.status &&
+          listEquals(genres, other.genres) &&
+          isBookmarked == other.isBookmarked &&
+          totalChapters == other.totalChapters &&
+          averageRating == other.averageRating &&
+          totalRatings == other.totalRatings &&
+          userRating == other.userRating &&
+          createdAt == other.createdAt &&
+          viewCount == other.viewCount;
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode => Object.hash(
+    id,
+    title,
+    authorName,
+    description,
+    coverImageUrl,
+    status,
+    Object.hashAll(genres),
+    isBookmarked,
+    totalChapters,
+    averageRating,
+    totalRatings,
+    userRating,
+    createdAt,
+    viewCount,
+  );
 }

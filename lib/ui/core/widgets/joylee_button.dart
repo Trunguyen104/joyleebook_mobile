@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../themes/app_colors.dart';
 import '../themes/app_dimensions.dart';
 
@@ -60,13 +61,19 @@ class JoyleeButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (icon != null) ...[icon!, const SizedBox(width: AppDimensions.space2)],
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: isEnabled ? fg : colors.textDisabled,
+              if (icon != null) ...[
+                icon!,
+                const SizedBox(width: AppDimensions.space2),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: isEnabled ? fg : colors.textDisabled,
+                  ),
                 ),
               ),
             ],
@@ -74,19 +81,23 @@ class JoyleeButton extends StatelessWidget {
 
     return SizedBox(
       width: isFullWidth ? double.infinity : null,
-      height: AppDimensions.controlHeight,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: bg,
-          foregroundColor: fg,
-          elevation: 0,
-          side: border,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-          ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          minHeight: AppDimensions.controlHeight,
         ),
-        onPressed: isEnabled ? onPressed : null,
-        child: childContent,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: bg,
+            foregroundColor: fg,
+            elevation: 0,
+            side: border,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            ),
+          ),
+          onPressed: isEnabled ? onPressed : null,
+          child: childContent,
+        ),
       ),
     );
   }

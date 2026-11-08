@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../themes/app_colors.dart';
 import '../themes/app_dimensions.dart';
 import 'joylee_button.dart';
@@ -44,10 +45,7 @@ class JoyleeEmptyState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: colors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 14, color: colors.textSecondary),
             ),
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: AppDimensions.space6),
