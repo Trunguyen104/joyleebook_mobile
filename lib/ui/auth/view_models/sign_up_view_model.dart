@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/auth_repository.dart';
 import '../../../data/services/api_exceptions.dart';
+import '../../profile/view_models/profile_view_model.dart';
 import 'auth_session_view_model.dart';
 import 'auth_validators.dart';
 
@@ -69,6 +70,7 @@ class SignUpViewModel extends Notifier<SignUpState> {
             confirmPassword: confirmPassword,
           );
       ref.read(authSessionProvider.notifier).setSession(session);
+      ref.invalidate(profileViewModelProvider);
       if (ref.mounted) state = const SignUpState();
       return true;
     } on AppException catch (e) {

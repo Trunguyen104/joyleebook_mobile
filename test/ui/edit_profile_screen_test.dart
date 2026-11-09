@@ -15,6 +15,7 @@ import 'package:joyleebook_mobile/routing/app_paths.dart';
 import 'package:joyleebook_mobile/ui/core/themes/app_theme.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_avatar.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_button.dart';
+import 'package:joyleebook_mobile/ui/core/widgets/joylee_empty_state.dart';
 import 'package:joyleebook_mobile/ui/profile/view_models/profile_validators.dart';
 import 'package:joyleebook_mobile/ui/profile/view_models/profile_view_model.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/edit_profile_screen.dart';
@@ -455,4 +456,31 @@ void main() {
     expect(find.byType(EditProfileScreen), findsNothing);
     expect(find.text('Mở chỉnh sửa'), findsOneWidget);
   });
+
+  testWidgets(
+    'Chưa đăng nhập (401) hiển thị JoyleeEmptyState gợi ý đăng nhập',
+    (tester) async {
+      final fake = FakeProfileRepository(profile: _profile);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            profileRepositoryProvider.overrideWithValue(fake),
+            mediaRepositoryProvider.overrideWithValue(FakeMediaRepository()),
+            imagePickerServiceProvider.overrideWithValue(
+              FakeImagePickerService(),
+            ),
+            authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const EditProfileScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(JoyleeEmptyState), findsOneWidget);
+      expect(find.text('Bạn chưa đăng nhập'), findsOneWidget);
+    },
+  );
 }

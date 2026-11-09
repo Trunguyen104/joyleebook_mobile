@@ -15,19 +15,35 @@ class ProfileRepository {
 
   Future<UserProfile> getMyProfile() async {
     try {
-      final response = await Future.wait([
-        _dio.get<Map<String, dynamic>>(ApiEndpoints.profiles),
-        _dio.get<Map<String, dynamic>>(
+      final profileResponse = await _dio.get<Map<String, dynamic>>(
+        ApiEndpoints.profiles,
+      );
+
+      final rawProfile = profileResponse.data ?? const {};
+      final profileData = rawProfile['data'] is Map<String, dynamic>
+          ? rawProfile['data'] as Map<String, dynamic>
+          : rawProfile;
+
+      final profileDto = ProfileDto.fromJson(profileData);
+
+      // Thống kê đọc: gọi bất đồng bộ riêng biệt, nếu thư viện lỗi thì KHÔNG làm hỏng hồ sơ
+      ReadingStatsDto statsDto = const ReadingStatsDto();
+      try {
+        final statsResponse = await _dio.get<Map<String, dynamic>>(
           ApiEndpoints.libraryStats,
           queryParameters: {
             'days': 30,
             'utcOffsetMinutes': DateTime.now().timeZoneOffset.inMinutes,
           },
-        ),
-      ]);
-
-      final profileDto = ProfileDto.fromJson(response[0].data ?? const {});
-      final statsDto = ReadingStatsDto.fromJson(response[1].data ?? const {});
+        );
+        final rawStats = statsResponse.data ?? const {};
+        final statsData = rawStats['data'] is Map<String, dynamic>
+            ? rawStats['data'] as Map<String, dynamic>
+            : rawStats;
+        statsDto = ReadingStatsDto.fromJson(statsData);
+      } catch (_) {
+        // Nếu API thống kê đọc không khả dụng hoặc chưa có dữ liệu, dùng stats mặc định
+      }
 
       return UserProfile.fromDto(profileDto, statsDto);
     } on DioException catch (e) {
@@ -53,7 +69,11 @@ class ProfileRepository {
         ).toJson(),
       );
 
-      final profileDto = ProfileDto.fromJson(response.data ?? const {});
+      final raw = response.data ?? const {};
+      final profileData = raw['data'] is Map<String, dynamic>
+          ? raw['data'] as Map<String, dynamic>
+          : raw;
+      final profileDto = ProfileDto.fromJson(profileData);
       return UserProfile.fromDto(profileDto);
     } on DioException catch (e) {
       throw _mapUpdateError(e);

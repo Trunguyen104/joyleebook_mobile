@@ -52,6 +52,7 @@ class ReadingProgressView extends ConsumerWidget {
     final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         LinearProgressIndicator(
           value: value,
@@ -60,7 +61,7 @@ class ReadingProgressView extends ConsumerWidget {
           color: colors.primaryBrand,
           backgroundColor: colors.bgSurfaceSubtle,
         ),
-        const SizedBox(height: AppDimensions.space1),
+        const SizedBox(height: 2),
         Text(
           'Tiến độ ${(value * 100).round()}%',
           style: TextStyle(fontSize: 10, color: colors.textSecondary),

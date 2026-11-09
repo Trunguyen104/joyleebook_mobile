@@ -20,6 +20,7 @@ import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../view_models/chapter_detail_view_model.dart';
 import '../view_models/chapter_list_view_model.dart';
+import '../../comments/widgets/chapter_comments_sheet.dart';
 
 /// MÀN HÌNH ĐỌC TRUYỆN / NỘI DUNG CHƯƠNG (ChapterDetailScreen)
 /// Thiết kế chuẩn Warm Editorial tối ưu cho trải nghiệm đọc lâu dài:
@@ -450,6 +451,22 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
                 onPressed: () =>
                     ref.read(themeModeProvider.notifier).toggleTheme(),
               ),
+
+              // Nút xem bình luận chương
+              state.maybeWhen(
+                data: (detail) => IconButton(
+                  icon: const Icon(Icons.chat_bubble_outline_rounded),
+                  tooltip: 'Bình luận chương',
+                  onPressed: () => ChapterCommentsSheet.show(
+                    context,
+                    seriesId: widget.seriesId,
+                    chapterId: detail.id,
+                    chapterTitle: detail.title,
+                    sortOrder: detail.sortOrder,
+                  ),
+                ),
+                orElse: () => const SizedBox.shrink(),
+              ),
             ],
           ),
         ),
@@ -675,6 +692,35 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
                     fontStyle: FontStyle.italic,
                     color: colors.textSecondary,
                     fontSize: 14,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppDimensions.space4),
+              Center(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colors.primaryBrand,
+                    side: BorderSide(
+                      color: colors.primaryBrand.withValues(alpha: 0.5),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimensions.space4,
+                      vertical: AppDimensions.space2,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusLg,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                  label: const Text('Bình luận chương này'),
+                  onPressed: () => ChapterCommentsSheet.show(
+                    context,
+                    seriesId: widget.seriesId,
+                    chapterId: detail.id,
+                    chapterTitle: detail.title,
+                    sortOrder: detail.sortOrder,
                   ),
                 ),
               ),

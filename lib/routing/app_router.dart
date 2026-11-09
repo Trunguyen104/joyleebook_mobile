@@ -165,17 +165,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // TAB 3: THÔNG BÁO (NOTIFICATIONS)
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: AppPaths.notifications,
-                builder: (context, state) => const NotificationScreen(),
-              ),
-            ],
-          ),
-
-          // TAB 4: TRANG CÁ NHÂN (PROFILE)
+          // TAB 3: TRANG CÁ NHÂN (PROFILE)
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -185,6 +175,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: AppPaths.notifications,
+        builder: (context, state) => const NotificationScreen(),
       ),
       GoRoute(
         path: AppPaths.gateway,

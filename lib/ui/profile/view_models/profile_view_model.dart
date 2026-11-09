@@ -21,14 +21,73 @@ class ProfileViewModel extends AsyncNotifier<UserProfile> {
     if (session == null) {
       throw const AppException(message: 'Bạn chưa đăng nhập.', statusCode: 401);
     }
-    return repository.getMyProfile();
+    try {
+      final profile = await repository.getMyProfile();
+      // Nếu backend trả profile rỗng hoặc id/username rỗng, bổ sung từ session
+      if (profile.username.isEmpty) {
+        return UserProfile(
+          id: profile.id.isNotEmpty ? profile.id : session.userId,
+          username: session.username,
+          displayName: profile.displayName,
+          bio: profile.bio,
+          avatarUrl: profile.avatarUrl,
+          email: profile.email,
+          role: profile.role,
+          stats: profile.stats,
+        );
+      }
+      return profile;
+    } on AppException catch (e) {
+      // 404: Người dùng mới chưa có bản ghi profile trên backend -> fallback sang session
+      if (e.statusCode == 404) {
+        return UserProfile(
+          id: session.userId,
+          username: session.username,
+          role: session.role,
+        );
+      }
+      rethrow;
+    }
   }
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref.read(profileRepositoryProvider).getMyProfile(),
-    );
+    state = await AsyncValue.guard(() async {
+      final session = await ref.read(authSessionProvider.future);
+      if (session == null) {
+        throw const AppException(
+          message: 'Bạn chưa đăng nhập.',
+          statusCode: 401,
+        );
+      }
+      try {
+        final profile = await ref
+            .read(profileRepositoryProvider)
+            .getMyProfile();
+        if (profile.username.isEmpty) {
+          return UserProfile(
+            id: profile.id.isNotEmpty ? profile.id : session.userId,
+            username: session.username,
+            displayName: profile.displayName,
+            bio: profile.bio,
+            avatarUrl: profile.avatarUrl,
+            email: profile.email,
+            role: profile.role,
+            stats: profile.stats,
+          );
+        }
+        return profile;
+      } on AppException catch (e) {
+        if (e.statusCode == 404) {
+          return UserProfile(
+            id: session.userId,
+            username: session.username,
+            role: session.role,
+          );
+        }
+        rethrow;
+      }
+    });
   }
 
   /// API cập nhật hồ sơ không trả thống kê đọc; giữ lại số liệu đang có.

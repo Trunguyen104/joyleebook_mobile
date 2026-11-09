@@ -52,7 +52,8 @@ class AuthScaffold extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           tooltip: 'Quay về',
-          onPressed: onBack ??
+          onPressed:
+              onBack ??
               onSkip ??
               () {
                 if (Navigator.of(context).canPop()) {

@@ -286,4 +286,27 @@ void main() {
     expect(find.byType(BookmarkListScreen), findsOneWidget);
     expect(find.text('Truyện đã lưu'), findsOneWidget);
   });
+
+  testWidgets('Không bị RenderFlex overflow trên màn hình hẹp (360x640)', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      _buildApp(
+        FakeSeriesRepository.withHistory([
+          _bookmarkedSeries,
+        ], readingHistory: _readingHistory),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LibrarySeriesCard), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
 }

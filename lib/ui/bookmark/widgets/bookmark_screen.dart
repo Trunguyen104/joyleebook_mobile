@@ -13,6 +13,7 @@ import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../view_models/bookmark_list_view_model.dart';
 import '../view_models/reading_history_view_model.dart';
+import '../../notifications/widgets/notification_bell_button.dart';
 import 'library_series_card.dart';
 
 class BookmarkScreen extends ConsumerStatefulWidget {
@@ -81,7 +82,10 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
     final bookmarksState = ref.watch(bookmarkListViewModelProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tủ sách của tôi')),
+      appBar: AppBar(
+        title: const Text('Tủ sách của tôi'),
+        actions: const [NotificationBellButton()],
+      ),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
@@ -202,6 +206,7 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
         final cardWidth =
             (availableWidth - AppDimensions.space3 * (crossAxisCount - 1)) /
             crossAxisCount;
+        const targetHeight = 250.0;
         return GridView.builder(
           padding: const EdgeInsets.symmetric(horizontal: AppDimensions.space4),
           shrinkWrap: true,
@@ -210,8 +215,7 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: AppDimensions.space3,
             mainAxisSpacing: AppDimensions.space3,
-            childAspectRatio:
-                cardWidth / (cardWidth < 200 ? 225 : cardWidth * 0.9),
+            childAspectRatio: cardWidth / targetHeight,
           ),
           itemCount: itemCount,
           itemBuilder: (context, index) => itemBuilder(index),
@@ -300,8 +304,8 @@ class _SectionError extends StatelessWidget {
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 260,
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: AppDimensions.space3),
     child: JoyleeErrorView(message: message, onRetry: onRetry),
   );
 }

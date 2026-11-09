@@ -133,14 +133,13 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Hiển thị nội dung gợi ý (placeholder/hintText) trong ô nhập',
-    (tester) async {
-      final fake = FakeAuthRepository();
-      await _pumpScreen(tester, fake);
+  testWidgets('Hiển thị nội dung gợi ý (placeholder/hintText) trong ô nhập', (
+    tester,
+  ) async {
+    final fake = FakeAuthRepository();
+    await _pumpScreen(tester, fake);
 
-      expect(find.text('Nhập tên đăng nhập hoặc email'), findsOneWidget);
-      expect(find.text('Nhập mật khẩu'), findsOneWidget);
-    },
-  );
+    expect(find.text('Nhập tên đăng nhập hoặc email'), findsOneWidget);
+    expect(find.text('Nhập mật khẩu'), findsOneWidget);
+  });
 }

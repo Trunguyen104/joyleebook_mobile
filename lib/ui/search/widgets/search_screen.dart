@@ -11,6 +11,7 @@ import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../../series/view_models/genre_list_view_model.dart';
+import '../../notifications/widgets/notification_bell_button.dart';
 import '../view_models/search_view_model.dart';
 
 /// MÀN HÌNH KHÁM PHÁ & TÌM KIẾM (SearchScreen)
@@ -86,6 +87,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       appBar: AppBar(
         titleSpacing: AppDimensions.space3,
         title: _buildSearchBar(colors),
+        actions: const [
+          NotificationBellButton(),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(44),
           child: _buildGenreTabBar(genresState, selectedGenre, colors),

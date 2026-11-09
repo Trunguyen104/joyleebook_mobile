@@ -162,8 +162,8 @@ class SeriesRepository {
               final details = await getSeriesById(bookmark.seriesId);
               series.add(details.copyWith(isBookmarked: true));
               continue;
-            } on AppException catch (error) {
-              if (error.statusCode != 404) rethrow;
+            } catch (_) {
+              // Nếu lấy chi tiết thất bại hoặc timeout, vẫn giữ lại thông tin cơ bản
             }
           }
           series.add(parsedSeries);
@@ -171,8 +171,8 @@ class SeriesRepository {
           try {
             final details = await getSeriesById(bookmark.seriesId);
             series.add(details.copyWith(isBookmarked: true));
-          } on AppException catch (error) {
-            if (error.statusCode != 404) rethrow;
+          } catch (_) {
+            // Không lấy được chi tiết bổ sung
           }
         }
       }
@@ -221,8 +221,8 @@ class SeriesRepository {
               progress: entry.progress,
               lastReadAt: entry.lastReadAt,
             );
-          } on AppException catch (error) {
-            if (error.statusCode != 404) rethrow;
+          } catch (_) {
+            // Nếu lấy chi tiết thất bại hoặc timeout, vẫn giữ lại entry hiện có
           }
         }
         entries.add(entry);

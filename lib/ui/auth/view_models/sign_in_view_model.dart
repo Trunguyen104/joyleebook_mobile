@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/auth_repository.dart';
 import '../../../data/services/api_exceptions.dart';
+import '../../profile/view_models/profile_view_model.dart';
 import 'auth_session_view_model.dart';
 import 'auth_validators.dart';
 
@@ -60,6 +61,7 @@ class SignInViewModel extends Notifier<SignInState> {
           .read(authRepositoryProvider)
           .signIn(username: username.trim(), password: password);
       ref.read(authSessionProvider.notifier).setSession(session);
+      ref.invalidate(profileViewModelProvider);
       if (ref.mounted) state = const SignInState();
       return true;
     } on AppException catch (e) {

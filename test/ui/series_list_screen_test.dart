@@ -73,9 +73,54 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    // 3. Xác nhận tên truyện và tác giả hiển thị chính xác
+    // 3. Xác nhận tên truyện, tác giả và badge thể loại viết hoa
     expect(find.text('Bí Mật Cổ Trấn Giữa Sương Mù'), findsOneWidget);
     expect(find.text('Nguyên Phong'), findsOneWidget);
+    expect(find.text('Phiêu Lưu'), findsOneWidget);
+  });
+
+  testWidgets('Hiển thị tối đa 2 badge thể loại và viết hoa chữ cái đầu', (
+    tester,
+  ) async {
+    final mockData = [
+      const Series(
+        id: '2',
+        title: 'Thần Thoại Phương Đông',
+        authorName: 'Tác Giả A',
+        description: 'Mô tả truyện...',
+        coverImageUrl: '',
+        status: SeriesStatus.ongoing,
+        genres: ['tiên hiệp', 'huyền huyễn', 'khoa học'],
+      ),
+    ];
+    final fakeRepo = FakeSeriesRepository(mockData);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          seriesRepositoryProvider.overrideWithValue(fakeRepo),
+          authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const SeriesListScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // 2 thể loại đầu tiên được hiển thị và viết hoa
+    expect(find.text('Tiên Hiệp'), findsOneWidget);
+    expect(find.text('Huyền Huyễn'), findsOneWidget);
+    // Xác nhận Text có cấu hình ellipsis khi quá dài
+    final textWidget = tester.widget<Text>(find.text('Tiên Hiệp'));
+    expect(textWidget.overflow, TextOverflow.ellipsis);
+    expect(textWidget.maxLines, 1);
+
+    // Thể loại thứ 3 không được hiển thị
+    expect(find.text('Khoa Học'), findsNothing);
+    expect(find.text('khoa học'), findsNothing);
   });
 
   testWidgets('Header hiển thị đúng tiêu đề và nút Tìm kiếm', (tester) async {

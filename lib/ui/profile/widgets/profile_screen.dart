@@ -19,30 +19,44 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // watch: state đổi thì màn hình tự vẽ lại
+    final session = ref.watch(authSessionProvider).value;
+    final isSignedIn = session != null;
     final state = ref.watch(profileViewModelProvider);
-    // read: chỉ lấy notifier để gọi hàm, không theo dõi thay đổi
     final viewModel = ref.read(profileViewModelProvider.notifier);
-    final isSignedIn = ref.watch(authSessionProvider).value != null;
+
+    // Khi lỗi 401 (hết phiên/chưa đăng nhập), ẩn các nút thao tác để đồng bộ với JoyleeEmptyState
+    final isUnauthorized =
+        state.hasError &&
+        state.error is AppException &&
+        (state.error as AppException).statusCode == 401;
+    final showActions = isSignedIn && !isUnauthorized;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Hồ sơ của tôi'),
         actions: [
-          if (isSignedIn)
+          if (showActions) ...[
+            IconButton(
+              tooltip: 'Chỉnh sửa hồ sơ',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () => context.push(AppPaths.editProfile),
+            ),
             IconButton(
               tooltip: 'Cài đặt',
               icon: const Icon(Icons.settings_outlined),
               onPressed: () => context.push(AppPaths.settings),
             ),
+          ],
         ],
       ),
       body: SafeArea(
         child: state.when(
           // 1. Đang tải
           loading: () => const Center(child: CircularProgressIndicator()),
+          // 2. Lỗi mạng / gateway / chưa đăng nhập
           error: (error, _) {
-            // 2. "Trống": chưa đăng nhập / hết phiên -> gợi ý Đăng nhập
+            // Khi chưa đăng nhập (hoặc token 401), hiển thị trạng thái rỗng
+            // kèm CTA dẫn sang màn Đăng nhập
             if (error is AppException && error.statusCode == 401) {
               return JoyleeEmptyState(
                 iconData: Icons.person_outline,
@@ -53,15 +67,14 @@ class ProfileScreen extends ConsumerWidget {
                     context.go('${AppPaths.signIn}?from=${AppPaths.profile}'),
               );
             }
-            // 3. Lỗi khác (mất mạng, 502...) -> Thử lại
             return JoyleeErrorView(
               message: error is AppException
                   ? error.message
-                  : 'Đã có lỗi xảy ra.',
+                  : 'Đã có lỗi xảy ra khi tải thông tin hồ sơ.',
               onRetry: viewModel.refresh,
             );
           },
-          // 4. Có dữ liệu
+          // 3. Có dữ liệu
           data: (profile) => RefreshIndicator(
             onRefresh: viewModel.refresh,
             child: ListView(

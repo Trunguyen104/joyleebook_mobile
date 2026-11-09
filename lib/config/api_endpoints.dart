@@ -6,12 +6,14 @@ abstract final class ApiEndpoints {
   static const String series = '/api/series';
   static const String genres = '/api/genres';
 
-  // Ratings (Community Microservice via Gateway)
+  // Ratings & Comments (Community Microservice via Gateway)
   static const String ratings = '/api/ratings';
   static String seriesRating(String seriesId) =>
       '/api/ratings/series/$seriesId';
   static String seriesMyRating(String seriesId) =>
       '/api/ratings/series/$seriesId/my-rating';
+  static const String comments = '/api/comments';
+  static String commentDetail(String commentId) => '/api/comments/$commentId';
 
   // Media Microservice (via Gateway)
   static const String mediaUploadAvatar = '/api/media/upload-avatar';

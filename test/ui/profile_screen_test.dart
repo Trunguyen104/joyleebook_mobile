@@ -63,6 +63,7 @@ void main() {
     expect(find.text('Tác giả'), findsOneWidget);
     expect(find.text('Mê truyện trinh thám.'), findsOneWidget);
     expect(find.byTooltip('Cài đặt'), findsOneWidget);
+    expect(find.byTooltip('Chỉnh sửa hồ sơ'), findsOneWidget);
     expect(find.bySemanticsLabel('Truyện đã đọc: 12'), findsOneWidget);
     expect(find.bySemanticsLabel('Chuỗi dài nhất: 9 ngày'), findsOneWidget);
     expect(find.text('30 NGÀY QUA'), findsOneWidget);
@@ -119,7 +120,22 @@ void main() {
 
     expect(find.text('Bạn chưa đăng nhập'), findsOneWidget);
     expect(fake.callCount, 0);
-    // Chưa đăng nhập thì không có nút Cài đặt
+    // Chưa đăng nhập thì không có nút Cài đặt và Chỉnh sửa
     expect(find.byTooltip('Cài đặt'), findsNothing);
+    expect(find.byTooltip('Chỉnh sửa hồ sơ'), findsNothing);
+  });
+
+  testWidgets('Lỗi 404 từ backend tự động fallback sang thông tin từ session', (
+    tester,
+  ) async {
+    final fake = FakeProfileRepository(
+      error: const AppException(message: 'Không tìm thấy', statusCode: 404),
+    );
+    await tester.pumpWidget(_buildApp(fake));
+    await tester.pumpAndSettle();
+
+    // Hiển thị username từ session (fakeSession có username)
+    expect(find.text(fakeSession.username), findsOneWidget);
+    expect(find.byType(JoyleeErrorView), findsNothing);
   });
 }

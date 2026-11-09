@@ -16,6 +16,7 @@ import '../../core/widgets/joylee_button.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../view_models/series_detail_view_model.dart';
 import '../../search/view_models/search_view_model.dart';
+import '../../comments/widgets/comments_list_view.dart';
 import 'series_rating_card.dart';
 
 /// MÀN HÌNH CHI TIẾT TÁC PHẨM (SeriesDetailScreen)
@@ -65,7 +66,6 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       return Scaffold(
         backgroundColor: colors.bgCanvas,
         appBar: AppBar(
-          backgroundColor: colors.bgCanvas,
           title: Text(
             'Lỗi tải tác phẩm',
             style: TextStyle(color: colors.textPrimary, fontSize: 18),
@@ -98,7 +98,6 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       loading: () => Scaffold(
         backgroundColor: colors.bgCanvas,
         appBar: AppBar(
-          backgroundColor: colors.bgCanvas,
           title: Text(
             'Chi tiết tác phẩm',
             style: TextStyle(
@@ -129,7 +128,6 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       error: (error, _) => Scaffold(
         backgroundColor: colors.bgCanvas,
         appBar: AppBar(
-          backgroundColor: colors.bgCanvas,
           title: Text(
             'Lỗi tải tác phẩm',
             style: TextStyle(color: colors.textPrimary, fontSize: 18),
@@ -188,11 +186,10 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         : 'Đọc ngay';
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: colors.bgCanvas,
         appBar: AppBar(
-          backgroundColor: colors.bgCanvas,
           surfaceTintColor: Colors.transparent,
           title: Text(
             series.title,
@@ -204,25 +201,6 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
               fontSize: 18,
             ),
           ),
-          actions: [
-            // Nút Bookmark nhanh trên AppBar
-            IconButton(
-              icon: Icon(
-                series.isBookmarked
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_border_rounded,
-                color: series.isBookmarked
-                    ? colors.primaryBrand
-                    : colors.textSecondary,
-              ),
-              tooltip: series.isBookmarked
-                  ? 'Bỏ lưu tủ sách'
-                  : 'Lưu vào tủ sách',
-              onPressed: _isBookmarkInFlight || isBookmarkStatusLoading
-                  ? null
-                  : () => _handleToggleBookmark(context, series, colors.danger),
-            ),
-          ],
         ),
         body: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -283,6 +261,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                             ? 'Chương'
                             : 'Chương ($displayChapterCount)',
                       ),
+                      const Tab(text: 'Bình luận'),
                     ],
                   ),
                   backgroundColor: colors.bgCanvas,
@@ -290,7 +269,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
               ),
             ];
           },
-          // 3. NỘI DUNG 2 TAB
+          // 3. NỘI DUNG 3 TAB
           body: TabBarView(
             children: [
               // Tab 1: Tóm tắt thông tin tác phẩm
@@ -303,6 +282,12 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                 series,
                 chaptersAsync,
                 chapters,
+              ),
+
+              // Tab 3: Bình luận độc giả
+              CommentsListView(
+                seriesId: series.id,
+                availableChapters: chapters,
               ),
             ],
           ),
@@ -351,11 +336,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Tiêu đề sách
+              // Tiêu đề sách (hiển thị đầy đủ)
               Text(
                 series.title,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.bold,
