@@ -74,8 +74,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // 3. Xác nhận tên truyện, tác giả và badge thể loại viết hoa
-    expect(find.text('Bí Mật Cổ Trấn Giữa Sương Mù'), findsOneWidget);
-    expect(find.text('Nguyên Phong'), findsOneWidget);
+    expect(find.text('Bí Mật Cổ Trấn Giữa Sương Mù'), findsWidgets);
+    expect(find.text('Nguyên Phong'), findsWidgets);
     expect(find.text('Phiêu Lưu'), findsOneWidget);
   });
 

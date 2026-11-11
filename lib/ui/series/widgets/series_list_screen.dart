@@ -10,7 +10,9 @@ import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../../notifications/widgets/notification_bell_button.dart';
+import '../view_models/ai_recommendation_view_model.dart';
 import '../view_models/series_list_view_model.dart';
+import 'ai_recommendation_section.dart';
 
 /// MÀN HÌNH TRANG CHỦ / KHO TRUYỆN (SeriesListScreen)
 /// Phân loại và sắp xếp dựa trên THÔNG SỐ THẬT từ API:
@@ -138,13 +140,21 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
           return RefreshIndicator(
             color: colors.primaryBrand,
             backgroundColor: colors.bgSurface,
-            onRefresh: () =>
+            onRefresh: () async {
+              await Future.wait([
                 ref.read(seriesListViewModelProvider.notifier).refresh(),
+                ref.read(aiRecommendationViewModelProvider.notifier).refresh(),
+              ]);
+            },
             child: ListView(
               padding: const EdgeInsets.symmetric(
                 vertical: AppDimensions.space2,
               ),
               children: [
+                // SECTION AI: Gợi ý truyện bằng AI (Gemini Embedding + Qdrant Vector Search)
+                const AiRecommendationSection(),
+                const SizedBox(height: AppDimensions.space4),
+
                 // SECTION 1: Truyện tiếp theo bạn đọc
                 _buildSection(
                   title: 'Truyện tiếp theo bạn đọc',

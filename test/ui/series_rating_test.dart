@@ -364,7 +364,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Ở Kho Truyện -> bấm vào truyện -> mở SeriesDetailScreen
-        await tester.tap(find.text(testSeries.title));
+        await tester.tap(find.text(testSeries.title).first);
         await tester.pumpAndSettle();
         expect(find.byType(SeriesDetailScreen), findsOneWidget);
 

@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../data/repositories/series_repository.dart';
+import '../../../data/services/search_utils.dart';
+import '../../../domain/models/search_sort_option.dart';
 import '../../../domain/models/series.dart';
 import '../../auth/view_models/auth_session_view_model.dart';
 import '../../bookmark/view_models/bookmark_list_view_model.dart';
@@ -23,7 +25,9 @@ final searchViewModelProvider =
 /// 2. Debounce 400ms: Tự động hẹn giờ khi người dùng gõ từ khóa, chống spam request.
 /// 3. Lọc đa tiêu chí: Từ khóa + Thể loại (Genre) + Trạng thái phát hành (Status).
 /// 4. Lịch sử tìm kiếm: Tự động lưu 10 từ khóa gần nhất vào SharedPreferences / Local cache.
-/// 5. Optimistic UI: Bookmark tức thì, rollback khi mạng lỗi hoặc API thất bại.
+/// 5. Gợi ý thông minh khi nhập (Auto-complete search suggestions).
+/// 6. Sắp xếp đa tiêu chí (Mới cập nhật, Lượt đọc, Điểm đánh giá, Độ khớp).
+/// 7. Optimistic UI: Bookmark tức thì, rollback khi mạng lỗi hoặc API thất bại.
 class SearchViewModel extends AsyncNotifier<List<Series>> {
   Timer? _debounceTimer;
   final Set<String> _bookmarkRequestsInFlight = {};
@@ -31,7 +35,11 @@ class SearchViewModel extends AsyncNotifier<List<Series>> {
   String _currentQuery = '';
   String? _selectedGenre;
   SeriesStatus? _selectedStatus;
+  SearchSortOption _sortOption = SearchSortOption.relevance;
   List<String> _recentSearches = [];
+  List<Series> _cachedBaseList = [];
+  List<Series> _suggestionCatalog = [];
+  bool _isSemanticSearch = false;
 
   static const String _recentSearchesKey = 'joylee_recent_searches';
   static const int _maxRecentSearches = 10;
@@ -49,14 +57,17 @@ class SearchViewModel extends AsyncNotifier<List<Series>> {
   String get currentQuery => _currentQuery;
   String? get selectedGenre => _selectedGenre;
   SeriesStatus? get selectedStatus => _selectedStatus;
+  SearchSortOption get sortOption => _sortOption;
   List<String> get recentSearches => List.unmodifiable(_recentSearches);
   bool get isFiltered =>
       _currentQuery.isNotEmpty ||
       _selectedGenre != null ||
-      _selectedStatus != null;
+      _selectedStatus != null ||
+      _sortOption != SearchSortOption.relevance;
 
   @override
   Future<List<Series>> build() async {
+    ref.onDispose(() => _debounceTimer?.cancel());
     ref.listen(authSessionProvider, (prev, next) {
       if (prev?.value?.userId != next.value?.userId) {
         final current = state.value;
@@ -71,14 +82,215 @@ class SearchViewModel extends AsyncNotifier<List<Series>> {
     return _fetch();
   }
 
-  Future<List<Series>> _fetch() {
-    return ref
-        .read(seriesRepositoryProvider)
-        .getSeriesList(
-          searchQuery: _currentQuery.isNotEmpty ? _currentQuery : null,
-          genre: _selectedGenre,
-          status: _selectedStatus,
+  Future<List<Series>> _fetch() async {
+    final repository = ref.read(seriesRepositoryProvider);
+    final List<Series> list;
+    if (_isSemanticSearch && _currentQuery.isNotEmpty) {
+      final recommendations = await repository.getSemanticSearchSeries(
+        _currentQuery,
+      );
+      list = recommendations
+          .map((recommendation) => recommendation.series)
+          .where((series) {
+            final matchesGenre =
+                _selectedGenre == null ||
+                series.genres.any(
+                  (genre) => SearchUtils.matches(genre, _selectedGenre),
+                );
+            final matchesStatus =
+                _selectedStatus == null || series.status == _selectedStatus;
+            return matchesGenre && matchesStatus;
+          })
+          .toList(growable: false);
+    } else {
+      list = await repository.getSeriesList(
+        searchQuery: _currentQuery.isNotEmpty ? _currentQuery : null,
+        genre: _selectedGenre,
+        status: _selectedStatus,
+      );
+    }
+    _cachedBaseList = list;
+    if (!_isSemanticSearch &&
+        _currentQuery.isEmpty &&
+        _selectedGenre == null &&
+        _selectedStatus == null) {
+      _suggestionCatalog = list;
+    }
+    return _applySorting(list);
+  }
+
+  /// Áp dụng thuật toán sắp xếp dựa trên tùy chọn hiện tại
+  List<Series> _applySorting(List<Series> inputList) {
+    final sorted = List<Series>.from(inputList);
+
+    switch (_sortOption) {
+      case SearchSortOption.relevance:
+        if (_isSemanticSearch || _currentQuery.isEmpty) break;
+        if (_currentQuery.isNotEmpty) {
+          sorted.sort((a, b) {
+            final aRelevance = _relevanceScore(a, _currentQuery);
+            final bRelevance = _relevanceScore(b, _currentQuery);
+            if (aRelevance != bRelevance) {
+              return bRelevance.compareTo(aRelevance);
+            }
+
+            final ratingCmp = b.averageRating.compareTo(a.averageRating);
+            if (ratingCmp != 0) return ratingCmp;
+            return b.totalRatings.compareTo(a.totalRatings);
+          });
+        }
+        break;
+
+      case SearchSortOption.newest:
+        sorted.sort((a, b) {
+          final aTime = a.createdAt;
+          final bTime = b.createdAt;
+          if (aTime != null &&
+              bTime != null &&
+              !aTime.isAtSameMomentAs(bTime)) {
+            return bTime.compareTo(aTime);
+          }
+          if (a.status == SeriesStatus.ongoing &&
+              b.status != SeriesStatus.ongoing) {
+            return -1;
+          }
+          if (b.status == SeriesStatus.ongoing &&
+              a.status != SeriesStatus.ongoing) {
+            return 1;
+          }
+          if (aTime != null && bTime == null) return -1;
+          if (bTime != null && aTime == null) return 1;
+          if (aTime != null && bTime != null) {
+            return bTime.compareTo(aTime);
+          }
+          return b.id.compareTo(a.id);
+        });
+        break;
+
+      case SearchSortOption.mostRead:
+        sorted.sort((a, b) {
+          final aViews = a.viewCount ?? 0;
+          final bViews = b.viewCount ?? 0;
+          if (aViews != bViews) return bViews.compareTo(aViews);
+          final aChap = a.totalChapters;
+          final bChap = b.totalChapters;
+          if (aChap != bChap) return bChap.compareTo(aChap);
+          return b.totalRatings.compareTo(a.totalRatings);
+        });
+        break;
+
+      case SearchSortOption.topRated:
+        sorted.sort((a, b) {
+          final ratingCmp = b.averageRating.compareTo(a.averageRating);
+          if (ratingCmp != 0) return ratingCmp;
+          return b.totalRatings.compareTo(a.totalRatings);
+        });
+        break;
+    }
+
+    return sorted;
+  }
+
+  int _relevanceScore(Series series, String query) {
+    final normalizedQuery = SearchUtils.removeDiacritics(
+      SearchUtils.cleanQuery(query),
+    );
+    final normalizedTitle = SearchUtils.removeDiacritics(series.title);
+    if (normalizedTitle.startsWith(normalizedQuery)) return 400;
+    if (SearchUtils.matches(series.title, query)) return 300;
+    if (SearchUtils.matches(series.authorName, query)) return 200;
+    if (series.genres.any((genre) => SearchUtils.matches(genre, query))) {
+      return 100;
+    }
+    return 0;
+  }
+
+  /// Đặt tiêu chí sắp xếp và áp dụng ngay lập tức trên dữ liệu hiện tại
+  void setSortOption(SearchSortOption option) {
+    if (_sortOption == option) return;
+    _sortOption = option;
+
+    final current = state.value;
+    if (current != null) {
+      state = AsyncData(_applySorting(current));
+    } else {
+      refresh();
+    }
+  }
+
+  /// Trích xuất danh sách gợi ý khi người dùng đang gõ
+  List<SearchSuggestion> getSuggestions(
+    String query, {
+    Iterable<String> genreNames = const [],
+  }) {
+    final clean = query.trim();
+    if (clean.isEmpty) return const [];
+
+    final suggestions = <SearchSuggestion>[];
+    final seenTexts = <String>{};
+
+    // 1. Gợi ý tìm kiếm ngữ nghĩa với AI
+    suggestions.add(
+      SearchSuggestion(
+        text: clean,
+        subtitle: 'Tìm kiếm bằng AI với Gemini',
+        type: SearchSuggestionType.aiSemantic,
+      ),
+    );
+    seenTexts.add(clean.toLowerCase());
+    final candidates = _suggestionCatalog.isNotEmpty
+        ? _suggestionCatalog
+        : _cachedBaseList;
+
+    // 2. Gợi ý theo Tiêu đề truyện khớp từ khóa
+    for (final s in candidates) {
+      if (SearchUtils.matches(s.title, clean)) {
+        if (seenTexts.add(s.title.toLowerCase())) {
+          suggestions.add(
+            SearchSuggestion(
+              text: s.title,
+              subtitle: 'Tác giả: ${s.authorName}',
+              type: SearchSuggestionType.series,
+              seriesId: s.id,
+            ),
+          );
+        }
+      }
+      if (suggestions.length >= 6) break;
+    }
+
+    // 3. Gợi ý theo Tên tác giả khớp từ khóa
+    for (final s in candidates) {
+      if (SearchUtils.matches(s.authorName, clean)) {
+        if (seenTexts.add(s.authorName.toLowerCase())) {
+          suggestions.add(
+            SearchSuggestion(
+              text: s.authorName,
+              subtitle: 'Tác giả',
+              type: SearchSuggestionType.author,
+            ),
+          );
+        }
+      }
+      if (suggestions.length >= 7) break;
+    }
+
+    // 4. Gợi ý theo thể loại lấy từ danh mục đã tải trên màn hình.
+    for (final genre in genreNames) {
+      if (SearchUtils.matches(genre, clean) &&
+          seenTexts.add(genre.toLowerCase())) {
+        suggestions.add(
+          SearchSuggestion(
+            text: genre,
+            subtitle: 'Thể loại',
+            type: SearchSuggestionType.genre,
+          ),
         );
+      }
+      if (suggestions.length >= 8) break;
+    }
+
+    return suggestions;
   }
 
   /// 1. Tải lịch sử tìm kiếm gần nhất
@@ -154,6 +366,7 @@ class SearchViewModel extends AsyncNotifier<List<Series>> {
   Future<void> search(String query, {bool immediate = false}) async {
     _debounceTimer?.cancel();
     _currentQuery = query.trim();
+    _isSemanticSearch = false;
 
     if (immediate) {
       if (_currentQuery.isNotEmpty) {
@@ -171,6 +384,18 @@ class SearchViewModel extends AsyncNotifier<List<Series>> {
       state = const AsyncLoading();
       state = await AsyncValue.guard(_fetch);
     });
+  }
+
+  /// Tìm bằng embedding ngữ nghĩa khi người dùng chọn gợi ý AI.
+  Future<void> searchSemantically(String query) async {
+    _debounceTimer?.cancel();
+    _currentQuery = query.trim();
+    _isSemanticSearch = true;
+    if (_currentQuery.isNotEmpty) {
+      await addRecentSearch(_currentQuery);
+    }
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(_fetch);
   }
 
   /// 7. Lọc theo thể loại
@@ -204,6 +429,8 @@ class SearchViewModel extends AsyncNotifier<List<Series>> {
     _currentQuery = '';
     _selectedGenre = null;
     _selectedStatus = null;
+    _sortOption = SearchSortOption.relevance;
+    _isSemanticSearch = false;
     state = const AsyncLoading();
     state = await AsyncValue.guard(_fetch);
   }
