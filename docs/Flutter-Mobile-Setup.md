@@ -414,7 +414,42 @@ Checklist trước khi merge mobile:
 5. Test trên Android emulator và ít nhất một thiết bị thật (4G/Wi-Fi bất kỳ).
 6. Đối chiếu Swagger tại `https://api.joyleebook.duckdns.org/docs/authentication/swagger/index.html` và `https://api.joyleebook.duckdns.org/docs/series/swagger/index.html` trước khi mở rộng contract.
 
-## 10. Các việc nên thống nhất trước production
+## 10. Đăng nhập Google trên Android và iOS
+
+Ứng dụng dùng `google_sign_in` 7.2: mở trình chọn tài khoản, lấy Google ID token rồi gửi `POST /api/auth/google` với body `{"idToken":"..."}` qua gateway. Backend xác minh token và trả `accessToken`/`refreshToken`; ứng dụng lưu qua `TokenStorage` giống đăng nhập bằng mật khẩu. Google subject mới được backend tạo tài khoản Reader; không tự liên kết tài khoản dựa trên email ở client.
+
+Web OAuth Client ID mặc định trong `Environment.googleServerClientId` đã được đổi về cấu hình Google cũ: `1079333980897-bodfv9d33u1dehnhkducm6so0ncr6vq4.apps.googleusercontent.com`. Đăng ký Android OAuth client theo package/SHA-1 trong cùng Google Cloud project với Web client này; không dùng Android Client ID làm `serverClientId`. Đây là mã định danh công khai, không phải client secret. Backend phải dùng cùng Web Client ID trong `GoogleAuthentication:ClientId` (biến môi trường `GoogleAuthentication__ClientId`); không cần đổi cấu hình backend nếu backend đang dùng ID cũ này. Cấu hình gateway đang triển khai chưa được xác nhận bằng đăng nhập thực tế. Có thể ghi đè khi dùng gateway/môi trường khác:
+
+```bash
+flutter run -t lib/main_development.dart --dart-define=GOOGLE_SERVER_CLIENT_ID=WEB_OAUTH_CLIENT_ID
+```
+
+### Android
+
+Trong cùng Google Cloud project với Web Client ID, tạo OAuth client loại **Android**, nhập package `com.example.joyleebook_mobile` và SHA-1 của chứng chỉ ký ứng dụng. Bản debug và release dùng chứng chỉ khác nhau cần đăng ký SHA-1 tương ứng. Có thể lấy SHA-1 bằng tác vụ `signingReport` của Gradle trong thư mục `android` (`.\gradlew.bat signingReport` trên Windows).
+
+Ứng dụng truyền Web Client ID bằng `serverClientId`, nên không cần Firebase hoặc `google-services.json`. Cần cấu hình OAuth consent screen và thêm tài khoản thử nghiệm nếu ứng dụng Google Cloud đang ở chế độ Testing. Không đưa client secret vào ứng dụng.
+
+### iOS
+
+Tạo OAuth client loại **iOS** với đúng Bundle Identifier của Runner. Truyền ID này bằng `--dart-define=GOOGLE_IOS_CLIENT_ID=IOS_OAUTH_CLIENT_ID`, đồng thời đặt User-Defined Build Setting `GOOGLE_REVERSED_CLIENT_ID` của target Runner cho các cấu hình build. Giá trị là URL scheme đảo của iOS Client ID, dạng `com.googleusercontent.apps.<phần-id>`; `ios/Runner/Info.plist` đã tham chiếu biến này trong `CFBundleURLSchemes`.
+
+```bash
+flutter run -t lib/main_development.dart --dart-define=GOOGLE_IOS_CLIENT_ID=IOS_OAUTH_CLIENT_ID
+```
+
+`GOOGLE_REVERSED_CLIENT_ID` là thiết lập Xcode, không phải `--dart-define`. Không dùng Web Client ID thay cho iOS Client ID. Khi chưa có iOS Client ID, app báo chưa cấu hình trước khi mở SDK.
+
+### Kiểm tra tích hợp
+
+- Thử đăng nhập trên thiết bị Android/iOS đã đăng ký OAuth: chọn tài khoản, trở về trang yêu cầu đăng nhập qua `from`, đóng/mở app để kiểm tra khôi phục phiên, rồi đăng xuất và chọn tài khoản khác.
+- Hủy trình chọn tài khoản không hiển thị lỗi và không gọi gateway. Khi SDK hoặc gateway lỗi, app mở lại nút và báo thông báo tiếng Việt; cả hai cách đăng nhập đều bị khóa trong lúc gửi.
+- Unit/widget test dùng fake, không mở SDK hoặc gọi mạng. Các test này không chứng minh cấu hình SHA-1, Bundle ID, consent screen hoặc triển khai gateway đang đúng; cần kiểm tra trên thiết bị sau khi cấu hình Google Cloud.
+- Hợp đồng Google được đối chiếu với `AuthenticationController` và `GoogleSignInRequest` trong backend local; URL Swagger được tài liệu dẫn hiện trả HTTP 404 tại thời điểm triển khai, nên chưa xác nhận hợp đồng trên bản gateway đang chạy.
+
+Tài liệu SDK: [google_sign_in](https://pub.dev/packages/google_sign_in), [Android](https://pub.dev/packages/google_sign_in_android), [iOS](https://pub.dev/packages/google_sign_in_ios).
+
+## 11. Các việc nên thống nhất trước production
 
 - Quy định versioning API và error envelope thống nhất trước khi nhiều feature mobile cùng phát triển.
 - Cân nhắc refresh token/rotation, device session và cơ chế revoke phù hợp UX mobile nếu cần session dài.

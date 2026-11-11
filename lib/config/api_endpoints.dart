@@ -20,6 +20,7 @@ abstract final class ApiEndpoints {
 
   // Authentication Microservice (via Gateway)
   static const String authSignIn = '/api/auth/sign-in';
+  static const String authGoogle = '/api/auth/google';
   static const String authSignUp = '/api/auth/sign-up';
   static const String authSignOut = '/api/auth/sign-out';
   static const String authChangePassword = '/api/auth/me/password';

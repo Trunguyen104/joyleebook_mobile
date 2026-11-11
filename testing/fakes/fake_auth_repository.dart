@@ -20,6 +20,18 @@ class FakeAuthRepository implements AuthRepository {
   AppException? error;
 
   int signInCallCount = 0;
+  int googleSignInCallCount = 0;
+  String? lastGoogleIdToken;
+
+  @override
+  Future<AuthSession> signInWithGoogle({required String idToken}) async {
+    googleSignInCallCount++;
+    lastGoogleIdToken = idToken;
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (error != null) throw error!;
+    return savedSession = fakeSession;
+  }
+
   int signUpCallCount = 0;
   int signOutCallCount = 0;
   int changePasswordCallCount = 0;
