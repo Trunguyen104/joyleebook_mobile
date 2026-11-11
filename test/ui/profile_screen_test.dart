@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/notification_repository.dart';
+import 'package:joyleebook_mobile/data/repositories/payment_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/services/api_exceptions.dart';
 import 'package:joyleebook_mobile/domain/models/user_profile.dart';
@@ -13,6 +14,7 @@ import 'package:joyleebook_mobile/ui/profile/widgets/profile_screen.dart';
 
 import '../../testing/fakes/fake_auth_repository.dart';
 import '../../testing/fakes/fake_notification_repository.dart';
+import '../../testing/fakes/fake_payment_repository.dart';
 import '../../testing/fakes/fake_profile_repository.dart';
 
 const _profile = UserProfile(
@@ -40,6 +42,7 @@ Widget _buildApp(FakeProfileRepository fake, {FakeAuthRepository? auth}) =>
         notificationRepositoryProvider.overrideWithValue(
           FakeNotificationRepository(),
         ),
+        paymentRepositoryProvider.overrideWithValue(FakePaymentRepository()),
         authRepositoryProvider.overrideWithValue(
           auth ?? FakeAuthRepository(savedSession: fakeSession),
         ),
@@ -66,6 +69,15 @@ void main() {
     expect(find.byTooltip('Chỉnh sửa hồ sơ'), findsOneWidget);
     expect(find.bySemanticsLabel('Truyện đã đọc: 12'), findsOneWidget);
     expect(find.bySemanticsLabel('Chuỗi dài nhất: 9 ngày'), findsOneWidget);
+    expect(find.text('Ví Xu của tôi'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('30 NGÀY QUA'),
+      200,
+      scrollable: find.byType(Scrollable),
+    );
+    await tester.pumpAndSettle();
+
     expect(find.text('30 NGÀY QUA'), findsOneWidget);
     expect(find.text('Đọc xong 21 chương trong kỳ'), findsOneWidget);
     expect(find.text('Bạn chưa đọc chương nào'), findsOneWidget);

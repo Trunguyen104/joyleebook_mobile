@@ -22,6 +22,7 @@ import '../ui/notifications/widgets/notification_screen.dart';
 import '../ui/profile/widgets/edit_profile_screen.dart';
 import '../ui/profile/widgets/profile_screen.dart';
 import '../ui/profile/widgets/settings_screen.dart';
+import '../ui/wallet/widgets/wallet_screen.dart';
 import '../ui/search/widgets/search_screen.dart';
 import '../ui/series/widgets/series_detail_screen.dart';
 import '../ui/series/widgets/series_list_screen.dart';
@@ -222,6 +223,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppPaths.changePassword,
         builder: (context, state) => const ChangePasswordScreen(),
+      ),
+      GoRoute(
+        path: AppPaths.wallet,
+        builder: (context, state) => const WalletScreen(),
       ),
       GoRoute(
         path: AppPaths.settings,

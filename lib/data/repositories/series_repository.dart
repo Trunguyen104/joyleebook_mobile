@@ -92,6 +92,34 @@ class SeriesRepository {
     }
   }
 
+  /// Lấy danh sách tất cả tác phẩm thuộc quyền sở hữu của tác giả [authorId].
+  Future<List<Series>> getSeriesByAuthorId(String authorId) async {
+    try {
+      final response = await _dio.get<List<dynamic>>(
+        ApiEndpoints.seriesByAuthor(authorId),
+      );
+      final rawList = response.data ?? const [];
+      return rawList
+          .whereType<Map<String, dynamic>>()
+          .map((json) => Series.fromDto(SeriesDto.fromJson(json)))
+          .toList(growable: false);
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 403 || status == 404) {
+        final allSeries = await getSeriesList();
+        return allSeries
+            .where((s) => s.authorId == authorId)
+            .toList(growable: false);
+      }
+      throw AppException.fromDio(e);
+    } catch (e) {
+      if (e is AppException) rethrow;
+      throw AppException(
+        message: 'Không thể tải danh sách tác phẩm của tác giả: $e',
+      );
+    }
+  }
+
   /// 2. Bật / Tắt trạng thái lưu truyện vào tủ sách cá nhân (Bookmark)
   /// Kết nối tới JoyleeBook Library Microservice:
   /// - Thêm: POST /api/library/bookmarks {'seriesId': seriesId}

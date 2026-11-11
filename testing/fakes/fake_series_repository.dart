@@ -194,4 +194,13 @@ class FakeSeriesRepository implements SeriesRepository {
       );
     }
   }
+
+  @override
+  Future<List<Series>> getSeriesByAuthorId(String authorId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (shouldThrowError) {
+      throw AppException(message: 'Không thể tải danh sách truyện tác giả.');
+    }
+    return _items.where((s) => s.authorId == authorId).toList(growable: false);
+  }
 }

@@ -31,6 +31,7 @@ enum SeriesStatus {
 class Series {
   final String id; // Mã truyện
   final String title; // Tên truyện
+  final String authorId; // Mã tác giả
   final String authorName; // Tên tác giả
   final String description; // Tóm tắt nội dung
   final String coverImageUrl; // Đường dẫn ảnh bìa
@@ -48,6 +49,7 @@ class Series {
   const Series({
     required this.id,
     required this.title,
+    this.authorId = '',
     required this.authorName,
     required this.description,
     required this.coverImageUrl,
@@ -68,6 +70,7 @@ class Series {
     return Series(
       id: dto.id,
       title: dto.title,
+      authorId: dto.authorId,
       authorName: dto.authorName,
       description:
           (dto.description != null && dto.description!.trim().isNotEmpty)
@@ -89,6 +92,7 @@ class Series {
   /// Hàm copyWith: Tạo bản sao mới với một vài thuộc tính thay đổi
   /// Rất hữu ích khi muốn đổi trạng thái isBookmarked, userRating (Optimistic UI) mà không làm thay đổi các trường khác
   Series copyWith({
+    String? authorId,
     bool? isBookmarked,
     int? totalChapters,
     double? averageRating,
@@ -101,6 +105,7 @@ class Series {
     return Series(
       id: id,
       title: title,
+      authorId: authorId ?? this.authorId,
       authorName: authorName,
       description: description,
       coverImageUrl: coverImageUrl,
@@ -124,6 +129,7 @@ class Series {
           runtimeType == other.runtimeType &&
           id == other.id &&
           title == other.title &&
+          authorId == other.authorId &&
           authorName == other.authorName &&
           description == other.description &&
           coverImageUrl == other.coverImageUrl &&
@@ -141,6 +147,7 @@ class Series {
   int get hashCode => Object.hash(
     id,
     title,
+    authorId,
     authorName,
     description,
     coverImageUrl,

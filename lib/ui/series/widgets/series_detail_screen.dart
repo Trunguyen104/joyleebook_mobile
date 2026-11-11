@@ -19,6 +19,9 @@ import '../../core/widgets/joylee_error_view.dart';
 import '../view_models/series_detail_view_model.dart';
 import '../../search/view_models/search_view_model.dart';
 import '../../comments/widgets/comments_list_view.dart';
+import '../../donation/view_models/story_donations_view_model.dart';
+import '../../donation/widgets/donate_bottom_sheet.dart';
+import '../../donation/widgets/story_donations_section.dart';
 import '../../download/view_models/download_manager_view_model.dart';
 import '../../download/view_models/downloaded_series_view_model.dart';
 import 'series_rating_card.dart';
@@ -206,6 +209,14 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
             ),
           ),
           actions: [
+            IconButton(
+              onPressed: () => _handleDonatePress(context, series),
+              tooltip: 'Tặng xu cho tác giả',
+              icon: Icon(
+                Icons.volunteer_activism_outlined,
+                color: colors.primaryBrand,
+              ),
+            ),
             _buildDownloadAppBarAction(
               context,
               colors,
@@ -629,9 +640,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                 ),
               ),
               TextButton(
-                onPressed: () => ref
-                    .read(downloadManagerViewModelProvider.notifier)
-                    .startDownload(series),
+                onPressed: () => _resumeDownload(context, series),
                 child: Text(
                   'Tải tiếp',
                   style: TextStyle(
@@ -681,9 +690,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                 ),
               ),
               TextButton(
-                onPressed: () => ref
-                    .read(downloadManagerViewModelProvider.notifier)
-                    .startDownload(series),
+                onPressed: () => _resumeDownload(context, series),
                 child: Text(
                   'Tải tiếp',
                   style: TextStyle(
@@ -702,11 +709,29 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     return const SizedBox.shrink();
   }
 
+  bool _ensureSignedInForDownload(BuildContext context, Series series) {
+    final session = ref.read(authSessionProvider).value;
+    if (session != null) return true;
+
+    final currentPath = AppPaths.seriesDetail(series.id);
+    context.push('${AppPaths.signIn}?from=${Uri.encodeComponent(currentPath)}');
+    return false;
+  }
+
+  Future<void> _resumeDownload(BuildContext context, Series series) async {
+    if (!_ensureSignedInForDownload(context, series)) return;
+    await ref
+        .read(downloadManagerViewModelProvider.notifier)
+        .startDownload(series);
+  }
+
   Future<void> _confirmStartDownload(
     BuildContext context,
     Series series,
     int? knownChapterCount,
   ) async {
+    if (!_ensureSignedInForDownload(context, series)) return;
+
     if (knownChapterCount == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -815,6 +840,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         await Future.wait([
           ref.read(seriesDetailViewModelProvider(series.id).notifier).refresh(),
           ref.read(chapterListViewModelProvider(series.id).notifier).refresh(),
+          ref
+              .read(storyDonationsViewModelProvider(series.id).notifier)
+              .refresh(),
         ]);
       },
       child: SingleChildScrollView(
@@ -1022,6 +1050,11 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                 }
                 return success;
               },
+            ),
+            const SizedBox(height: AppDimensions.space4),
+            StoryDonationsSection(
+              seriesId: series.id,
+              onDonateTap: () => _handleDonatePress(context, series),
             ),
             const SizedBox(height: AppDimensions.space6),
           ],
@@ -1231,10 +1264,43 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
   }
 
   /// Hiển thị Dialog yêu cầu Đăng nhập khi người dùng chưa đăng nhập thực hiện đánh giá
+  Future<void> _handleDonatePress(BuildContext context, Series series) async {
+    final session = ref.read(authSessionProvider).value;
+    if (session == null) {
+      await _showLoginRequiredDialog(
+        context,
+        series,
+        title: 'Đăng nhập để tặng xu',
+        actionLabel: 'tặng xu ủng hộ tác giả cho',
+      );
+      return;
+    }
+
+    if (series.authorId.isNotEmpty && session.userId == series.authorId) {
+      final colors = context.colors;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Bạn không thể tự ủng hộ truyện của chính mình.'),
+          backgroundColor: colors.danger,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    await DonateBottomSheet.show(
+      context,
+      storyId: series.id,
+      storyTitle: series.title,
+    );
+  }
+
   Future<void> _showLoginRequiredDialog(
     BuildContext context,
-    Series series,
-  ) async {
+    Series series, {
+    String title = 'Đăng nhập để đánh giá',
+    String actionLabel = 'gửi đánh giá cho',
+  }) async {
     final colors = context.colors;
     await showDialog<void>(
       context: context,
@@ -1250,7 +1316,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
             color: colors.primaryBrand,
           ),
           title: Text(
-            'Đăng nhập để đánh giá',
+            title,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -1259,7 +1325,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
             textAlign: TextAlign.center,
           ),
           content: Text(
-            'Bạn cần đăng nhập tài khoản JoyleeBook để gửi đánh giá cho tác phẩm "${series.title}".',
+            'Bạn cần đăng nhập tài khoản JoyleeBook để $actionLabel tác phẩm "${series.title}".',
             style: TextStyle(
               fontSize: 14,
               color: colors.textSecondary,

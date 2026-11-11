@@ -14,6 +14,10 @@ abstract final class Environment {
   /// Gateway dùng chung đã deploy (HTTPS) — dự án không chạy backend local
   static const String hostedBaseUrl = 'https://api.joyleebook.duckdns.org';
 
+  /// Web Portal công khai (Blazor Server) dùng để fallback mở Ví / Nạp xu
+  static const String hostedWebUrl = 'https://joyleebook.duckdns.org';
+  static const String walletWebUrl = '$hostedWebUrl/wallet';
+
   /// URL mặc định: ưu tiên `--dart-define`, nếu không có thì dùng Gateway đã deploy
   static String get defaultBaseUrl =>
       definedBaseUrl.isNotEmpty ? definedBaseUrl : hostedBaseUrl;

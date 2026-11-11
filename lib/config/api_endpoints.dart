@@ -4,6 +4,7 @@ abstract final class ApiEndpoints {
 
   // Series Microservice (via Gateway)
   static const String series = '/api/series';
+  static String seriesByAuthor(String authorId) => '$series/author/$authorId';
   static const String genres = '/api/genres';
 
   // Ratings & Comments (Community Microservice via Gateway)
@@ -56,4 +57,19 @@ abstract final class ApiEndpoints {
 
   static const String profiles = '/api/profiles/me';
   static const String libraryStats = '/api/library/stats';
+
+  // Payment & Donation Microservice (via Gateway)
+  static const String payments = '/api/payments';
+  static const String paymentsWallet = '$payments/wallet';
+  static const String paymentsTransactions = '$payments/transactions';
+  static const String paymentsDeposits = '$payments/deposits';
+  static String paymentsDepositDetail(int orderCode) =>
+      '$paymentsDeposits/$orderCode';
+  static String paymentsDepositCancel(int orderCode) =>
+      '$paymentsDeposits/$orderCode/cancel';
+  static String paymentsTransactionStatus(int orderCode) =>
+      '$paymentsTransactions/$orderCode/status';
+  static const String paymentsDonate = '$payments/donate';
+  static String paymentsStoryDonations(String storyId) =>
+      '$payments/stories/$storyId/donations';
 }

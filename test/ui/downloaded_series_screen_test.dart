@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:joyleebook_mobile/data/repositories/chapter_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/offline_series_repository.dart';
+import 'package:joyleebook_mobile/data/repositories/payment_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
 import 'package:joyleebook_mobile/domain/models/chapter.dart';
 import 'package:joyleebook_mobile/domain/models/chapter_detail.dart';
@@ -21,6 +22,7 @@ import 'package:joyleebook_mobile/ui/series/widgets/series_detail_screen.dart';
 
 import '../../testing/fakes/fake_chapter_repository.dart';
 import '../../testing/fakes/fake_offline_series_repository.dart';
+import '../../testing/fakes/fake_payment_repository.dart';
 import '../../testing/fakes/fake_series_repository.dart';
 
 void main() {
@@ -146,6 +148,9 @@ void main() {
             offlineSeriesRepositoryProvider.overrideWithValue(
               FakeOfflineSeriesRepository(),
             ),
+            paymentRepositoryProvider.overrideWithValue(
+              FakePaymentRepository(),
+            ),
           ],
           child: MaterialApp(
             theme: AppTheme.light,
@@ -188,6 +193,9 @@ void main() {
             ),
             offlineSeriesRepositoryProvider.overrideWithValue(
               FakeOfflineSeriesRepository(),
+            ),
+            paymentRepositoryProvider.overrideWithValue(
+              FakePaymentRepository(),
             ),
           ],
           child: MaterialApp(

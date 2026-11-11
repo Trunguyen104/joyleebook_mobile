@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/genre_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/notification_repository.dart';
+import 'package:joyleebook_mobile/data/repositories/payment_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
 import 'package:joyleebook_mobile/domain/models/app_notification.dart';
@@ -17,6 +18,7 @@ import 'package:joyleebook_mobile/ui/series/widgets/series_list_screen.dart';
 import '../../testing/fakes/fake_auth_repository.dart';
 import '../../testing/fakes/fake_genre_repository.dart';
 import '../../testing/fakes/fake_notification_repository.dart';
+import '../../testing/fakes/fake_payment_repository.dart';
 import '../../testing/fakes/fake_profile_repository.dart';
 import '../../testing/fakes/fake_series_repository.dart';
 
@@ -44,6 +46,7 @@ void main() {
       seriesRepositoryProvider.overrideWithValue(FakeSeriesRepository([])),
       genreRepositoryProvider.overrideWithValue(FakeGenreRepository()),
       profileRepositoryProvider.overrideWithValue(FakeProfileRepository()),
+      paymentRepositoryProvider.overrideWithValue(FakePaymentRepository()),
     ],
     child: MaterialApp(theme: AppTheme.light, home: child),
   );
