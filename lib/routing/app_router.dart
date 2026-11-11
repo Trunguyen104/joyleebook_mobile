@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../domain/models/downloaded_series.dart';
 import '../domain/models/series.dart';
 import '../ui/auth/view_models/auth_session_view_model.dart';
 import '../ui/auth/widgets/forgot_password_screen.dart';
@@ -12,6 +13,8 @@ import '../ui/auth/widgets/sign_up_screen.dart';
 import '../ui/bookmark/widgets/bookmark_screen.dart';
 import '../ui/bookmark/widgets/bookmark_list_screen.dart';
 import '../ui/bookmark/widgets/reading_history_screen.dart';
+import '../ui/download/widgets/downloaded_series_screen.dart';
+import '../ui/download/widgets/offline_series_detail_screen.dart';
 import '../ui/chapter/widgets/chapter_detail_screen.dart';
 import '../ui/chapter/widgets/chapter_list_screen.dart';
 import '../ui/gateway_test/widgets/gateway_test_screen.dart';
@@ -116,6 +119,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                               seriesId: state.pathParameters['seriesId']!,
                               chapterId: state.pathParameters['chapterId']!,
                               seriesTitle: state.extra as String? ?? '',
+                              isOfflineMode:
+                                  state.uri.queryParameters['offline'] == '1',
                             ),
                           ),
                         ],
@@ -159,6 +164,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => ReadingHistoryScreen(
                       onExplore: () => context.go(AppPaths.series),
                     ),
+                  ),
+                  GoRoute(
+                    path: 'downloads',
+                    builder: (context, state) => DownloadedSeriesScreen(
+                      onExplore: () => context.go(AppPaths.series),
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: ':seriesId',
+                        builder: (context, state) {
+                          final seriesId = state.pathParameters['seriesId']!;
+                          final extra = state.extra;
+                          return OfflineSeriesDetailScreen(
+                            seriesId: seriesId,
+                            initialSeries: extra is DownloadedSeries
+                                ? extra
+                                : null,
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),

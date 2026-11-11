@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/chapter_repository.dart';
+import '../../../data/repositories/offline_series_repository.dart';
+import '../../../data/services/api_exceptions.dart';
 import '../../../domain/models/chapter_detail.dart';
 
 /// RIVERPOD PROVIDER: Đăng ký ViewModel cho màn hình đọc nội dung chương
@@ -9,6 +11,21 @@ final chapterDetailViewModelProvider =
       ChapterDetailViewModel.new,
       retry: (retryCount, error) => null,
     );
+
+/// RIVERPOD PROVIDER: Đọc nội dung chương trực tiếp từ SQLite (không qua mạng)
+final offlineChapterDetailProvider =
+    FutureProvider.family<ChapterDetail, String>((ref, chapterId) async {
+      final detail = await ref
+          .watch(offlineSeriesRepositoryProvider)
+          .getDownloadedChapterDetail(chapterId);
+      if (detail == null) {
+        throw const AppException(
+          message:
+              'Không tìm thấy nội dung chương này trong bộ nhớ ngoại tuyến.',
+        );
+      }
+      return detail;
+    });
 
 /// VIEWMODEL - Quản lý tải và hiển thị nội dung chương
 class ChapterDetailViewModel extends AsyncNotifier<ChapterDetail> {

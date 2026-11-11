@@ -8,6 +8,7 @@ abstract final class AppPaths {
   static const bookmarks = '/bookmarks';
   static const bookmarkList = '/bookmarks/all';
   static const readingHistory = '/bookmarks/history';
+  static const downloadedSeries = '/bookmarks/downloads';
   static const notifications = '/notifications';
   static const profile = '/profile';
   static const editProfile = '/profile/edit';
@@ -21,6 +22,10 @@ abstract final class AppPaths {
   static const forgotPassword = '/forgot-password';
   static const resetPassword = '/reset-password';
 
+  /// Chi tiết một bộ truyện đã tải (Offline): /bookmarks/downloads/:seriesId
+  static String offlineSeriesDetail(String seriesId) =>
+      '$downloadedSeries/$seriesId';
+
   /// Chi tiết một bộ truyện: /series/:seriesId
   static String seriesDetail(String seriesId) => '$series/$seriesId';
 
@@ -29,6 +34,9 @@ abstract final class AppPaths {
       '${seriesDetail(seriesId)}/chapters';
 
   /// Trang đọc một chương: /series/:seriesId/chapters/:chapterId
-  static String chapterReader(String seriesId, String chapterId) =>
-      '${chapterList(seriesId)}/$chapterId';
+  static String chapterReader(
+    String seriesId,
+    String chapterId, {
+    bool isOffline = false,
+  }) => '${chapterList(seriesId)}/$chapterId${isOffline ? '?offline=1' : ''}';
 }

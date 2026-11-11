@@ -14,6 +14,7 @@ class AppShell extends StatelessWidget {
       body: navigationShell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
         onDestinationSelected: (index) => navigationShell.goBranch(
           index,
           // Bấm lại tab đang mở -> quay về trang đầu của tab đó

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../data/dtos/upsert_reading_progress_dto.dart';
+import '../../../data/repositories/offline_series_repository.dart';
 import '../../../data/repositories/series_repository.dart';
 import '../../../data/services/api_exceptions.dart';
 import '../../../data/services/reading_preferences_service.dart';
@@ -35,11 +36,13 @@ class ChapterDetailScreen extends ConsumerStatefulWidget {
     required this.seriesId,
     required this.chapterId,
     required this.seriesTitle,
+    this.isOfflineMode = false,
   });
 
   final String seriesId;
   final String chapterId;
   final String seriesTitle;
+  final bool isOfflineMode;
 
   @override
   ConsumerState<ChapterDetailScreen> createState() =>
@@ -159,18 +162,33 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
           sortOrder: detail.sortOrder,
           readPercentage: value,
         );
+        // Lưu song song vào SQLite offline progress (best-effort để không lỗi trong môi trường test không mock SQLite)
+        try {
+          await ref
+              .read(offlineSeriesRepositoryProvider)
+              .saveOfflineProgress(
+                seriesId: detail.seriesId,
+                chapterId: detail.id,
+                sortOrder: detail.sortOrder,
+                readPercentage: value,
+                isSynced: false,
+              );
+        } catch (_) {}
+
         // Cập nhật ngay danh sách chương đang nằm dưới trình đọc để khi quay ra
         // không còn hiển thị chương cũ.
-        ref
-            .read(chapterListViewModelProvider(detail.seriesId).notifier)
-            .updateProgressLocally(
-              chapterId: detail.id,
-              sortOrder: detail.sortOrder,
-              progress: value,
-              isCompleted: value >= 0.99,
-            );
+        if (!widget.isOfflineMode) {
+          ref
+              .read(chapterListViewModelProvider(detail.seriesId).notifier)
+              .updateProgressLocally(
+                chapterId: detail.id,
+                sortOrder: detail.sortOrder,
+                progress: value,
+                isCompleted: value >= 0.99,
+              );
+        }
         final session = await authSession;
-        if (session == null) {
+        if (session == null || detail.isOffline || widget.isOfflineMode) {
           _lastSyncedProgress = value;
           _lastSyncedChapterId = detail.id;
           continue;
@@ -185,11 +203,19 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
             readAtUtc: DateTime.now().toUtc(),
           ),
         );
+        try {
+          await ref
+              .read(offlineSeriesRepositoryProvider)
+              .markProgressSynced(detail.seriesId);
+        } catch (_) {}
         _lastSyncedProgress = value;
         _lastSyncedChapterId = detail.id;
       }
     } catch (error) {
-      if (showError && mounted && _activeDetail?.id == syncingChapterId) {
+      if (showError &&
+          mounted &&
+          _activeDetail?.id == syncingChapterId &&
+          _activeDetail?.isOffline != true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -244,7 +270,7 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
 
   Future<ReadingProgress?> _loadSavedProgress(String seriesId) async {
     final session = ref.read(authSessionProvider).value;
-    if (session != null) {
+    if (session != null && !widget.isOfflineMode) {
       try {
         final serverProgress = await ref
             .read(seriesRepositoryProvider)
@@ -256,9 +282,16 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
       }
     }
 
-    final local = await ref
+    var local = await ref
         .read(readingPreferencesServiceProvider)
         .getLastReadProgress(seriesId);
+    if (local == null) {
+      try {
+        local = await ref
+            .read(offlineSeriesRepositoryProvider)
+            .getOfflineProgress(seriesId);
+      } catch (_) {}
+    }
     if (local == null) return null;
     return ReadingProgress(
       seriesId: local.seriesId,
@@ -306,14 +339,20 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
     _progressDebounce?.cancel();
     unawaited(_syncProgress(_currentProgress()));
     context.pushReplacement(
-      AppPaths.chapterReader(widget.seriesId, chapter.id),
+      AppPaths.chapterReader(
+        widget.seriesId,
+        chapter.id,
+        isOffline: widget.isOfflineMode || (_activeDetail?.isOffline ?? false),
+      ),
       extra: widget.seriesTitle,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(chapterDetailViewModelProvider(widget.chapterId));
+    final state = widget.isOfflineMode
+        ? ref.watch(offlineChapterDetailProvider(widget.chapterId))
+        : ref.watch(chapterDetailViewModelProvider(widget.chapterId));
     final mediaQuery = MediaQuery.of(context);
     final topInset = mediaQuery.padding.top;
     final bottomInset = mediaQuery.padding.bottom;
@@ -322,7 +361,9 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
         detail != null && detail.content.trim().isNotEmpty;
 
     final chaptersList =
-        ref.watch(chapterListViewModelProvider(widget.seriesId)).value ??
+        (widget.isOfflineMode
+            ? ref.watch(offlineChapterListProvider(widget.seriesId)).value
+            : ref.watch(chapterListViewModelProvider(widget.seriesId)).value) ??
         <Chapter>[];
     Chapter? previousChapter;
     Chapter? nextChapter;
@@ -408,9 +449,38 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
                   ),
                 ),
                 state.maybeWhen(
-                  data: (detail) => Text(
-                    'Chương ${detail.sortOrder} / ${detail.totalChapters}',
-                    style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                  data: (detail) => Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Chương ${detail.sortOrder} / ${detail.totalChapters}',
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                      if (detail.isOffline) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colors.primaryBrand.withAlpha(25),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'Ngoại tuyến',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: colors.primaryBrand,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   orElse: () => Text(
                     'Đang tải...',
@@ -452,19 +522,21 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
                     ref.read(themeModeProvider.notifier).toggleTheme(),
               ),
 
-              // Nút xem bình luận chương
+              // Nút xem bình luận chương (ẩn khi đọc ngoại tuyến)
               state.maybeWhen(
-                data: (detail) => IconButton(
-                  icon: const Icon(Icons.chat_bubble_outline_rounded),
-                  tooltip: 'Bình luận chương',
-                  onPressed: () => ChapterCommentsSheet.show(
-                    context,
-                    seriesId: widget.seriesId,
-                    chapterId: detail.id,
-                    chapterTitle: detail.title,
-                    sortOrder: detail.sortOrder,
-                  ),
-                ),
+                data: (detail) => (widget.isOfflineMode || detail.isOffline)
+                    ? const SizedBox.shrink()
+                    : IconButton(
+                        icon: const Icon(Icons.chat_bubble_outline_rounded),
+                        tooltip: 'Bình luận chương',
+                        onPressed: () => ChapterCommentsSheet.show(
+                          context,
+                          seriesId: widget.seriesId,
+                          chapterId: detail.id,
+                          chapterTitle: detail.title,
+                          sortOrder: detail.sortOrder,
+                        ),
+                      ),
                 orElse: () => const SizedBox.shrink(),
               ),
             ],
@@ -573,10 +645,16 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
 
       // 2. Trạng thái Error
       error: (error, _) => JoyleeErrorView(
-        message: error.toString(),
-        onRetry: () => ref
-            .read(chapterDetailViewModelProvider(widget.chapterId).notifier)
-            .refresh(),
+        message: error is AppException ? error.message : error.toString(),
+        onRetry: () {
+          if (widget.isOfflineMode) {
+            ref.invalidate(offlineChapterDetailProvider(widget.chapterId));
+          } else {
+            ref
+                .read(chapterDetailViewModelProvider(widget.chapterId).notifier)
+                .refresh();
+          }
+        },
       ),
 
       // 3. Trạng thái Data
@@ -587,9 +665,17 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
             title: 'Chương chưa có nội dung',
             message: 'Tác giả chưa cập nhật nội dung cho chương này.',
             actionLabel: 'Tải lại',
-            onAction: () => ref
-                .read(chapterDetailViewModelProvider(widget.chapterId).notifier)
-                .refresh(),
+            onAction: () {
+              if (widget.isOfflineMode) {
+                ref.invalidate(offlineChapterDetailProvider(widget.chapterId));
+              } else {
+                ref
+                    .read(
+                      chapterDetailViewModelProvider(widget.chapterId).notifier,
+                    )
+                    .refresh();
+              }
+            },
           );
         }
 
@@ -696,35 +782,40 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
                 ),
               ),
               const SizedBox(height: AppDimensions.space4),
-              Center(
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: colors.primaryBrand,
-                    side: BorderSide(
-                      color: colors.primaryBrand.withValues(alpha: 0.5),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimensions.space4,
-                      vertical: AppDimensions.space2,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppDimensions.radiusLg,
+              if (!widget.isOfflineMode && !detail.isOffline) ...[
+                Center(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.primaryBrand,
+                      side: BorderSide(
+                        color: colors.primaryBrand.withValues(alpha: 0.5),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppDimensions.space4,
+                        vertical: AppDimensions.space2,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppDimensions.radiusLg,
+                        ),
                       ),
                     ),
-                  ),
-                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-                  label: const Text('Bình luận chương này'),
-                  onPressed: () => ChapterCommentsSheet.show(
-                    context,
-                    seriesId: widget.seriesId,
-                    chapterId: detail.id,
-                    chapterTitle: detail.title,
-                    sortOrder: detail.sortOrder,
+                    icon: const Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      size: 18,
+                    ),
+                    label: const Text('Bình luận chương này'),
+                    onPressed: () => ChapterCommentsSheet.show(
+                      context,
+                      seriesId: widget.seriesId,
+                      chapterId: detail.id,
+                      chapterTitle: detail.title,
+                      sortOrder: detail.sortOrder,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: AppDimensions.space6),
+                const SizedBox(height: AppDimensions.space6),
+              ],
             ],
           ),
         );

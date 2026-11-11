@@ -9,13 +9,23 @@ import '../../../data/services/api_exceptions.dart';
 import '../../../domain/models/reading_history.dart';
 import '../../../domain/models/series.dart';
 import '../../../routing/app_paths.dart';
+import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
+import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
+import '../../download/view_models/downloaded_series_view_model.dart';
+import '../../download/widgets/downloaded_series_screen.dart';
+import '../../notifications/widgets/notification_bell_button.dart';
+import '../../series/widgets/series_card.dart';
 import '../view_models/bookmark_list_view_model.dart';
 import '../view_models/reading_history_view_model.dart';
-import '../../notifications/widgets/notification_bell_button.dart';
-import 'library_series_card.dart';
+import 'reading_history_screen.dart';
 
+/// MÀN HÌNH TỦ SÁCH CÁ NHÂN (BookmarkScreen)
+/// Gồm 3 tab đặt ngay dưới AppBar:
+/// 1. Đang đọc (Lịch sử đọc gần đây)
+/// 2. Đã lưu (Tủ sách yêu thích)
+/// 3. Đã tải (Truyện đọc ngoại tuyến từ SQLite)
 class BookmarkScreen extends ConsumerStatefulWidget {
   const BookmarkScreen({super.key, this.onExplore});
 
@@ -78,34 +88,42 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final historyState = ref.watch(readingHistoryViewModelProvider);
     final bookmarksState = ref.watch(bookmarkListViewModelProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tủ sách của tôi'),
-        actions: const [NotificationBellButton()],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(
-            top: AppDimensions.space2,
-            bottom: AppDimensions.space6,
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        backgroundColor: colors.bgCanvas,
+        appBar: AppBar(
+          title: const Text('Tủ sách của tôi'),
+          actions: const [NotificationBellButton()],
+          bottom: TabBar(
+            indicatorColor: colors.primaryBrand,
+            labelColor: colors.primaryBrand,
+            unselectedLabelColor: colors.textSecondary,
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 13,
+            ),
+            indicatorWeight: 3,
+            tabs: const [
+              Tab(text: 'Đang đọc'),
+              Tab(text: 'Đã lưu'),
+              Tab(text: 'Đã tải'),
+            ],
           ),
+        ),
+        body: TabBarView(
           children: [
-            _SectionHeader(
-              title: 'Đang đọc gần đây',
-              onViewAll: () => context.push(AppPaths.readingHistory),
-            ),
-            _buildHistorySection(context, historyState),
-            const SizedBox(height: AppDimensions.space6),
-            _SectionHeader(
-              title: 'Truyện đã lưu',
-              onViewAll: () => context.push(AppPaths.bookmarkList),
-            ),
-            _buildBookmarksSection(context, bookmarksState),
+            _buildHistoryTab(context, historyState),
+            _buildBookmarksTab(context, bookmarksState),
+            DownloadedSeriesListView(onExplore: _explore),
           ],
         ),
       ),
@@ -120,107 +138,129 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
       ref
           .read(bookmarkListViewModelProvider.notifier)
           .refresh(showLoading: !silent),
+      ref
+          .read(downloadedSeriesViewModelProvider.notifier)
+          .refresh(showLoading: !silent),
     ]);
   }
 
-  Widget _buildHistorySection(
+  Widget _buildHistoryTab(
     BuildContext context,
     AsyncValue<List<ReadingHistory>> state,
   ) {
-    return state.when(
-      loading: () => const _SectionLoading(),
-      error: (error, _) => _SectionError(
-        message: error is AppException ? error.message : 'Đã có lỗi xảy ra.',
-        onRetry: () =>
-            ref.read(readingHistoryViewModelProvider.notifier).refresh(),
+    return RefreshIndicator(
+      onRefresh: () =>
+          ref.read(readingHistoryViewModelProvider.notifier).refresh(),
+      child: state.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            const SizedBox(height: 64),
+            JoyleeErrorView(
+              message: error is AppException
+                  ? error.message
+                  : 'Đã có lỗi xảy ra.',
+              onRetry: () =>
+                  ref.read(readingHistoryViewModelProvider.notifier).refresh(),
+            ),
+          ],
+        ),
+        data: (history) {
+          if (history.isEmpty) {
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                const SizedBox(height: 48),
+                JoyleeEmptyState(
+                  iconData: Icons.menu_book_outlined,
+                  title: 'Chưa có lịch sử đọc',
+                  message: 'Những truyện bạn đã đọc sẽ xuất hiện ở đây.',
+                  actionLabel: 'Khám phá truyện',
+                  onAction: _explore,
+                ),
+              ],
+            );
+          }
+
+          return ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(AppDimensions.space4),
+            itemCount: history.length,
+            separatorBuilder: (_, _) =>
+                const SizedBox(height: AppDimensions.space2),
+            itemBuilder: (context, index) {
+              final entry = history[index];
+              return HistoryListTile(
+                key: ValueKey('history-${entry.seriesId}'),
+                entry: entry,
+                onTap: () => _openSeries(context, entry.series),
+              );
+            },
+          );
+        },
       ),
-      data: (history) {
-        if (history.isEmpty) {
-          return _SectionEmpty(
-            icon: Icons.menu_book_outlined,
-            title: 'Chưa có lịch sử đọc',
-            message: 'Những truyện bạn đã đọc sẽ xuất hiện ở đây.',
-            actionLabel: 'Khám phá truyện',
-            onAction: _explore,
-          );
-        }
-        final displayItems = history.take(4).toList();
-        return _seriesGrid(displayItems.length, (index) {
-          final entry = displayItems[index];
-          return LibrarySeriesCard(
-            key: ValueKey('history-${entry.seriesId}'),
-            series: entry.series,
-            history: entry,
-            onTap: () => _openSeries(context, entry.series),
-          );
-        });
-      },
     );
   }
 
-  Widget _buildBookmarksSection(
+  Widget _buildBookmarksTab(
     BuildContext context,
     AsyncValue<List<Series>> state,
   ) {
-    return state.when(
-      loading: () => const _SectionLoading(),
-      error: (error, _) => _SectionError(
-        message: error is AppException ? error.message : 'Đã có lỗi xảy ra.',
-        onRetry: () =>
-            ref.read(bookmarkListViewModelProvider.notifier).refresh(),
-      ),
-      data: (bookmarks) {
-        if (bookmarks.isEmpty) {
-          return _SectionEmpty(
-            icon: Icons.bookmark_border_rounded,
-            title: 'Tủ sách đang trống',
-            message: 'Lưu truyện yêu thích để tìm và đọc lại dễ dàng.',
-            actionLabel: 'Khám phá truyện',
-            onAction: _explore,
-          );
-        }
-        final displayItems = bookmarks.take(4).toList();
-        return _seriesGrid(displayItems.length, (index) {
-          final series = displayItems[index];
-          return LibrarySeriesCard(
-            key: ValueKey('bookmark-${series.id}'),
-            series: series,
-            onTap: () => _openSeries(context, series),
-            onRemoveBookmark: () => _removeBookmark(series),
-            isBookmarkActionLoading: _inFlightIds.contains(series.id),
-          );
-        });
-      },
-    );
-  }
+    return RefreshIndicator(
+      onRefresh: () =>
+          ref.read(bookmarkListViewModelProvider.notifier).refresh(),
+      child: state.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            const SizedBox(height: 64),
+            JoyleeErrorView(
+              message: error is AppException
+                  ? error.message
+                  : 'Đã có lỗi xảy ra.',
+              onRetry: () =>
+                  ref.read(bookmarkListViewModelProvider.notifier).refresh(),
+            ),
+          ],
+        ),
+        data: (bookmarks) {
+          if (bookmarks.isEmpty) {
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                const SizedBox(height: 48),
+                JoyleeEmptyState(
+                  iconData: Icons.bookmark_border_rounded,
+                  title: 'Tủ sách đang trống',
+                  message: 'Lưu truyện yêu thích để tìm và đọc lại dễ dàng.',
+                  actionLabel: 'Khám phá truyện',
+                  onAction: _explore,
+                ),
+              ],
+            );
+          }
 
-  Widget _seriesGrid(int itemCount, Widget Function(int index) itemBuilder) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final availableWidth = constraints.maxWidth - AppDimensions.space4 * 2;
-        final crossAxisCount =
-            ((availableWidth + AppDimensions.space3) /
-                    (145 + AppDimensions.space3))
-                .floor()
-                .clamp(1, 4);
-        final cardWidth =
-            (availableWidth - AppDimensions.space3 * (crossAxisCount - 1)) /
-            crossAxisCount;
-        const targetHeight = 250.0;
-        return GridView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: AppDimensions.space4),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: AppDimensions.space3,
-            mainAxisSpacing: AppDimensions.space3,
-            childAspectRatio: cardWidth / targetHeight,
-          ),
-          itemCount: itemCount,
-          itemBuilder: (context, index) => itemBuilder(index),
-        );
-      },
+          return ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(AppDimensions.space4),
+            itemCount: bookmarks.length,
+            itemBuilder: (context, index) {
+              final series = bookmarks[index];
+              return SeriesCard(
+                key: ValueKey('bookmark-${series.id}'),
+                series: series,
+                isBookmarkActionLoading: _inFlightIds.contains(series.id),
+                bookmarkActionIcon: Icons.bookmark_remove_outlined,
+                bookmarkActionTooltip: 'Bỏ lưu',
+                onTap: () => _openSeries(context, series),
+                onBookmarkTap: () => _removeBookmark(series),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -256,99 +296,4 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
       ),
     );
   }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.onViewAll});
-
-  final String title;
-  final VoidCallback onViewAll;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(
-      AppDimensions.space4,
-      AppDimensions.space3,
-      AppDimensions.space2,
-      AppDimensions.space2,
-    ),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
-        TextButton(onPressed: onViewAll, child: const Text('Xem tất cả')),
-      ],
-    ),
-  );
-}
-
-class _SectionLoading extends StatelessWidget {
-  const _SectionLoading();
-
-  @override
-  Widget build(BuildContext context) => const SizedBox(
-    height: 180,
-    child: Center(child: CircularProgressIndicator()),
-  );
-}
-
-class _SectionError extends StatelessWidget {
-  const _SectionError({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: AppDimensions.space3),
-    child: JoyleeErrorView(message: message, onRetry: onRetry),
-  );
-}
-
-class _SectionEmpty extends StatelessWidget {
-  const _SectionEmpty({
-    required this.icon,
-    required this.title,
-    required this.message,
-    required this.actionLabel,
-    required this.onAction,
-  });
-
-  final IconData icon;
-  final String title;
-  final String message;
-  final String actionLabel;
-  final VoidCallback onAction;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(
-      AppDimensions.space4,
-      AppDimensions.space3,
-      AppDimensions.space4,
-      AppDimensions.space4,
-    ),
-    child: Row(
-      children: [
-        Icon(icon, size: 36, color: Theme.of(context).disabledColor),
-        const SizedBox(width: AppDimensions.space3),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(height: AppDimensions.space1),
-              Text(message, style: Theme.of(context).textTheme.bodySmall),
-              TextButton(onPressed: onAction, child: Text(actionLabel)),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
 }

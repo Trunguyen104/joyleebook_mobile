@@ -13,6 +13,7 @@ class ChapterDetail {
   final int totalChapters;
   final int status;
   final DateTime? publishedAt;
+  final bool isOffline;
 
   const ChapterDetail({
     required this.id,
@@ -23,6 +24,7 @@ class ChapterDetail {
     required this.totalChapters,
     required this.status,
     this.publishedAt,
+    this.isOffline = false,
   });
 
   factory ChapterDetail.fromDto(ChapterDetailDto dto) {

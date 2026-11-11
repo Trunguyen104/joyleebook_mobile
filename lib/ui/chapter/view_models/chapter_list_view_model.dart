@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/chapter_repository.dart';
+import '../../../data/repositories/offline_series_repository.dart';
 import '../../../data/repositories/series_repository.dart';
 import '../../../data/services/reading_preferences_service.dart';
 import '../../../domain/models/chapter.dart';
@@ -14,6 +15,14 @@ final chapterListViewModelProvider = AsyncNotifierProvider.autoDispose
       ChapterListViewModel.new,
       retry: (retryCount, error) => null,
     );
+
+/// RIVERPOD PROVIDER: Đọc danh sách chương trực tiếp từ SQLite (chế độ đọc Offline)
+final offlineChapterListProvider = FutureProvider.autoDispose
+    .family<List<Chapter>, String>((ref, seriesId) {
+      return ref
+          .watch(offlineSeriesRepositoryProvider)
+          .getDownloadedChapters(seriesId);
+    });
 
 /// VIEWMODEL - Quản lý trạng thái tải danh sách chương
 /// Tiến độ đọc lấy từ Library API là nguồn chính; bản lưu cục bộ chỉ dùng
@@ -37,13 +46,17 @@ class ChapterListViewModel extends AsyncNotifier<List<Chapter>> {
   /// Kéo để làm mới danh sách chương (Pull-to-refresh)
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(_load);
+    final result = await AsyncValue.guard(_load);
+    if (ref.mounted) {
+      state = result;
+    }
   }
 
   Future<List<Chapter>> _load() async {
     final chapters = await ref
         .read(chapterRepositoryProvider)
         .getChaptersBySeries(seriesId);
+    if (!ref.mounted) return chapters;
 
     final session = ref.read(authSessionProvider).value;
     if (session != null) {
@@ -51,6 +64,7 @@ class ChapterListViewModel extends AsyncNotifier<List<Chapter>> {
         final progress = await ref
             .read(seriesRepositoryProvider)
             .getReadingProgressDetail(seriesId);
+        if (!ref.mounted) return chapters;
         if (progress == null) {
           // Server xác nhận tài khoản chưa đọc bộ truyện này -> không dùng
           // bản local cũ để tránh lẫn tiến độ của tài khoản khác trên máy.
@@ -61,6 +75,8 @@ class ChapterListViewModel extends AsyncNotifier<List<Chapter>> {
         // Lỗi mạng: tạm dùng tiến độ lưu cục bộ.
       }
     }
+
+    if (!ref.mounted) return chapters;
 
     final local = await ref
         .read(readingPreferencesServiceProvider)
