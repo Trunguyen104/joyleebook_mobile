@@ -31,6 +31,16 @@ abstract final class AppTheme {
           side: BorderSide(color: colors.borderDefault, width: 1),
         ),
       ),
+      navigationBarTheme: NavigationBarThemeData(
+        height: 50, // Chiều cao mong muốn (56 - 60)
+        indicatorColor: Colors.transparent,
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return IconThemeData(color: colors.primaryBrand, size: 24);
+          }
+          return IconThemeData(color: colors.textSecondary, size: 24);
+        }),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: colors.bgSurface,
         foregroundColor: colors.textPrimary,
@@ -47,6 +57,7 @@ abstract final class AppTheme {
           fontWeight: FontWeight.bold,
           letterSpacing: -0.2,
         ),
+
         shape: Border(
           bottom: BorderSide(
             color: colors.borderDefault.withValues(alpha: 0.7),

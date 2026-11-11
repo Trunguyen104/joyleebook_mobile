@@ -14,6 +14,7 @@ import 'package:joyleebook_mobile/domain/models/series.dart';
 import 'package:joyleebook_mobile/ui/chapter/widgets/chapter_detail_screen.dart';
 import 'package:joyleebook_mobile/ui/chapter/widgets/chapter_item.dart';
 import 'package:joyleebook_mobile/ui/core/themes/app_theme.dart';
+import 'package:joyleebook_mobile/ui/core/widgets/joylee_empty_state.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_error_view.dart';
 import 'package:joyleebook_mobile/ui/series/widgets/series_detail_screen.dart';
 
@@ -276,6 +277,52 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(ChapterDetailScreen), findsNothing);
       expect(find.byType(SeriesDetailScreen), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Tab Chương hiển thị JoyleeEmptyState và bấm Tải lại kích hoạt refresh',
+    (tester) async {
+      final emptySeries = mockSeries.copyWith(totalChapters: 0);
+      final fakeSeriesRepo = FakeSeriesRepository([emptySeries]);
+      final fakeChapterRepo = FakeChapterRepository(<Chapter>[]);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            seriesRepositoryProvider.overrideWithValue(fakeSeriesRepo),
+            chapterRepositoryProvider.overrideWithValue(fakeChapterRepo),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const SeriesDetailScreen(seriesId: 's1'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Mở Tab Chương
+      final chapterTabFinder = find.byWidgetPredicate(
+        (w) => w is Tab && (w.text?.startsWith('Chương') ?? false),
+      );
+      expect(chapterTabFinder, findsOneWidget);
+      await tester.tap(chapterTabFinder);
+      await tester.pumpAndSettle();
+
+      // Kiểm tra Empty State và nút Tải lại
+      expect(find.byType(JoyleeEmptyState), findsOneWidget);
+      expect(find.text('Chưa có chương nào'), findsOneWidget);
+      expect(find.text('Tải lại'), findsOneWidget);
+
+      // Thêm chương vào fake repo rồi bấm nút Tải lại
+      fakeChapterRepo.chapters.addAll(mockChapters);
+      await tester.tap(find.text('Tải lại'));
+      await tester.pumpAndSettle();
+
+      // Danh sách chương đã được tải lại thành công
+      expect(find.byType(ChapterItem), findsNWidgets(2));
+      expect(find.text('Ch. 1: Một người huyền bí'), findsOneWidget);
     },
   );
 }

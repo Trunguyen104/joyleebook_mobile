@@ -43,7 +43,7 @@ class ReadingHistoryScreen extends ConsumerWidget {
                     itemCount: history.length,
                     separatorBuilder: (_, _) =>
                         const SizedBox(height: AppDimensions.space2),
-                    itemBuilder: (context, index) => _HistoryListTile(
+                    itemBuilder: (context, index) => HistoryListTile(
                       entry: history[index],
                       onTap: () => context.push(
                         AppPaths.seriesDetail(history[index].seriesId),
@@ -82,8 +82,8 @@ class ReadingHistoryScreen extends ConsumerWidget {
   );
 }
 
-class _HistoryListTile extends StatelessWidget {
-  const _HistoryListTile({required this.entry, required this.onTap});
+class HistoryListTile extends StatelessWidget {
+  const HistoryListTile({super.key, required this.entry, required this.onTap});
 
   final ReadingHistory entry;
   final VoidCallback onTap;

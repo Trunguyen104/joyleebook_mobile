@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,6 +16,7 @@ import '../dtos/series_dto.dart';
 import '../dtos/upsert_reading_progress_dto.dart';
 import '../services/api_client.dart';
 import '../services/api_exceptions.dart';
+import '../services/offline_database_service.dart';
 import '../services/search_utils.dart';
 
 /// REPOSITORY - Kho lưu trữ dữ liệu
@@ -21,8 +24,9 @@ import '../services/search_utils.dart';
 /// Là lớp trung gian DUY NHẤT kết nối giữa Data Service (Dio/Mạng) và Giao diện (ViewModel).
 class SeriesRepository {
   final Dio _dio;
+  final OfflineDatabaseService? _offlineDb;
 
-  SeriesRepository(this._dio);
+  SeriesRepository(this._dio, {this._offlineDb});
 
   /// 1. Lấy danh sách truyện từ Gateway
   /// Có hỗ trợ tham số tìm kiếm [searchQuery] nếu người dùng gõ từ khóa
@@ -499,6 +503,33 @@ class SeriesRepository {
         clearUserRating: userRating == null,
       );
     } on DioException catch (e) {
+      if (_offlineDb != null) {
+        final offlineRow = await _offlineDb.getDownloadedSeriesRaw(seriesId);
+        if (offlineRow != null) {
+          List<String> genres = const [];
+          final genresStr = offlineRow['genres_json'] as String?;
+          if (genresStr != null && genresStr.isNotEmpty) {
+            try {
+              final decoded = jsonDecode(genresStr);
+              if (decoded is List) {
+                genres = decoded.map((e) => e.toString()).toList();
+              }
+            } catch (_) {}
+          }
+          return Series(
+            id: offlineRow['id'] as String,
+            title: offlineRow['title'] as String,
+            authorName: offlineRow['author_name'] as String,
+            description:
+                (offlineRow['description'] as String?) ??
+                'Chưa có tóm tắt cho tác phẩm này.',
+            coverImageUrl: (offlineRow['cover_image_url'] as String?) ?? '',
+            status: SeriesStatus.fromInt((offlineRow['status'] as int?) ?? 1),
+            genres: genres,
+            totalChapters: (offlineRow['total_chapters'] as int?) ?? 0,
+          );
+        }
+      }
       throw AppException.fromDio(e);
     } catch (e) {
       if (e is AppException) rethrow;
@@ -616,5 +647,6 @@ class SeriesRepository {
 /// RIVERPOD PROVIDER: Đăng ký SeriesRepository để các ViewModel có thể dùng lại dễ dàng
 final seriesRepositoryProvider = Provider<SeriesRepository>((ref) {
   final dio = ref.watch(apiClientProvider);
-  return SeriesRepository(dio);
+  final offlineDb = ref.watch(offlineDatabaseServiceProvider);
+  return SeriesRepository(dio, offlineDb: offlineDb);
 });
