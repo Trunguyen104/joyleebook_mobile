@@ -46,6 +46,38 @@ class AuthRepository {
     }
   }
 
+  Future<AuthSession> signInWithGoogle({required String idToken}) async {
+    if (idToken.trim().isEmpty || idToken.length > 4096) {
+      throw const AppException(
+        message: 'Thông tin đăng nhập Google không hợp lệ.',
+      );
+    }
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        ApiEndpoints.authGoogle,
+        data: GoogleSignInRequestDto(idToken: idToken).toJson(),
+        options: _skipRefresh,
+      );
+      return await _saveSession(response.data);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw const AppException(
+          message:
+              'Không thể xác minh tài khoản Google. Vui lòng đăng nhập lại.',
+          statusCode: 401,
+        );
+      }
+      if (e.response?.statusCode == 503) {
+        throw const AppException(
+          message:
+              'Đăng nhập Google tạm thời không khả dụng. Vui lòng thử lại sau.',
+          statusCode: 503,
+        );
+      }
+      throw AppException.fromDio(e);
+    }
+  }
+
   /// Backend trả về token ngay khi đăng ký (201) -> đăng nhập luôn
   Future<AuthSession> signUp({
     required String username,

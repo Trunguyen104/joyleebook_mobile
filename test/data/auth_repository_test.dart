@@ -7,6 +7,7 @@ import 'package:joyleebook_mobile/config/api_endpoints.dart';
 import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
 import 'package:joyleebook_mobile/data/services/api_client.dart';
 import 'package:joyleebook_mobile/data/services/api_exceptions.dart';
+import 'package:joyleebook_mobile/data/services/auth_interceptor.dart';
 import 'package:joyleebook_mobile/domain/models/user_profile.dart';
 
 import '../../testing/fakes/fake_token_storage.dart';
@@ -28,6 +29,7 @@ class _FakeServer implements HttpClientAdapter {
   _FakeServer(this.statusCode, {this.withRefreshToken = true});
   final int statusCode;
   RequestOptions? lastRequest;
+  int requestCount = 0;
 
   /// false = giống bản backend đang deploy (chưa trả refreshToken)
   final bool withRefreshToken;
@@ -39,6 +41,7 @@ class _FakeServer implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     lastRequest = options;
+    requestCount++;
     final body = options.path == ApiEndpoints.authChangePassword
         ? <String, dynamic>{'message': 'Current password is incorrect.'}
         : (options.path == ApiEndpoints.authSignOut ||
@@ -81,6 +84,114 @@ AuthRepository _buildRepository(
 }
 
 void main() {
+  test(
+    'Google gửi đúng ID token qua gateway, bỏ refresh và lưu phiên',
+    () async {
+      final storage = FakeTokenStorage();
+      final server = _FakeServer(200);
+      final dio = createApiClient(
+        storage,
+        Uri.parse('https://gateway.test'),
+        onSessionExpired: () {},
+      )..httpClientAdapter = server;
+      final session = await AuthRepository(
+        dio,
+        storage,
+      ).signInWithGoogle(idToken: 'google-id');
+      expect(server.lastRequest!.method, 'POST');
+      expect(server.lastRequest!.path, ApiEndpoints.authGoogle);
+      expect(server.lastRequest!.data, {'idToken': 'google-id'});
+      expect(
+        server.lastRequest!.extra[AuthInterceptor.skipAuthRefresh],
+        isTrue,
+      );
+      expect(session.userId, 'user-1');
+      expect(storage.accessToken, _fakeJwt());
+      expect(storage.refreshToken, 'refresh-1');
+    },
+  );
+
+  test('Google 401 không refresh hoặc xóa phiên cũ', () async {
+    final storage = FakeTokenStorage(
+      accessToken: 'old-access',
+      refreshToken: 'old-refresh',
+    );
+    final server = _FakeServer(401);
+    var expired = false;
+    final dio = createApiClient(
+      storage,
+      Uri.parse('https://gateway.test'),
+      onSessionExpired: () => expired = true,
+    )..httpClientAdapter = server;
+    await expectLater(
+      AuthRepository(dio, storage).signInWithGoogle(idToken: 'invalid'),
+      throwsA(
+        isA<AppException>().having(
+          (e) => e.message,
+          'message',
+          'Không thể xác minh tài khoản Google. Vui lòng đăng nhập lại.',
+        ),
+      ),
+    );
+    expect(server.requestCount, 1);
+    expect(expired, isFalse);
+    expect(storage.accessToken, 'old-access');
+    expect(storage.refreshToken, 'old-refresh');
+  });
+
+  test('Google không nhận token rỗng hoặc quá dài', () async {
+    final storage = FakeTokenStorage();
+    final server = _FakeServer(200);
+    final dio = Dio()..httpClientAdapter = server;
+    for (final token in ['', '   ', 'a' * 4097]) {
+      await expectLater(
+        AuthRepository(dio, storage).signInWithGoogle(idToken: token),
+        throwsA(isA<AppException>()),
+      );
+    }
+    expect(server.requestCount, 0);
+    expect(storage.accessToken, isNull);
+  });
+
+  test('Google 503 trả thông báo thân thiện và không lưu token', () async {
+    final storage = FakeTokenStorage();
+    await expectLater(
+      _buildRepository(storage, 503).signInWithGoogle(idToken: 'google-id'),
+      throwsA(
+        isA<AppException>().having(
+          (e) => e.message,
+          'message',
+          'Đăng nhập Google tạm thời không khả dụng. Vui lòng thử lại sau.',
+        ),
+      ),
+    );
+    expect(storage.accessToken, isNull);
+  });
+
+  test('Google phản hồi thiếu accessToken không lưu phiên', () async {
+    final storage = FakeTokenStorage();
+    final dio = Dio()
+      ..interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            handler.resolve(
+              Response(
+                requestOptions: options,
+                data: <String, dynamic>{'refreshToken': 'r'},
+                statusCode: 200,
+              ),
+            );
+          },
+        ),
+      );
+    await expectLater(
+      AuthRepository(dio, storage).signInWithGoogle(idToken: 'google-id'),
+      throwsA(isA<AppException>()),
+    );
+    expect(storage.accessToken, isNull);
+    expect(storage.refreshToken, isNull);
+  });
+
   test(
     'Đổi mật khẩu gửi PUT đúng hợp đồng và xóa cả hai token khi thành công',
     () async {
