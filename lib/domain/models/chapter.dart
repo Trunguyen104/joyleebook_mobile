@@ -15,6 +15,7 @@ class Chapter {
   final double readPercentage; // 0.0 -> 1.0 (ví dụ 0.45 là 45%)
   final bool isCompleted;
   final bool isActive;
+  final bool isDownloaded;
 
   const Chapter({
     required this.id,
@@ -26,6 +27,7 @@ class Chapter {
     this.readPercentage = 0.0,
     this.isCompleted = false,
     this.isActive = false,
+    this.isDownloaded = false,
   });
 
   /// Chuyển đổi từ ChapterDto sang Chapter Domain Model
@@ -34,6 +36,7 @@ class Chapter {
     double readPercentage = 0.0,
     bool isCompleted = false,
     bool isActive = false,
+    bool isDownloaded = false,
   }) {
     return Chapter(
       id: dto.id,
@@ -45,6 +48,7 @@ class Chapter {
       readPercentage: readPercentage,
       isCompleted: isCompleted,
       isActive: isActive,
+      isDownloaded: isDownloaded,
     );
   }
 
@@ -58,6 +62,7 @@ class Chapter {
     double? readPercentage,
     bool? isCompleted,
     bool? isActive,
+    bool? isDownloaded,
   }) {
     return Chapter(
       id: id ?? this.id,
@@ -69,6 +74,7 @@ class Chapter {
       readPercentage: readPercentage ?? this.readPercentage,
       isCompleted: isCompleted ?? this.isCompleted,
       isActive: isActive ?? this.isActive,
+      isDownloaded: isDownloaded ?? this.isDownloaded,
     );
   }
 }

@@ -12,6 +12,7 @@ import '../ui/auth/widgets/sign_up_screen.dart';
 import '../ui/bookmark/widgets/bookmark_screen.dart';
 import '../ui/bookmark/widgets/bookmark_list_screen.dart';
 import '../ui/bookmark/widgets/reading_history_screen.dart';
+import '../ui/bookmark/widgets/offline_library_screen.dart';
 import '../ui/chapter/widgets/chapter_detail_screen.dart';
 import '../ui/chapter/widgets/chapter_list_screen.dart';
 import '../ui/gateway_test/widgets/gateway_test_screen.dart';
@@ -159,6 +160,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => ReadingHistoryScreen(
                       onExplore: () => context.go(AppPaths.series),
                     ),
+                  ),
+                  GoRoute(
+                    path: 'offline',
+                    builder: (context, state) => const OfflineLibraryScreen(),
+                    routes: [
+                      GoRoute(
+                        path: ':seriesId',
+                        builder: (context, state) =>
+                            OfflineSeriesChaptersScreen(
+                              seriesId: state.pathParameters['seriesId']!,
+                            ),
+                      ),
+                    ],
                   ),
                 ],
               ),

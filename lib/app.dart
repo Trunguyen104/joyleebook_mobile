@@ -1,13 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'data/services/api_client.dart';
+import 'data/services/local_database_service.dart';
 import 'routing/app_router.dart';
 import 'ui/core/services/app_messenger.dart';
 import 'ui/core/themes/app_theme.dart';
 import 'ui/core/themes/theme_provider.dart';
 import 'ui/notifications/view_models/notification_realtime_view_model.dart';
 import 'ui/notifications/widgets/notification_realtime_listener.dart';
+import 'ui/auth/view_models/auth_session_view_model.dart';
 
 /// LỚP GỐC CỦA ỨNG DỤNG FLUTTER (JoyleeBookApp)
 /// Cấu hình giao diện Material Design 3, màu sắc Warm Editorial,
@@ -45,6 +49,14 @@ class _JoyleeBookAppState extends ConsumerState<JoyleeBookApp>
     final themeMode = ref.watch(themeModeProvider);
     final router = ref.watch(appRouterProvider);
 
+    ref.listen(authSessionProvider, (previous, next) {
+      final previousUserId = previous?.value?.userId;
+      final nextSession = next.value;
+      if (previousUserId != null && nextSession == null) {
+        unawaited(_clearOfflineData(previousUserId));
+      }
+    });
+
     ref.listen<bool>(sessionExpiredProvider, (previous, expired) {
       if (expired) {
         appScaffoldMessengerKey.currentState?.showSnackBar(
@@ -69,5 +81,13 @@ class _JoyleeBookAppState extends ConsumerState<JoyleeBookApp>
         routerConfig: router,
       ),
     );
+  }
+
+  Future<void> _clearOfflineData(String userId) async {
+    try {
+      await ref.read(localDatabaseServiceProvider).deleteUser(userId);
+    } catch (_) {
+      // SQLite plugin có thể chưa sẵn sàng trong môi trường test.
+    }
   }
 }

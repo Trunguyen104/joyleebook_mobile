@@ -123,7 +123,8 @@ graph TD
 - **`services/` (Dịch vụ hạ tầng thấp tầng)**:
   - `api_client.dart`: Cấu hình `Dio` singleton/instance với timeout (10s connect, 20s receive), logging và interceptors.
   - `token_storage.dart`: Đọc/ghi JWT token an toàn trong Keychain (iOS) hoặc Keystore (Android).
-  - `local_storage_service.dart`: Đọc/ghi cài đặt người dùng, lịch sử đọc truyện dở dang.
+   - `reading_preferences_service.dart`: Đọc/ghi cỡ chữ và tiến độ đọc nhẹ bằng SharedPreferences.
+   - `local_database_service.dart`: Lưu nội dung chapter đã tải bằng SQLite, cô lập theo `userId`.
 
 ### 3.4. Tầng Điều hướng (Routing Layer — `lib/routing/`)
 - Sử dụng **`GoRouter`** để quản lý điều hướng tập trung theo URL path (ví dụ: `/home`, `/series/:id`, `/reading/:chapterId`, `/sign-in`).
@@ -173,7 +174,7 @@ graph LR
     subgraph StorageLevels["Phân cấp Lưu trữ Cục bộ (Local Storage)"]
         Level1["1. Bảo mật cao\n(FlutterSecureStorage)\n• Access Token (JWT)\n• Refresh Token (nếu có)\n• Thông tin phiên nhạy cảm"]
         Level2["2. Tùy chọn người dùng\n(SharedPreferences)\n• Theme: Sáng/Tối\n• Cỡ chữ đọc truyện (14-24sp)\n• Cờ isFirstLaunch"]
-        Level3["3. Dữ liệu đọc Offline\n(SQLite / Local Cache)\n• Lịch sử đọc gần đây\n• Cache danh sách Series tạm thời\n• Vị trí chương đọc dở dang"]
+        Level3["3. Dữ liệu đọc Offline\n(SQLite)\n• Metadata series đã tải\n• Nội dung chapter đã tải\n• Dữ liệu cô lập theo userId"]
     end
 ```
 
@@ -183,9 +184,10 @@ graph LR
 2. **`SharedPreferences` (Cấp 2 — Cài đặt nhẹ)**:
    - Lưu trữ cặp key-value cho các thiết lập giao diện của Reader.
    - Truy xuất nhanh đồng bộ trong RAM.
-3. **`sqflite` hoặc In-memory / File Cache (Cấp 3 — Dữ liệu truyện)**:
-   - Lưu trữ danh sách các tác phẩm đọc gần đây để người đọc tiếp tục đọc ngay cả khi mất mạng.
-   - Tự động dọn dẹp các bản ghi quá cũ (FIFO - First In First Out, giữ tối đa 50 chương gần nhất).
+3. **SQLite (Cấp 3 — Nội dung đọc offline)**:
+   - Lưu nội dung chapter khi người dùng chủ động tải từ danh sách chương.
+   - Dữ liệu được gắn với `userId` và xóa khi đăng xuất.
+   - Người dùng tự quản lý việc xóa chapter/truyện đã tải; không tự động áp dụng FIFO.
 
 ---
 

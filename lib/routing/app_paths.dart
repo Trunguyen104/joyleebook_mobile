@@ -8,6 +8,7 @@ abstract final class AppPaths {
   static const bookmarks = '/bookmarks';
   static const bookmarkList = '/bookmarks/all';
   static const readingHistory = '/bookmarks/history';
+  static const offlineLibrary = '/bookmarks/offline';
   static const notifications = '/notifications';
   static const profile = '/profile';
   static const editProfile = '/profile/edit';
@@ -31,4 +32,6 @@ abstract final class AppPaths {
   /// Trang đọc một chương: /series/:seriesId/chapters/:chapterId
   static String chapterReader(String seriesId, String chapterId) =>
       '${chapterList(seriesId)}/$chapterId';
+
+  static String offlineSeries(String seriesId) => '$offlineLibrary/$seriesId';
 }

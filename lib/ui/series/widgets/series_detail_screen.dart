@@ -798,6 +798,10 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
               final chapter = allChapters[index];
               return ChapterItem(
                 chapter: chapter,
+                isDownloading: ref
+                    .read(chapterListViewModelProvider(series.id).notifier)
+                    .isDownloading(chapter.id),
+                onDownload: () => _toggleOfflineChapter(series, chapter),
                 onTap: () => context.push(
                   AppPaths.chapterReader(series.id, chapter.id),
                   extra: series.title,
@@ -808,6 +812,39 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _toggleOfflineChapter(Series series, Chapter chapter) async {
+    try {
+      await ref
+          .read(chapterListViewModelProvider(series.id).notifier)
+          .toggleOfflineChapter(
+            chapter,
+            seriesTitle: series.title,
+            series: series,
+          );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            chapter.isDownloaded
+                ? 'Đã xóa chương khỏi dữ liệu offline.'
+                : 'Đã tải chương để đọc offline.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is AppException
+                ? error.message
+                : 'Không thể cập nhật dữ liệu offline.',
+          ),
+        ),
+      );
+    }
   }
 
   /// Xử lý sự kiện bấm "Đọc ngay / Đọc tiếp"

@@ -152,9 +152,11 @@ Khi độc giả bấm lưu truyện vào Tủ sách cá nhân (Bookmark), ứng
 | Thêm vào tủ sách | `POST /api/library/bookmarks` với `{ "seriesId": "GUID" }` |
 | Bỏ khỏi tủ sách | `DELETE /api/library/bookmarks/{seriesId}` |
 
-Màn hình Tủ sách hiển thị tối đa 4 truyện gần đây và 4 truyện đã lưu trong lưới
-tự co giãn theo chiều rộng màn hình; liên kết ở tiêu đề mở danh sách đầy đủ.
-Các trang “Lịch sử đọc” và “Truyện đã lưu” tải đầy đủ danh sách. Tiến độ có trong lịch sử
+Màn hình Tủ sách có ba tab: “Đang đọc”, “Đã lưu” và “Tải xuống”. Tab “Đang đọc”
+hiển thị các series gần đây; tab “Đã lưu” hiển thị các series bookmark; tab “Tải xuống”
+hiển thị các series có ít nhất một chapter offline. Bấm một series trong tab “Tải xuống”
+mở danh sách các chapter đã lưu của series đó.
+Các tab tải đầy đủ danh sách. Tiến độ có trong lịch sử
 được ưu tiên; nếu không có, ứng dụng truy vấn tiến độ riêng theo `seriesId`.
 Nếu lịch sử không kèm thông tin tên hoặc ảnh bìa, ứng dụng lấy thông tin truyện
 từ `GET /api/series/{id}`. Trình đọc gửi tiến độ cuộn, mã/số chương và trạng thái
@@ -197,12 +199,19 @@ sequenceDiagram
 ## 4. Luồng Đọc Truyện & Ghi nhớ Tiến độ Offline (Reading Flow)
 
 1. **Mở chương đọc**: Độc giả chọn chương từ danh mục -> App mở `ChapterReadingScreen`.
+   Nếu request Gateway thất bại, app dùng bản chapter đã tải trong SQLite của tài khoản hiện tại.
 2. **Hiển thị nội dung**: Áp dụng giao diện đọc Warm Editorial (chữ mực trên nền giấy ngà dịu mắt, tùy chỉnh cỡ chữ).
 3. **Tự động lưu tiến độ**:
    - Khi độc giả cuộn màn hình hoặc thoát khỏi chương: App ghi nhận `seriesId`, `chapterId`, `scrollPercentage` vào `SharedPreferences` và gửi `PUT /api/library/progress` nếu đã đăng nhập.
 4. **Tiếp tục đọc (Resume Reading)**:
    - Khi độc giả mở lại chi tiết bộ truyện, ứng dụng lấy tiến độ từ server (hoặc bản cục bộ khi offline) và hiển thị nút **"Đọc tiếp chương X"**.
    - Khi mở trình đọc, ứng dụng khôi phục vị trí cuộn theo `scrollPercentage` đã lưu của đúng chương đó.
+
+5. **Tải chapter offline**:
+   - Người dùng phải đăng nhập và thiết bị phải đang kết nối Wi‑Fi.
+   - Mỗi chapter được tải độc lập qua `GET /api/chapters/{chapterId}` rồi lưu vào SQLite.
+   - Lỗi một chapter không xóa các chapter đã tải thành công; người dùng có thể thử lại riêng.
+   - Cập nhật bản offline chỉ thực hiện khi người dùng bấm tải lại/thay thế bản cũ.
 
 ---
 

@@ -1,10 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/chapter_repository.dart';
+import '../../../data/repositories/offline_chapter_repository.dart';
 import '../../../data/repositories/series_repository.dart';
+import '../../../data/services/api_exceptions.dart';
+import '../../../data/services/connectivity_service.dart';
 import '../../../data/services/reading_preferences_service.dart';
 import '../../../domain/models/chapter.dart';
 import '../../../domain/models/reading_progress.dart';
+import '../../../domain/models/series.dart';
 import '../../auth/view_models/auth_session_view_model.dart';
 
 /// RIVERPOD PROVIDER: Đăng ký ViewModel cho màn hình danh sách chương
@@ -46,6 +50,25 @@ class ChapterListViewModel extends AsyncNotifier<List<Chapter>> {
         .getChaptersBySeries(seriesId);
 
     final session = ref.read(authSessionProvider).value;
+    final downloadedIds = <String>{};
+    if (session != null) {
+      try {
+        downloadedIds.addAll(
+          await ref
+              .read(offlineChapterRepositoryProvider)
+              .getIds(session.userId, seriesId),
+        );
+      } catch (_) {
+        // SQLite không khả dụng trong một số môi trường test: vẫn đọc online.
+      }
+    }
+    final chaptersWithOfflineState = chapters
+        .map(
+          (chapter) => chapter.copyWith(
+            isDownloaded: downloadedIds.contains(chapter.id),
+          ),
+        )
+        .toList(growable: false);
     if (session != null) {
       try {
         final progress = await ref
@@ -54,9 +77,9 @@ class ChapterListViewModel extends AsyncNotifier<List<Chapter>> {
         if (progress == null) {
           // Server xác nhận tài khoản chưa đọc bộ truyện này -> không dùng
           // bản local cũ để tránh lẫn tiến độ của tài khoản khác trên máy.
-          return chapters;
+          return chaptersWithOfflineState;
         }
-        return _applyProgress(chapters, progress);
+        return _applyProgress(chaptersWithOfflineState, progress);
       } catch (_) {
         // Lỗi mạng: tạm dùng tiến độ lưu cục bộ.
       }
@@ -65,12 +88,81 @@ class ChapterListViewModel extends AsyncNotifier<List<Chapter>> {
     final local = await ref
         .read(readingPreferencesServiceProvider)
         .getLastReadProgress(seriesId);
-    if (local == null) return chapters;
+    if (local == null) return chaptersWithOfflineState;
     return _apply(
-      chapters,
+      chaptersWithOfflineState,
       chapterId: local.chapterId,
       sortOrder: local.sortOrder,
       readPercentage: local.readPercentage,
+    );
+  }
+
+  final Set<String> _downloadInFlight = {};
+
+  bool isDownloading(String chapterId) => _downloadInFlight.contains(chapterId);
+
+  Future<void> toggleOfflineChapter(
+    Chapter chapter, {
+    required String seriesTitle,
+    Series? series,
+  }) async {
+    final session = ref.read(authSessionProvider).value;
+    if (session == null) {
+      throw const AppException(
+        message: 'Vui lòng đăng nhập để tải chương offline.',
+      );
+    }
+    if (!_downloadInFlight.add(chapter.id)) return;
+    _notifyState();
+
+    try {
+      final repository = ref.read(offlineChapterRepositoryProvider);
+      if (chapter.isDownloaded) {
+        await repository.delete(session.userId, chapter.id);
+      } else {
+        final isWifi = await ref.read(connectivityServiceProvider).isWifi();
+        if (!isWifi) {
+          throw const AppException(
+            message: 'Chỉ có thể tải chương khi thiết bị đang kết nối Wi‑Fi.',
+          );
+        }
+        final detail = await ref
+            .read(chapterRepositoryProvider)
+            .getChapterDetail(chapter.id);
+        await repository.save(
+          session.userId,
+          seriesTitle,
+          detail,
+          seriesId: series?.id,
+          authorName: series?.authorName ?? '',
+          coverImageUrl: series?.coverImageUrl ?? '',
+          status: series?.status == SeriesStatus.completed ? 0 : 1,
+          totalChapters: series?.totalChapters ?? detail.totalChapters,
+        );
+      }
+      _setDownloaded(chapter.id, !chapter.isDownloaded);
+    } finally {
+      _downloadInFlight.remove(chapter.id);
+      _notifyState();
+    }
+  }
+
+  void _notifyState() {
+    final current = state.value;
+    if (current != null) state = AsyncData(current);
+  }
+
+  void _setDownloaded(String chapterId, bool downloaded) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(
+      current
+          .map(
+            (chapter) => chapter.id == chapterId
+                ? chapter.copyWith(isDownloaded: downloaded)
+                : chapter,
+          )
+          .toList(growable: false),
     );
   }
 

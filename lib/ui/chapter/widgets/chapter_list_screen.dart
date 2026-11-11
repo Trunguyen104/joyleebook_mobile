@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../domain/models/chapter.dart';
+import '../../../data/services/api_exceptions.dart';
 import '../../../routing/app_paths.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
@@ -112,6 +113,43 @@ class ChapterListScreen extends ConsumerWidget {
                     final chapter = chapters[index];
                     return ChapterItem(
                       chapter: chapter,
+                      isDownloading: ref
+                          .read(chapterListViewModelProvider(seriesId).notifier)
+                          .isDownloading(chapter.id),
+                      onDownload: () async {
+                        try {
+                          await ref
+                              .read(
+                                chapterListViewModelProvider(seriesId).notifier,
+                              )
+                              .toggleOfflineChapter(
+                                chapter,
+                                seriesTitle: seriesTitle,
+                              );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  chapter.isDownloaded
+                                      ? 'Đã xóa chương khỏi dữ liệu offline.'
+                                      : 'Đã tải chương để đọc offline.',
+                                ),
+                              ),
+                            );
+                          }
+                        } catch (error) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                error is AppException
+                                    ? error.message
+                                    : 'Không thể cập nhật dữ liệu offline.',
+                              ),
+                            ),
+                          );
+                        }
+                      },
                       onTap: () => context.push(
                         AppPaths.chapterReader(seriesId, chapter.id),
                         extra: seriesTitle,

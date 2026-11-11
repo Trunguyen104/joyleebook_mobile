@@ -10,10 +10,18 @@ import '../../core/widgets/joylee_badge.dart';
 /// 1. Active: Thẻ nổi bật có vạch cam, badge NOW, tiến độ đọc và nút Play.
 /// 2. Normal: Dòng danh sách gọn gàng có icon checkmark/circle, và thời lượng.
 class ChapterItem extends StatelessWidget {
-  const ChapterItem({super.key, required this.chapter, required this.onTap});
+  const ChapterItem({
+    super.key,
+    required this.chapter,
+    required this.onTap,
+    this.onDownload,
+    this.isDownloading = false,
+  });
 
   final Chapter chapter;
   final VoidCallback onTap;
+  final VoidCallback? onDownload;
+  final bool isDownloading;
 
   @override
   Widget build(BuildContext context) {
@@ -126,6 +134,7 @@ class ChapterItem extends StatelessWidget {
                           ),
                           icon: const Icon(Icons.play_arrow_rounded, size: 24),
                         ),
+                        _downloadButton(colors),
                       ],
                     ),
                     const SizedBox(height: AppDimensions.space3),
@@ -202,9 +211,57 @@ class ChapterItem extends StatelessWidget {
                 ],
               ),
             ),
+            _downloadButton(colors),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _downloadButton(AppColors colors) {
+    if (onDownload == null) return const SizedBox.shrink();
+    if (!chapter.isActive) {
+      return TextButton.icon(
+        onPressed: isDownloading ? null : onDownload,
+        icon: isDownloading
+            ? const SizedBox(
+                width: 15,
+                height: 15,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(
+                chapter.isDownloaded
+                    ? Icons.download_done_rounded
+                    : Icons.download_for_offline_outlined,
+                size: 18,
+              ),
+        label: Text(chapter.isDownloaded ? 'Đã tải' : 'Tải offline'),
+        style: TextButton.styleFrom(
+          foregroundColor: chapter.isDownloaded
+              ? colors.accent
+              : colors.textSecondary,
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          visualDensity: VisualDensity.compact,
+        ),
+      );
+    }
+    return IconButton(
+      tooltip: chapter.isDownloaded ? 'Xóa bản offline' : 'Tải để đọc offline',
+      onPressed: isDownloading ? null : onDownload,
+      icon: isDownloading
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              chapter.isDownloaded
+                  ? Icons.download_done_rounded
+                  : Icons.download_for_offline_outlined,
+              color: chapter.isDownloaded
+                  ? colors.accent
+                  : colors.textSecondary,
+            ),
     );
   }
 }

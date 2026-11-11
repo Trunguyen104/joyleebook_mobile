@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../data/dtos/upsert_reading_progress_dto.dart';
+import '../../../data/repositories/offline_chapter_repository.dart';
 import '../../../data/repositories/series_repository.dart';
 import '../../../data/services/api_exceptions.dart';
+import '../../../data/services/connectivity_service.dart';
 import '../../../data/services/reading_preferences_service.dart';
 import '../../../domain/models/chapter.dart';
 import '../../../domain/models/chapter_detail.dart';
@@ -63,6 +65,8 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
   bool _isSyncingProgress = false;
   bool _isRestoringProgress = false;
   bool _hasRestoredProgress = false;
+  bool _isOfflineDownloaded = false;
+  bool _isDownloadingOffline = false;
   Future<void>? _fontSizeFuture;
 
   // Trạng thái ẩn/hiện thanh header & footer để tối đa không gian đọc
@@ -285,6 +289,71 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
     }
   }
 
+  Future<void> _loadOfflineStatus(ChapterDetail detail) async {
+    final session = ref.read(authSessionProvider).value;
+    if (session == null) return;
+    try {
+      final cached = await ref
+          .read(offlineChapterRepositoryProvider)
+          .get(session.userId, detail.id);
+      if (mounted && _activeDetail?.id == detail.id) {
+        setState(() => _isOfflineDownloaded = cached != null);
+      }
+    } catch (_) {
+      // Trình đọc online vẫn hoạt động nếu SQLite chưa sẵn sàng.
+    }
+  }
+
+  Future<void> _toggleOffline(ChapterDetail detail) async {
+    final session = ref.read(authSessionProvider).value;
+    if (session == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng đăng nhập để tải chương offline.'),
+        ),
+      );
+      return;
+    }
+    if (_isDownloadingOffline) return;
+    setState(() => _isDownloadingOffline = true);
+    try {
+      final repository = ref.read(offlineChapterRepositoryProvider);
+      if (_isOfflineDownloaded) {
+        await repository.delete(session.userId, detail.id);
+        if (mounted) {
+          setState(() => _isOfflineDownloaded = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đã xóa chương khỏi dữ liệu offline.'),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (!await ref.read(connectivityServiceProvider).isWifi()) {
+        throw const AppException(
+          message: 'Chỉ có thể tải chương khi thiết bị đang kết nối Wi‑Fi.',
+        );
+      }
+      await repository.save(session.userId, widget.seriesTitle, detail);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              error is AppException
+                  ? error.message
+                  : 'Không thể tải chương để đọc offline.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isDownloadingOffline = false);
+    }
+  }
+
   void _increaseFontSize() {
     if (_fontSize < 25.0) {
       final newSize = _fontSize + 1.5;
@@ -467,6 +536,30 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
                 ),
                 orElse: () => const SizedBox.shrink(),
               ),
+
+              // Nút tải/xóa nội dung chương offline
+              state.maybeWhen(
+                data: (detail) => IconButton(
+                  icon: _isDownloadingOffline
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          _isOfflineDownloaded
+                              ? Icons.download_done_rounded
+                              : Icons.download_for_offline_outlined,
+                        ),
+                  tooltip: _isOfflineDownloaded
+                      ? 'Xóa bản offline'
+                      : 'Tải chương để đọc offline',
+                  onPressed: _isDownloadingOffline
+                      ? null
+                      : () => _toggleOffline(detail),
+                ),
+                orElse: () => const SizedBox.shrink(),
+              ),
             ],
           ),
         ),
@@ -604,6 +697,7 @@ class _ChapterDetailScreenState extends ConsumerState<ChapterDetailScreen> {
           _hasRestoredProgress = false;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && _activeDetail?.id == detail.id) {
+              unawaited(_loadOfflineStatus(detail));
               unawaited(_restoreProgressAndSync(detail));
             }
           });
