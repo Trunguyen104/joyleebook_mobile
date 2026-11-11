@@ -40,8 +40,12 @@ class ReadingStatsDto {
   });
 
   factory ReadingStatsDto.fromJson(Map<String, dynamic> json) {
-    // Đọc số an toàn: chấp nhận cả int lẫn double, thiếu trường thì về 0
-    int readInt(String key) => (json[key] as num?)?.toInt() ?? 0;
+    // Đọc số an toàn: chấp nhận cả int lẫn double, cả camelCase lẫn PascalCase, thiếu trường thì về 0
+    int readInt(String camel, [String? pascal]) {
+      final key = pascal ?? '${camel[0].toUpperCase()}${camel.substring(1)}';
+      final val = json[camel] ?? json[key];
+      return (val as num?)?.toInt() ?? 0;
+    }
 
     return ReadingStatsDto(
       seriesStarted: readInt('seriesStarted'),
@@ -51,7 +55,9 @@ class ReadingStatsDto {
       activeDaysInPeriod: readInt('activeDaysInPeriod'),
       currentStreakDays: readInt('currentStreakDays'),
       longestStreakDays: readInt('longestStreakDays'),
-      lastReadAtUtc: DateTime.tryParse(json['lastReadAtUtc']?.toString() ?? ''),
+      lastReadAtUtc: DateTime.tryParse(
+        (json['lastReadAtUtc'] ?? json['LastReadAtUtc'])?.toString() ?? '',
+      ),
     );
   }
 }

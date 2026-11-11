@@ -8,11 +8,12 @@ import '../../../data/services/api_exceptions.dart';
 import '../../../data/services/image_picker_service.dart';
 import '../../../domain/models/user_profile.dart';
 import '../../../routing/app_paths.dart';
+import '../../auth/view_models/auth_session_view_model.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_avatar.dart';
 import '../../core/widgets/joylee_button.dart';
-import '../../core/widgets/joylee_error_view.dart';
+import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_text_field.dart';
 import '../view_models/edit_profile_view_model.dart';
 import '../view_models/profile_validators.dart';
@@ -24,22 +25,47 @@ class EditProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authSessionProvider);
+    final session = authState.value;
     final state = ref.watch(profileViewModelProvider);
-    final viewModel = ref.read(profileViewModelProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Chỉnh sửa hồ sơ')),
       body: SafeArea(
-        child: state.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => JoyleeErrorView(
-            message: error is AppException
-                ? error.message
-                : 'Không thể tải hồ sơ. Vui lòng thử lại.',
-            onRetry: viewModel.refresh,
-          ),
-          data: (profile) => _EditProfileForm(profile: profile),
-        ),
+        child: () {
+          // 1. Đang khôi phục phiên từ secure storage
+          if (authState.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // 2. Thực sự chưa đăng nhập (session == null)
+          if (session == null) {
+            return JoyleeEmptyState(
+              iconData: Icons.person_outline,
+              title: 'Bạn chưa đăng nhập',
+              message: 'Vui lòng đăng nhập để chỉnh sửa hồ sơ cá nhân.',
+              actionLabel: 'Đăng nhập',
+              onAction: () => context.push(
+                '${AppPaths.signIn}?from=${AppPaths.editProfile}',
+              ),
+            );
+          }
+
+          // 3. Đã đăng nhập: hiển thị form hồ sơ
+          return state.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, _) {
+              // Nếu đã có session nhưng tải profile từ backend lỗi, fallback dùng thông tin session
+              final fallbackProfile = UserProfile(
+                id: session.userId,
+                username: session.username,
+                role: session.role,
+              );
+              return _EditProfileForm(profile: fallbackProfile);
+            },
+            data: (profile) => _EditProfileForm(profile: profile),
+          );
+        }(),
       ),
     );
   }

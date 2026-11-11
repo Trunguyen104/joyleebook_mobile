@@ -51,6 +51,16 @@ class ChangePasswordRequestDto {
   };
 }
 
+/// Body gửi lên POST /api/auth/google.
+@immutable
+class GoogleSignInRequestDto {
+  const GoogleSignInRequestDto({required this.idToken});
+
+  final String idToken;
+
+  Map<String, dynamic> toJson() => {'idToken': idToken};
+}
+
 /// Phản hồi chung của sign-in / sign-up / refresh
 @immutable
 class TokenResponseDto {

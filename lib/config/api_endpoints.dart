@@ -4,20 +4,27 @@ abstract final class ApiEndpoints {
 
   // Series Microservice (via Gateway)
   static const String series = '/api/series';
+  static String seriesByAuthor(String authorId) => '$series/author/$authorId';
   static const String genres = '/api/genres';
+  static const String seriesSemanticSearch = '/api/series/semantic-search';
+  static String seriesSimilar(String seriesId) =>
+      '/api/series/$seriesId/similar';
 
-  // Ratings (Community Microservice via Gateway)
+  // Ratings & Comments (Community Microservice via Gateway)
   static const String ratings = '/api/ratings';
   static String seriesRating(String seriesId) =>
       '/api/ratings/series/$seriesId';
   static String seriesMyRating(String seriesId) =>
       '/api/ratings/series/$seriesId/my-rating';
+  static const String comments = '/api/comments';
+  static String commentDetail(String commentId) => '/api/comments/$commentId';
 
   // Media Microservice (via Gateway)
   static const String mediaUploadAvatar = '/api/media/upload-avatar';
 
   // Authentication Microservice (via Gateway)
   static const String authSignIn = '/api/auth/sign-in';
+  static const String authGoogle = '/api/auth/google';
   static const String authSignUp = '/api/auth/sign-up';
   static const String authSignOut = '/api/auth/sign-out';
   static const String authChangePassword = '/api/auth/me/password';
@@ -53,4 +60,19 @@ abstract final class ApiEndpoints {
 
   static const String profiles = '/api/profiles/me';
   static const String libraryStats = '/api/library/stats';
+
+  // Payment & Donation Microservice (via Gateway)
+  static const String payments = '/api/payments';
+  static const String paymentsWallet = '$payments/wallet';
+  static const String paymentsTransactions = '$payments/transactions';
+  static const String paymentsDeposits = '$payments/deposits';
+  static String paymentsDepositDetail(int orderCode) =>
+      '$paymentsDeposits/$orderCode';
+  static String paymentsDepositCancel(int orderCode) =>
+      '$paymentsDeposits/$orderCode/cancel';
+  static String paymentsTransactionStatus(int orderCode) =>
+      '$paymentsTransactions/$orderCode/status';
+  static const String paymentsDonate = '$payments/donate';
+  static String paymentsStoryDonations(String storyId) =>
+      '$payments/stories/$storyId/donations';
 }

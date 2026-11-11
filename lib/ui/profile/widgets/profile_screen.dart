@@ -11,6 +11,7 @@ import 'package:joyleebook_mobile/ui/core/widgets/joylee_error_view.dart';
 import 'package:joyleebook_mobile/ui/profile/view_models/profile_view_model.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/profile_header.dart';
 import 'package:joyleebook_mobile/ui/profile/widgets/reading_stat_tile.dart';
+import 'package:joyleebook_mobile/ui/wallet/view_models/wallet_view_model.dart';
 import 'package:joyleebook_mobile/routing/app_paths.dart';
 
 /// Màn hình Hồ sơ cá nhân — đủ 4 trạng thái
@@ -19,30 +20,44 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // watch: state đổi thì màn hình tự vẽ lại
+    final session = ref.watch(authSessionProvider).value;
+    final isSignedIn = session != null;
     final state = ref.watch(profileViewModelProvider);
-    // read: chỉ lấy notifier để gọi hàm, không theo dõi thay đổi
     final viewModel = ref.read(profileViewModelProvider.notifier);
-    final isSignedIn = ref.watch(authSessionProvider).value != null;
+
+    // Khi lỗi 401 (hết phiên/chưa đăng nhập), ẩn các nút thao tác để đồng bộ với JoyleeEmptyState
+    final isUnauthorized =
+        state.hasError &&
+        state.error is AppException &&
+        (state.error as AppException).statusCode == 401;
+    final showActions = isSignedIn && !isUnauthorized;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Hồ sơ của tôi'),
         actions: [
-          if (isSignedIn)
+          if (showActions) ...[
+            IconButton(
+              tooltip: 'Chỉnh sửa hồ sơ',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () => context.push(AppPaths.editProfile),
+            ),
             IconButton(
               tooltip: 'Cài đặt',
               icon: const Icon(Icons.settings_outlined),
               onPressed: () => context.push(AppPaths.settings),
             ),
+          ],
         ],
       ),
       body: SafeArea(
         child: state.when(
           // 1. Đang tải
           loading: () => const Center(child: CircularProgressIndicator()),
+          // 2. Lỗi mạng / gateway / chưa đăng nhập
           error: (error, _) {
-            // 2. "Trống": chưa đăng nhập / hết phiên -> gợi ý Đăng nhập
+            // Khi chưa đăng nhập (hoặc token 401), hiển thị trạng thái rỗng
+            // kèm CTA dẫn sang màn Đăng nhập
             if (error is AppException && error.statusCode == 401) {
               return JoyleeEmptyState(
                 iconData: Icons.person_outline,
@@ -53,15 +68,14 @@ class ProfileScreen extends ConsumerWidget {
                     context.go('${AppPaths.signIn}?from=${AppPaths.profile}'),
               );
             }
-            // 3. Lỗi khác (mất mạng, 502...) -> Thử lại
             return JoyleeErrorView(
               message: error is AppException
                   ? error.message
-                  : 'Đã có lỗi xảy ra.',
+                  : 'Đã có lỗi xảy ra khi tải thông tin hồ sơ.',
               onRetry: viewModel.refresh,
             );
           },
-          // 4. Có dữ liệu
+          // 3. Có dữ liệu
           data: (profile) => RefreshIndicator(
             onRefresh: viewModel.refresh,
             child: ListView(
@@ -75,7 +89,9 @@ class ProfileScreen extends ConsumerWidget {
               ),
               children: [
                 ProfileHeader(profile: profile),
-                const SizedBox(height: AppDimensions.space8), // section gap
+                const SizedBox(height: AppDimensions.space4),
+                const _WalletEntryCard(),
+                const SizedBox(height: AppDimensions.space6), // section gap
                 _SectionTitle(
                   title: 'Thống kê đọc',
                   subtitle: profile.stats.lastReadAt == null
@@ -270,6 +286,76 @@ class _PeriodSummaryCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Thẻ truy cập nhanh Ví Xu & Nạp Xu từ Hồ sơ cá nhân
+class _WalletEntryCard extends ConsumerWidget {
+  const _WalletEntryCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
+    final walletAsync = ref.watch(walletViewModelProvider);
+    final balance = walletAsync.value?.wallet.balance;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push(AppPaths.wallet),
+        child: Padding(
+          padding: const EdgeInsets.all(AppDimensions.space4),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: colors.primaryBrand.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                ),
+                child: Icon(
+                  Icons.account_balance_wallet_rounded,
+                  color: colors.primaryBrand,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: AppDimensions.space3),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ví Xu của tôi',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      balance != null
+                          ? 'Số dư: $balance Xu • Bấm để nạp thêm'
+                          : 'Xem số dư & nạp Xu ủng hộ tác giả',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: colors.textSecondary,
+              ),
+            ],
+          ),
         ),
       ),
     );

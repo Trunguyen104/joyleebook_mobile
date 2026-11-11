@@ -38,7 +38,7 @@ class LibrarySeriesCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                height: 108,
+                height: 100,
                 width: double.infinity,
                 child: Stack(
                   fit: StackFit.expand,

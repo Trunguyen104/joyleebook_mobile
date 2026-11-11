@@ -5,6 +5,7 @@ import 'package:joyleebook_mobile/app.dart';
 import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/chapter_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/notification_repository.dart';
+import 'package:joyleebook_mobile/data/repositories/payment_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
 import 'package:joyleebook_mobile/data/services/api_client.dart';
@@ -14,6 +15,7 @@ import 'package:joyleebook_mobile/domain/models/series.dart';
 import 'package:joyleebook_mobile/ui/chapter/widgets/chapter_detail_screen.dart';
 import 'package:joyleebook_mobile/ui/chapter/widgets/chapter_item.dart';
 import 'package:joyleebook_mobile/ui/core/themes/app_theme.dart';
+import 'package:joyleebook_mobile/ui/core/widgets/joylee_empty_state.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_error_view.dart';
 import 'package:joyleebook_mobile/ui/series/widgets/series_detail_screen.dart';
 
@@ -21,6 +23,7 @@ import '../../testing/fakes/fake_auth_repository.dart';
 import '../../testing/fakes/fake_chapter_repository.dart';
 import '../../testing/fakes/fake_notification_repository.dart';
 import '../../testing/fakes/fake_notification_socket_client.dart';
+import '../../testing/fakes/fake_payment_repository.dart';
 import '../../testing/fakes/fake_profile_repository.dart';
 import '../../testing/fakes/fake_series_repository.dart';
 import '../../testing/fakes/fake_token_storage.dart';
@@ -68,6 +71,9 @@ void main() {
           overrides: [
             seriesRepositoryProvider.overrideWithValue(fakeSeriesRepo),
             chapterRepositoryProvider.overrideWithValue(fakeChapterRepo),
+            paymentRepositoryProvider.overrideWithValue(
+              FakePaymentRepository(),
+            ),
           ],
           child: MaterialApp(
             theme: AppTheme.light,
@@ -127,6 +133,9 @@ void main() {
             chapterRepositoryProvider.overrideWithValue(
               FakeChapterRepository(mockChapters),
             ),
+            paymentRepositoryProvider.overrideWithValue(
+              FakePaymentRepository(),
+            ),
           ],
           child: MaterialApp(
             theme: AppTheme.light,
@@ -157,6 +166,9 @@ void main() {
           overrides: [
             seriesRepositoryProvider.overrideWithValue(fakeSeriesRepo),
             chapterRepositoryProvider.overrideWithValue(fakeChapterRepo),
+            paymentRepositoryProvider.overrideWithValue(
+              FakePaymentRepository(),
+            ),
           ],
           child: MaterialApp(
             theme: AppTheme.light,
@@ -237,6 +249,9 @@ void main() {
             notificationSocketClientProvider.overrideWithValue(
               FakeNotificationSocketClient(),
             ),
+            paymentRepositoryProvider.overrideWithValue(
+              FakePaymentRepository(),
+            ),
           ],
           child: const JoyleeBookApp(),
         ),
@@ -244,7 +259,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Kho Truyện -> bấm vào truyện -> mở chi tiết, vẫn thấy thanh tab
-      await tester.tap(find.text(mockSeries.title));
+      await tester.tap(find.text(mockSeries.title).first);
       await tester.pumpAndSettle();
       expect(find.byType(SeriesDetailScreen), findsOneWidget);
       expect(find.byType(NavigationBar), findsOneWidget);
@@ -276,6 +291,55 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(ChapterDetailScreen), findsNothing);
       expect(find.byType(SeriesDetailScreen), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Tab Chương hiển thị JoyleeEmptyState và bấm Tải lại kích hoạt refresh',
+    (tester) async {
+      final emptySeries = mockSeries.copyWith(totalChapters: 0);
+      final fakeSeriesRepo = FakeSeriesRepository([emptySeries]);
+      final fakeChapterRepo = FakeChapterRepository(<Chapter>[]);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            seriesRepositoryProvider.overrideWithValue(fakeSeriesRepo),
+            chapterRepositoryProvider.overrideWithValue(fakeChapterRepo),
+            paymentRepositoryProvider.overrideWithValue(
+              FakePaymentRepository(),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const SeriesDetailScreen(seriesId: 's1'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Mở Tab Chương
+      final chapterTabFinder = find.byWidgetPredicate(
+        (w) => w is Tab && (w.text?.startsWith('Chương') ?? false),
+      );
+      expect(chapterTabFinder, findsOneWidget);
+      await tester.tap(chapterTabFinder);
+      await tester.pumpAndSettle();
+
+      // Kiểm tra Empty State và nút Tải lại
+      expect(find.byType(JoyleeEmptyState), findsOneWidget);
+      expect(find.text('Chưa có chương nào'), findsOneWidget);
+      expect(find.text('Tải lại'), findsOneWidget);
+
+      // Thêm chương vào fake repo rồi bấm nút Tải lại
+      fakeChapterRepo.chapters.addAll(mockChapters);
+      await tester.tap(find.text('Tải lại'));
+      await tester.pumpAndSettle();
+
+      // Danh sách chương đã được tải lại thành công
+      expect(find.byType(ChapterItem), findsNWidgets(2));
+      expect(find.text('Ch. 1: Một người huyền bí'), findsOneWidget);
     },
   );
 }

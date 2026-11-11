@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../data/services/api_exceptions.dart';
 import '../../../domain/models/genre.dart';
+import '../../../domain/models/search_sort_option.dart';
 import '../../../domain/models/series.dart';
 import '../../../routing/app_paths.dart';
 import '../../core/themes/app_colors.dart';
@@ -11,7 +12,11 @@ import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../../series/view_models/genre_list_view_model.dart';
+import '../../notifications/widgets/notification_bell_button.dart';
 import '../view_models/search_view_model.dart';
+import 'search_recent_keywords.dart';
+import 'search_sort_bottom_sheet.dart';
+import 'search_suggestions_view.dart';
 
 /// MÀN HÌNH KHÁM PHÁ & TÌM KIẾM (SearchScreen)
 /// Thiết kế giao diện xếp hạng theo chuẩn Wattpad (Image 2):
@@ -34,17 +39,36 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   bool _isGenreExpanded = false;
+  bool _showSearchOverlay = false;
 
   @override
   void initState() {
     super.initState();
+    _searchFocusNode.addListener(_handleFocusChange);
     if (widget.initialGenre != null && widget.initialGenre!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref
             .read(searchViewModelProvider.notifier)
             .filterByGenre(widget.initialGenre);
       });
+    }
+  }
+
+  void _handleFocusChange() {
+    final hasFocus = _searchFocusNode.hasFocus;
+    if (hasFocus != _showSearchOverlay) {
+      setState(() => _showSearchOverlay = hasFocus);
+    }
+  }
+
+  void _dismissSearchOverlay({bool unfocus = false}) {
+    if (unfocus) {
+      _searchFocusNode.unfocus();
+    }
+    if (_showSearchOverlay) {
+      setState(() => _showSearchOverlay = false);
     }
   }
 
@@ -64,6 +88,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   void dispose() {
+    _searchFocusNode.removeListener(_handleFocusChange);
+    _searchFocusNode.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -71,10 +97,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    ref.listen<AsyncValue<List<Series>>>(searchViewModelProvider, (prev, next) {
+      if ((prev?.isLoading ?? false) &&
+          !next.isLoading &&
+          _showSearchOverlay &&
+          _searchController.text.trim().isNotEmpty) {
+        setState(() => _showSearchOverlay = false);
+      }
+    });
     final seriesState = ref.watch(searchViewModelProvider);
     final searchVm = ref.watch(searchViewModelProvider.notifier);
     final genresState = ref.watch(genreListViewModelProvider);
     final selectedGenre = searchVm.selectedGenre;
+    final availableGenreNames = genresState.maybeWhen(
+      data: (genres) => genres.map((genre) => genre.name).toList(),
+      orElse: () => const <String>[],
+    );
 
     // Đồng bộ nếu query bị xóa từ ViewModel
     if (searchVm.currentQuery.isEmpty && _searchController.text.isNotEmpty) {
@@ -86,6 +124,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       appBar: AppBar(
         titleSpacing: AppDimensions.space3,
         title: _buildSearchBar(colors),
+        actions: const [NotificationBellButton()],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(44),
           child: _buildGenreTabBar(genresState, selectedGenre, colors),
@@ -146,6 +185,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             ? 'Xóa bộ lọc'
                             : 'Tải lại toàn bộ'),
                   onAction: () {
+                    _dismissSearchOverlay(unfocus: true);
                     if (hasGenreFilter && hasQuery) {
                       ref
                           .read(searchViewModelProvider.notifier)
@@ -170,8 +210,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     vertical: AppDimensions.space2,
                   ),
                   children: [
-                    // Dòng thống kê số lượng + Nút [Lọc]
-                    _buildResultsHeader(seriesList.length, colors),
+                    // Dòng thống kê số lượng + Nút [Sắp xếp]
+                    _buildResultsHeader(
+                      seriesList.length,
+                      colors,
+                      searchVm.sortOption,
+                      searchVm,
+                    ),
 
                     const SizedBox(height: AppDimensions.space3),
 
@@ -194,6 +239,73 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               );
             },
           ),
+
+          // LỚP PHỦ TÌM KIẾM GẦN ĐÂY HOẶC GỢI Ý KHI ĐANG FOCUS / ĐANG GÕ
+          if (_showSearchOverlay) ...[
+            Positioned.fill(
+              child: Material(
+                color: colors.bgCanvas,
+                child: _searchController.text.trim().isEmpty
+                    ? SearchRecentKeywords(
+                        recentSearches: searchVm.recentSearches,
+                        onKeywordSelected: (keyword) {
+                          _searchController.text = keyword;
+                          _dismissSearchOverlay(unfocus: true);
+                          ref
+                              .read(searchViewModelProvider.notifier)
+                              .search(keyword, immediate: true);
+                        },
+                        onKeywordDeleted: (keyword) {
+                          ref
+                              .read(searchViewModelProvider.notifier)
+                              .removeRecentSearch(keyword);
+                          setState(() {});
+                        },
+                        onClearAll: () {
+                          ref
+                              .read(searchViewModelProvider.notifier)
+                              .clearRecentSearches();
+                          setState(() {});
+                        },
+                      )
+                    : SearchSuggestionsView(
+                        query: _searchController.text,
+                        suggestions: searchVm.getSuggestions(
+                          _searchController.text,
+                          genreNames: availableGenreNames,
+                        ),
+                        onSuggestionSelected: (suggestion) {
+                          _dismissSearchOverlay(unfocus: true);
+                          final viewModel = ref.read(
+                            searchViewModelProvider.notifier,
+                          );
+                          switch (suggestion.type) {
+                            case SearchSuggestionType.series:
+                              final seriesId = suggestion.seriesId;
+                              if (seriesId != null) {
+                                context.push(AppPaths.seriesDetail(seriesId));
+                              }
+                              break;
+                            case SearchSuggestionType.author:
+                              _searchController.text = suggestion.text;
+                              viewModel.search(
+                                suggestion.text,
+                                immediate: true,
+                              );
+                              break;
+                            case SearchSuggestionType.genre:
+                              viewModel.filterByGenre(suggestion.text);
+                              break;
+                            case SearchSuggestionType.aiSemantic:
+                              _searchController.text = suggestion.text;
+                              viewModel.searchSemantically(suggestion.text);
+                              break;
+                          }
+                        },
+                      ),
+              ),
+            ),
+          ],
 
           // LỚP PHỦ MỜ (DIMMED BACKDROP) KHI MỞ RỘNG THỂ LOẠI
           if (_isGenreExpanded) ...[
@@ -238,12 +350,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget _buildSearchBar(AppColors colors) {
     return TextField(
       controller: _searchController,
+      focusNode: _searchFocusNode,
       textInputAction: TextInputAction.search,
+      onTap: () {
+        if (!_showSearchOverlay) {
+          setState(() => _showSearchOverlay = true);
+        }
+      },
       onChanged: (value) {
         ref.read(searchViewModelProvider.notifier).search(value);
-        setState(() {});
+        setState(() => _showSearchOverlay = true);
       },
       onSubmitted: (value) {
+        _dismissSearchOverlay(unfocus: true);
         ref
             .read(searchViewModelProvider.notifier)
             .search(value, immediate: true);
@@ -260,10 +379,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 icon: const Icon(Icons.clear_rounded, size: 18),
                 onPressed: () {
                   _searchController.clear();
+                  _dismissSearchOverlay(unfocus: true);
                   ref
                       .read(searchViewModelProvider.notifier)
                       .search('', immediate: true);
-                  setState(() {});
                 },
               )
             : null,
@@ -328,6 +447,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       isSelected: selectedGenre == null,
                       colors: colors,
                       onTap: () {
+                        _dismissSearchOverlay(unfocus: true);
                         if (_isGenreExpanded) {
                           setState(() => _isGenreExpanded = false);
                         }
@@ -344,6 +464,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         isSelected: isSelected,
                         colors: colors,
                         onTap: () {
+                          _dismissSearchOverlay(unfocus: true);
                           if (_isGenreExpanded) {
                             setState(() => _isGenreExpanded = false);
                           }
@@ -457,6 +578,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       isSelected: selectedGenre == null,
                       colors: colors,
                       onTap: () {
+                        _dismissSearchOverlay(unfocus: true);
                         ref
                             .read(searchViewModelProvider.notifier)
                             .filterByGenre(null);
@@ -471,6 +593,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         isSelected: isSelected,
                         colors: colors,
                         onTap: () {
+                          _dismissSearchOverlay(unfocus: true);
                           ref
                               .read(searchViewModelProvider.notifier)
                               .filterByGenre(g.name);
@@ -540,20 +663,66 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  /// 3. Dòng thống kê số lượng truyện
-  Widget _buildResultsHeader(int totalCount, AppColors colors) {
+  /// 3. Dòng thống kê số lượng truyện + Nút chọn sắp xếp
+  Widget _buildResultsHeader(
+    int totalCount,
+    AppColors colors,
+    SearchSortOption sortOption,
+    SearchViewModel searchVm,
+  ) {
     final countText = _formatCount(totalCount);
 
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        '$countText Truyện',
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: colors.textPrimary,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          '$countText Truyện',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: colors.textPrimary,
+          ),
         ),
-      ),
+        InkWell(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+          onTap: () {
+            SearchSortBottomSheet.show(
+              context,
+              currentOption: sortOption,
+              onOptionSelected: (opt) => searchVm.setSortOption(opt),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: colors.bgSurfaceSubtle,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+              border: Border.all(color: colors.borderDefault),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(sortOption.icon, size: 14, color: colors.primaryBrand),
+                const SizedBox(width: 4),
+                Text(
+                  sortOption.label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 16,
+                  color: colors.textSecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

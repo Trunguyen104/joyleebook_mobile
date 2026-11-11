@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:joyleebook_mobile/app.dart';
 import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/notification_repository.dart';
+import 'package:joyleebook_mobile/data/repositories/payment_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/profile_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
 import 'package:joyleebook_mobile/routing/app_router.dart';
@@ -27,6 +28,7 @@ import 'package:joyleebook_mobile/ui/profile/widgets/settings_screen.dart';
 import '../testing/fakes/fake_auth_repository.dart';
 import '../testing/fakes/fake_notification_repository.dart';
 import '../testing/fakes/fake_notification_socket_client.dart';
+import '../testing/fakes/fake_payment_repository.dart';
 import '../testing/fakes/fake_profile_repository.dart';
 import '../testing/fakes/fake_series_repository.dart';
 import '../testing/fakes/fake_token_storage.dart';
@@ -50,6 +52,7 @@ ProviderScope _buildApp(
     notificationSocketClientProvider.overrideWithValue(
       FakeNotificationSocketClient(),
     ),
+    paymentRepositoryProvider.overrideWithValue(FakePaymentRepository()),
   ],
   child: const JoyleeBookApp(),
 );
@@ -210,9 +213,9 @@ void main() {
     expect(find.text('Kho Truyện'), findsOneWidget);
     expect(find.text('Khám phá'), findsOneWidget);
     expect(find.text('Tủ sách'), findsOneWidget);
-    expect(find.text('Thông báo'), findsOneWidget);
     expect(find.text('Cá nhân'), findsOneWidget);
-    // Nút Kiểm tra Gateway đã được ẩn khỏi thanh navbar đáy
+    // Nút Thông báo và Kiểm tra Gateway không nằm trên thanh navbar đáy
+    expect(find.text('Thông báo'), findsNothing);
     expect(find.text('Kiểm tra Gateway'), findsNothing);
 
     await tester.tap(find.text('Khám phá'));
@@ -296,34 +299,41 @@ void main() {
     expect(find.byType(SignInScreen), findsNothing);
   });
 
-  testWidgets('Chưa đăng nhập: bấm tab Thông báo thì chuyển sang Đăng nhập', (
-    tester,
-  ) async {
-    await tester.pumpWidget(_buildApp(FakeAuthRepository()));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'Chưa đăng nhập: điều hướng sang Thông báo thì chuyển sang Đăng nhập',
+    (tester) async {
+      await tester.pumpWidget(_buildApp(FakeAuthRepository()));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Thông báo'));
-    await tester.pumpAndSettle();
+      final router = ProviderScope.containerOf(
+        tester.element(find.byType(JoyleeBookApp)),
+      ).read(appRouterProvider);
+      router.go(AppPaths.notifications);
+      await tester.pumpAndSettle();
 
-    expect(find.byType(SignInScreen), findsOneWidget);
-    expect(find.byType(NotificationScreen), findsNothing);
-  });
+      expect(find.byType(SignInScreen), findsOneWidget);
+      expect(find.byType(NotificationScreen), findsNothing);
+    },
+  );
 
-  testWidgets('Đã đăng nhập sẵn: bấm tab Thông báo mở màn hình Thông báo', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _buildApp(FakeAuthRepository(savedSession: fakeSession)),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'Đã đăng nhập sẵn: điều hướng sang Thông báo mở màn hình Thông báo',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildApp(FakeAuthRepository(savedSession: fakeSession)),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Thông báo'));
-    await tester.pumpAndSettle();
+      final router = ProviderScope.containerOf(
+        tester.element(find.byType(JoyleeBookApp)),
+      ).read(appRouterProvider);
+      router.go(AppPaths.notifications);
+      await tester.pumpAndSettle();
 
-    expect(find.byType(NotificationScreen), findsOneWidget);
-    expect(find.text('Chưa có thông báo'), findsOneWidget);
-    expect(find.byType(NavigationBar), findsOneWidget);
-  });
+      expect(find.byType(NotificationScreen), findsOneWidget);
+      expect(find.text('Chưa có thông báo'), findsOneWidget);
+    },
+  );
 
   testWidgets('Cài đặt → Mở màn hình Kiểm tra Gateway thành công', (
     tester,

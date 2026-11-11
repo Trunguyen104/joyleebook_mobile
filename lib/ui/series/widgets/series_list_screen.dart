@@ -3,13 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../data/services/api_exceptions.dart';
+import '../../../domain/models/search_sort_option.dart';
 import '../../../domain/models/series.dart';
 import '../../../routing/app_paths.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
+import '../../notifications/widgets/notification_bell_button.dart';
+import '../../search/view_models/search_view_model.dart';
+import '../view_models/ai_recommendation_view_model.dart';
 import '../view_models/series_list_view_model.dart';
+import 'ai_recommendation_section.dart';
 
 /// MÀN HÌNH TRANG CHỦ / KHO TRUYỆN (SeriesListScreen)
 /// Phân loại và sắp xếp dựa trên THÔNG SỐ THẬT từ API:
@@ -26,6 +31,15 @@ class SeriesListScreen extends ConsumerStatefulWidget {
 }
 
 class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
+  static const int _maxSectionItems = 10;
+
+  void _openSearchTab({SearchSortOption? sortOption}) {
+    if (sortOption != null) {
+      ref.read(searchViewModelProvider.notifier).setSortOption(sortOption);
+    }
+    context.go(AppPaths.search);
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -48,6 +62,7 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
             tooltip: 'Tìm kiếm & Khám phá',
             onPressed: () => context.go(AppPaths.search),
           ),
+          const NotificationBellButton(),
         ],
       ),
 
@@ -136,18 +151,28 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
           return RefreshIndicator(
             color: colors.primaryBrand,
             backgroundColor: colors.bgSurface,
-            onRefresh: () =>
+            onRefresh: () async {
+              await Future.wait([
                 ref.read(seriesListViewModelProvider.notifier).refresh(),
+                ref.read(aiRecommendationViewModelProvider.notifier).refresh(),
+              ]);
+            },
             child: ListView(
               padding: const EdgeInsets.symmetric(
                 vertical: AppDimensions.space2,
               ),
               children: [
+                // SECTION AI: Gợi ý truyện bằng AI (Gemini Embedding + Qdrant Vector Search)
+                const AiRecommendationSection(),
+                const SizedBox(height: AppDimensions.space4),
+
                 // SECTION 1: Truyện tiếp theo bạn đọc
                 _buildSection(
                   title: 'Truyện tiếp theo bạn đọc',
                   seriesList: nextToReadList,
                   colors: colors,
+                  onSeeMore: () =>
+                      _openSearchTab(sortOption: SearchSortOption.relevance),
                 ),
 
                 if (!isSingleItem) ...[
@@ -157,6 +182,8 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
                     title: 'Chúng tôi tin bạn sẽ thích',
                     seriesList: topRatedList,
                     colors: colors,
+                    onSeeMore: () =>
+                        _openSearchTab(sortOption: SearchSortOption.topRated),
                   ),
 
                   const SizedBox(height: AppDimensions.space4),
@@ -165,6 +192,8 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
                     title: 'Thử đọc Truyện Mới',
                     seriesList: newestList,
                     colors: colors,
+                    onSeeMore: () =>
+                        _openSearchTab(sortOption: SearchSortOption.newest),
                   ),
                 ],
 
@@ -177,40 +206,80 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
     );
   }
 
-  /// Khung hiển thị một Section cuộn ngang
+  /// Khung hiển thị một Section cuộn ngang (tối đa 10 truyện, kèm nút Xem thêm sang Khám phá)
   Widget _buildSection({
     required String title,
     required List<Series> seriesList,
     required AppColors colors,
+    VoidCallback? onSeeMore,
   }) {
+    final displayedSeries = seriesList
+        .take(_maxSectionItems)
+        .toList(growable: false);
+    final showSeeMore = onSeeMore != null && seriesList.length > 1;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppDimensions.space4),
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: colors.textPrimary,
-              letterSpacing: -0.2,
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colors.textPrimary,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ),
+              if (showSeeMore)
+                TextButton.icon(
+                  onPressed: onSeeMore,
+                  iconAlignment: IconAlignment.end,
+                  icon: Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 16,
+                    color: colors.primaryBrand,
+                  ),
+                  label: Text(
+                    'Xem thêm',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: colors.primaryBrand,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimensions.space2,
+                      vertical: 4,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: AppDimensions.space3),
         SizedBox(
-          height: 275,
+          height: 310,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(
               horizontal: AppDimensions.space4,
             ),
-            itemCount: seriesList.length,
+            itemCount: displayedSeries.length,
             separatorBuilder: (_, _) =>
                 const SizedBox(width: AppDimensions.space3),
             itemBuilder: (context, index) {
-              final series = seriesList[index];
+              final series = displayedSeries[index];
               return _buildBookCard(series, colors);
             },
           ),
@@ -222,9 +291,9 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
   /// Card truyện cuộn ngang theo chuẩn Wattpad (Image 1)
   /// Sử dụng dữ liệu thật từ API, không fake số view
   Widget _buildBookCard(Series series, AppColors colors) {
-    final primaryTag = series.genres.isNotEmpty
-        ? series.genres.first.toLowerCase()
-        : (series.status == SeriesStatus.completed ? 'completed' : 'ongoing');
+    final displayTags = series.genres.isNotEmpty
+        ? series.genres.take(2).map(_capitalizeGenre).toList()
+        : [series.status == SeriesStatus.completed ? 'Hoàn Thành' : 'Đang Ra'];
 
     return InkWell(
       borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
@@ -265,23 +334,39 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
 
             const SizedBox(height: 6),
 
-            // 2. Tag danh mục thể loại (Pill nhỏ màu xám nhạt)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: colors.bgSurfaceSubtle,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                primaryTag,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: colors.textPrimary,
-                ),
-              ),
+            // 2. Tag danh mục thể loại (Hiển thị tối đa 2 thể loại cùng 1 hàng, tự động cắt ... nếu dài)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (int i = 0; i < displayTags.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 4),
+                  Flexible(
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxWidth: displayTags.length > 1 ? 56 : 85,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.bgSurfaceSubtle,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        displayTags[i],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: colors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
 
             const SizedBox(height: 4),
@@ -336,17 +421,17 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
               const SizedBox(height: 2),
             ],
 
-            // 4. Tiêu đề và Tác giả
+            // 4. Tiêu đề và Tác giả (hiển thị đầy đủ tiêu đề)
             Text(
               series.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: colors.textPrimary,
+                height: 1.25,
               ),
             ),
+            const SizedBox(height: 2),
             Text(
               series.authorName,
               maxLines: 1,
@@ -380,5 +465,17 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
       return '${(views / 1000).toStringAsFixed(1).replaceAll('.', ',')}K';
     }
     return '$views';
+  }
+
+  String _capitalizeGenre(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return '';
+    return trimmed
+        .split(' ')
+        .map((word) {
+          if (word.isEmpty) return '';
+          return '${word[0].toUpperCase()}${word.substring(1)}';
+        })
+        .join(' ');
   }
 }

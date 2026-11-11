@@ -52,11 +52,9 @@ class SeriesCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Tiêu đề truyện
+                    // Tiêu đề truyện (hiển thị đầy đủ)
                     Text(
                       series.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

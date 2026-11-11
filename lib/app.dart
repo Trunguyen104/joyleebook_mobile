@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'data/services/api_client.dart';
+import 'data/services/offline_progress_sync_service.dart';
 import 'routing/app_router.dart';
 import 'ui/core/services/app_messenger.dart';
 import 'ui/core/themes/app_theme.dart';
@@ -37,6 +40,9 @@ class _JoyleeBookAppState extends ConsumerState<JoyleeBookApp>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.read(notificationRealtimeViewModelProvider.notifier).restart();
+      unawaited(
+        ref.read(offlineProgressSyncServiceProvider).syncUnsyncedProgress(),
+      );
     }
   }
 

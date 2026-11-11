@@ -1,9 +1,22 @@
 abstract final class Environment {
+  /// OAuth Web Client ID phải trùng audience mà backend xác thực.
+  static const googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue: '1079333980897-bodfv9d33u1dehnhkducm6so0ncr6vq4.apps.googleusercontent.com',
+  );
+  static const googleIosClientId = String.fromEnvironment(
+    'GOOGLE_IOS_CLIENT_ID',
+  );
+
   /// Base URL được truyền qua `--dart-define=API_BASE_URL` lúc build (tùy chọn)
   static const String definedBaseUrl = String.fromEnvironment('API_BASE_URL');
 
   /// Gateway dùng chung đã deploy (HTTPS) — dự án không chạy backend local
   static const String hostedBaseUrl = 'https://api.joyleebook.duckdns.org';
+
+  /// Web Portal công khai (Blazor Server) dùng để fallback mở Ví / Nạp xu
+  static const String hostedWebUrl = 'https://joyleebook.duckdns.org';
+  static const String walletWebUrl = '$hostedWebUrl/wallet';
 
   /// URL mặc định: ưu tiên `--dart-define`, nếu không có thì dùng Gateway đã deploy
   static String get defaultBaseUrl =>

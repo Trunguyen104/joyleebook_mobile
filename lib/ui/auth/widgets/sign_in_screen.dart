@@ -35,17 +35,18 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit({bool withGoogle = false}) async {
     FocusScope.of(context).unfocus();
     // Lấy messenger trước khi await vì màn hình có thể đã đóng sau đó
     final messenger = ScaffoldMessenger.of(context);
-    final success = await ref
-        .read(signInViewModelProvider.notifier)
-        .submit(
-          username: _usernameController.text,
-          password: _passwordController.text,
-        );
-    if (success) {
+    final viewModel = ref.read(signInViewModelProvider.notifier);
+    final success = withGoogle
+        ? await viewModel.signInWithGoogle()
+        : await viewModel.submit(
+            username: _usernameController.text,
+            password: _passwordController.text,
+          );
+    if (success && messenger.mounted) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Đăng nhập thành công')),
       );
@@ -139,9 +140,37 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             const SizedBox(height: AppDimensions.space5),
             JoyleeButton(
               label: 'Đăng nhập',
-              isLoading: state.isLoading,
+              isLoading: state.isLoading && !state.isGoogleSignIn,
               // null khi đang gửi -> nút bị vô hiệu hóa, chống bấm 2 lần
               onPressed: state.isLoading ? null : _submit,
+            ),
+            const SizedBox(height: AppDimensions.space4),
+            const Row(
+              children: [
+                Expanded(child: Divider()),
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppDimensions.space3,
+                  ),
+                  child: Text('Hoặc'),
+                ),
+                Expanded(child: Divider()),
+              ],
+            ),
+            const SizedBox(height: AppDimensions.space4),
+            OutlinedButton(
+              onPressed: state.isLoading
+                  ? null
+                  : () => _submit(withGoogle: true),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(AppDimensions.controlHeight),
+              ),
+              child: state.isGoogleSignIn
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Tiếp tục với Google'),
             ),
           ],
         ),

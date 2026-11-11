@@ -2,6 +2,7 @@ import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
 import 'package:joyleebook_mobile/data/services/api_exceptions.dart';
 import 'package:joyleebook_mobile/data/services/search_utils.dart';
 import 'package:joyleebook_mobile/data/dtos/upsert_reading_progress_dto.dart';
+import 'package:joyleebook_mobile/domain/models/ai_recommendation.dart';
 import 'package:joyleebook_mobile/domain/models/reading_history.dart';
 import 'package:joyleebook_mobile/domain/models/reading_progress.dart';
 import 'package:joyleebook_mobile/domain/models/series.dart';
@@ -12,7 +13,7 @@ import 'package:joyleebook_mobile/domain/models/series.dart';
 class FakeSeriesRepository implements SeriesRepository {
   final List<Series> _items;
   final bool shouldThrowError;
-  final List<ReadingHistory> _readingHistory;
+  final List<ReadingHistory> readingHistory;
   int bookmarkListCallCount = 0;
   int readingHistoryCallCount = 0;
   int readingProgressCallCount = 0;
@@ -27,12 +28,12 @@ class FakeSeriesRepository implements SeriesRepository {
     List<Series>? initialItems,
     this.shouldThrowError = false,
   ]) : _items = initialItems != null ? List.of(initialItems) : [],
-       _readingHistory = const [];
+       readingHistory = const [];
 
   FakeSeriesRepository.withHistory(
     List<Series>? initialItems, {
     this.shouldThrowError = false,
-    this._readingHistory = const [],
+    this.readingHistory = const [],
   }) : _items = initialItems != null ? List.of(initialItems) : [];
 
   @override
@@ -101,7 +102,7 @@ class FakeSeriesRepository implements SeriesRepository {
     if (shouldThrowError) {
       throw AppException(message: 'Không thể tải lịch sử đọc.');
     }
-    return List.unmodifiable(_readingHistory);
+    return List.unmodifiable(readingHistory);
   }
 
   @override
@@ -111,7 +112,7 @@ class FakeSeriesRepository implements SeriesRepository {
     if (shouldThrowError) {
       throw AppException(message: 'Không thể tải tiến độ đọc.');
     }
-    return _readingHistory
+    return readingHistory
         .where((entry) => entry.seriesId == seriesId)
         .firstOrNull
         ?.progress;
@@ -193,5 +194,60 @@ class FakeSeriesRepository implements SeriesRepository {
         averageRating: double.parse(newAvg.toStringAsFixed(1)),
       );
     }
+  }
+
+  @override
+  Future<List<Series>> getSeriesByAuthorId(String authorId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (shouldThrowError) {
+      throw AppException(message: 'Không thể tải danh sách truyện tác giả.');
+    }
+    return _items.where((s) => s.authorId == authorId).toList(growable: false);
+  }
+
+  @override
+  Future<List<AiRecommendation>> getSimilarSeries(
+    String seriesId, {
+    int limit = 6,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (shouldThrowError) {
+      throw AppException(message: 'Lỗi khi tải truyện tương tự.');
+    }
+    // Lấy các truyện khác với seriesId hiện tại
+    final others = _items.where((s) => s.id != seriesId).take(limit).toList();
+    return others
+        .map(
+          (s) => AiRecommendation(
+            series: s,
+            score: 0.88,
+            rationale: '88% tương đồng',
+            isFallback: false,
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Future<List<AiRecommendation>> getSemanticSearchSeries(
+    String query, {
+    int limit = 10,
+    String? genreId,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (shouldThrowError) {
+      throw AppException(message: 'Lỗi khi tìm kiếm ngữ nghĩa.');
+    }
+    final matched = _items.take(limit).toList();
+    return matched
+        .map(
+          (s) => AiRecommendation(
+            series: s,
+            score: 0.92,
+            rationale: '92% phù hợp',
+            isFallback: false,
+          ),
+        )
+        .toList();
   }
 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../data/services/api_exceptions.dart';
 import '../../../domain/models/chapter.dart';
+import '../../../domain/models/download_task.dart';
 import '../../../domain/models/series.dart';
 import '../../../routing/app_paths.dart';
 import '../../chapter/view_models/chapter_list_view_model.dart';
@@ -13,9 +14,17 @@ import '../../core/themes/app_dimensions.dart';
 import '../../auth/view_models/auth_session_view_model.dart';
 import '../../core/widgets/joylee_avatar.dart';
 import '../../core/widgets/joylee_button.dart';
+import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../view_models/series_detail_view_model.dart';
 import '../../search/view_models/search_view_model.dart';
+import '../../comments/widgets/comments_list_view.dart';
+import '../../donation/view_models/story_donations_view_model.dart';
+import '../../donation/widgets/donate_bottom_sheet.dart';
+import '../../donation/widgets/story_donations_section.dart';
+import '../view_models/ai_recommendation_view_model.dart';
+import '../../download/view_models/download_manager_view_model.dart';
+import '../../download/view_models/downloaded_series_view_model.dart';
 import 'series_rating_card.dart';
 
 /// MÀN HÌNH CHI TIẾT TÁC PHẨM (SeriesDetailScreen)
@@ -65,7 +74,6 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       return Scaffold(
         backgroundColor: colors.bgCanvas,
         appBar: AppBar(
-          backgroundColor: colors.bgCanvas,
           title: Text(
             'Lỗi tải tác phẩm',
             style: TextStyle(color: colors.textPrimary, fontSize: 18),
@@ -98,7 +106,6 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       loading: () => Scaffold(
         backgroundColor: colors.bgCanvas,
         appBar: AppBar(
-          backgroundColor: colors.bgCanvas,
           title: Text(
             'Chi tiết tác phẩm',
             style: TextStyle(
@@ -129,7 +136,6 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       error: (error, _) => Scaffold(
         backgroundColor: colors.bgCanvas,
         appBar: AppBar(
-          backgroundColor: colors.bgCanvas,
           title: Text(
             'Lỗi tải tác phẩm',
             style: TextStyle(color: colors.textPrimary, fontSize: 18),
@@ -188,11 +194,10 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         : 'Đọc ngay';
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: colors.bgCanvas,
         appBar: AppBar(
-          backgroundColor: colors.bgCanvas,
           surfaceTintColor: Colors.transparent,
           title: Text(
             series.title,
@@ -205,22 +210,19 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
             ),
           ),
           actions: [
-            // Nút Bookmark nhanh trên AppBar
             IconButton(
+              onPressed: () => _handleDonatePress(context, series),
+              tooltip: 'Tặng xu cho tác giả',
               icon: Icon(
-                series.isBookmarked
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_border_rounded,
-                color: series.isBookmarked
-                    ? colors.primaryBrand
-                    : colors.textSecondary,
+                Icons.volunteer_activism_outlined,
+                color: colors.primaryBrand,
               ),
-              tooltip: series.isBookmarked
-                  ? 'Bỏ lưu tủ sách'
-                  : 'Lưu vào tủ sách',
-              onPressed: _isBookmarkInFlight || isBookmarkStatusLoading
-                  ? null
-                  : () => _handleToggleBookmark(context, series, colors.danger),
+            ),
+            _buildDownloadAppBarAction(
+              context,
+              colors,
+              series,
+              displayChapterCount,
             ),
           ],
         ),
@@ -253,6 +255,8 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                         activeChapter,
                         isBookmarkStatusLoading,
                       ),
+                      // Thanh tiến độ tải về (chỉ hiển thị khi đang tải / tạm dừng / lỗi)
+                      _buildDownloadBar(context, colors, series),
                       const SizedBox(height: AppDimensions.space2),
                     ],
                   ),
@@ -283,6 +287,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                             ? 'Chương'
                             : 'Chương ($displayChapterCount)',
                       ),
+                      const Tab(text: 'Bình luận'),
                     ],
                   ),
                   backgroundColor: colors.bgCanvas,
@@ -290,7 +295,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
               ),
             ];
           },
-          // 3. NỘI DUNG 2 TAB
+          // 3. NỘI DUNG 3 TAB
           body: TabBarView(
             children: [
               // Tab 1: Tóm tắt thông tin tác phẩm
@@ -303,6 +308,12 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                 series,
                 chaptersAsync,
                 chapters,
+              ),
+
+              // Tab 3: Bình luận độc giả
+              CommentsListView(
+                seriesId: series.id,
+                availableChapters: chapters,
               ),
             ],
           ),
@@ -351,11 +362,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Tiêu đề sách
+              // Tiêu đề sách (hiển thị đầy đủ)
               Text(
                 series.title,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.bold,
@@ -467,6 +476,362 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
     );
   }
 
+  /// Nút Tải truyện trên thanh AppBar (48x48 touch target, không làm tăng chiều cao header)
+  Widget _buildDownloadAppBarAction(
+    BuildContext context,
+    AppColors colors,
+    Series series,
+    int? knownChapterCount,
+  ) {
+    final tasks = ref.watch(downloadManagerViewModelProvider);
+    final task = tasks[series.id];
+    final downloadedItem = ref.watch(downloadedSeriesByIdProvider(series.id));
+
+    if (task != null && task.status.isActive) {
+      return IconButton(
+        tooltip: 'Đang tải ${task.formattedProgress}',
+        onPressed: () => ref
+            .read(downloadManagerViewModelProvider.notifier)
+            .cancelDownload(series.id),
+        icon: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            value: task.progressPercentage > 0 ? task.progressPercentage : null,
+            strokeWidth: 2.2,
+            valueColor: AlwaysStoppedAnimation<Color>(colors.primaryBrand),
+          ),
+        ),
+      );
+    }
+
+    if (downloadedItem != null) {
+      final isPartial =
+          downloadedItem.totalChapters > 0 &&
+          downloadedItem.downloadedChaptersCount < downloadedItem.totalChapters;
+
+      return IconButton(
+        tooltip: isPartial
+            ? 'Tải tiếp bản ngoại tuyến'
+            : 'Đã tải trọn bộ (${downloadedItem.formattedSize})',
+        icon: Icon(
+          isPartial ? Icons.downloading_rounded : Icons.offline_pin_rounded,
+          color: colors.primaryBrand,
+        ),
+        onPressed: () => _confirmDeleteDownload(context, series),
+      );
+    }
+
+    return IconButton(
+      tooltip: 'Tải trọn bộ đọc ngoại tuyến',
+      icon: Icon(Icons.cloud_download_outlined, color: colors.textPrimary),
+      onPressed: () =>
+          _confirmStartDownload(context, series, knownChapterCount),
+    );
+  }
+
+  /// Thanh tiến độ tải về (chỉ hiển thị khi đang tải / tạm dừng / lỗi / tải dở)
+  Widget _buildDownloadBar(
+    BuildContext context,
+    AppColors colors,
+    Series series,
+  ) {
+    final tasks = ref.watch(downloadManagerViewModelProvider);
+    final task = tasks[series.id];
+    final downloadedItem = ref.watch(downloadedSeriesByIdProvider(series.id));
+
+    if (task != null && task.status.isActive) {
+      // Đang tải ngầm
+      return Padding(
+        padding: const EdgeInsets.only(top: AppDimensions.space2),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimensions.space3,
+            vertical: AppDimensions.space2,
+          ),
+          decoration: BoxDecoration(
+            color: colors.bgSurfaceSubtle,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            border: Border.all(color: colors.borderDefault),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        colors.primaryBrand,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppDimensions.space2),
+                  Expanded(
+                    child: Text(
+                      'Đang tải: ${task.formattedProgress} (${(task.progressPercentage * 100).toInt()}%)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => ref
+                        .read(downloadManagerViewModelProvider.notifier)
+                        .cancelDownload(series.id),
+                    child: Text(
+                      'Tạm dừng',
+                      style: TextStyle(fontSize: 12, color: colors.danger),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(
+                  value: task.progressPercentage,
+                  minHeight: 4,
+                  backgroundColor: colors.borderDefault,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    colors.primaryBrand,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (task != null &&
+        (task.status == DownloadStatus.failed ||
+            task.status == DownloadStatus.paused)) {
+      return Padding(
+        padding: const EdgeInsets.only(top: AppDimensions.space2),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimensions.space3,
+            vertical: AppDimensions.space2,
+          ),
+          decoration: BoxDecoration(
+            color: colors.bgSurfaceSubtle,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            border: Border.all(color: colors.danger.withAlpha(120)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, size: 18, color: colors.danger),
+              const SizedBox(width: AppDimensions.space2),
+              Expanded(
+                child: Text(
+                  task.status == DownloadStatus.paused
+                      ? 'Đã tạm dừng (${task.formattedProgress})'
+                      : 'Tải gián đoạn (${task.formattedProgress})',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => _resumeDownload(context, series),
+                child: Text(
+                  'Tải tiếp',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colors.primaryBrand,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (downloadedItem != null &&
+        downloadedItem.totalChapters > 0 &&
+        downloadedItem.downloadedChaptersCount < downloadedItem.totalChapters) {
+      return Padding(
+        padding: const EdgeInsets.only(top: AppDimensions.space2),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimensions.space3,
+            vertical: AppDimensions.space2,
+          ),
+          decoration: BoxDecoration(
+            color: colors.bgSurfaceSubtle,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            border: Border.all(color: colors.borderDefault),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.downloading_rounded,
+                size: 20,
+                color: colors.primaryBrand,
+              ),
+              const SizedBox(width: AppDimensions.space2),
+              Expanded(
+                child: Text(
+                  'Đã tải ${downloadedItem.downloadedChaptersCount}/${downloadedItem.totalChapters} chương • ${downloadedItem.formattedSize}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => _resumeDownload(context, series),
+                child: Text(
+                  'Tải tiếp',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colors.primaryBrand,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  bool _ensureSignedInForDownload(BuildContext context, Series series) {
+    final session = ref.read(authSessionProvider).value;
+    if (session != null) return true;
+
+    final currentPath = AppPaths.seriesDetail(series.id);
+    context.push('${AppPaths.signIn}?from=${Uri.encodeComponent(currentPath)}');
+    return false;
+  }
+
+  Future<void> _resumeDownload(BuildContext context, Series series) async {
+    if (!_ensureSignedInForDownload(context, series)) return;
+    await ref
+        .read(downloadManagerViewModelProvider.notifier)
+        .startDownload(series);
+  }
+
+  Future<void> _confirmStartDownload(
+    BuildContext context,
+    Series series,
+    int? knownChapterCount,
+  ) async {
+    if (!_ensureSignedInForDownload(context, series)) return;
+
+    if (knownChapterCount == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tác phẩm này chưa có chương nào để tải.'),
+        ),
+      );
+      return;
+    }
+
+    final String contentMessage;
+    if (knownChapterCount != null && knownChapterCount > 0) {
+      final estimatedKb = knownChapterCount * 50;
+      final sizeLabel = estimatedKb < 1024
+          ? '~$estimatedKb KB'
+          : '~${(estimatedKb / 1024).toStringAsFixed(1)} MB';
+      contentMessage =
+          'Tải toàn bộ $knownChapterCount chương của "${series.title}" để đọc offline khi không có kết nối mạng.\n'
+          'Dung lượng ước tính khoảng $sizeLabel.';
+    } else {
+      contentMessage =
+          'Tải toàn bộ các chương hiện có của "${series.title}" để đọc offline khi không có kết nối mạng.';
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Tải trọn bộ tác phẩm?'),
+        content: Text(contentMessage),
+        actions: [
+          JoyleeButton(
+            label: 'Hủy',
+            variant: JoyleeButtonVariant.ghost,
+            isFullWidth: false,
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+          ),
+          JoyleeButton(
+            label: 'Tải ngay',
+            isFullWidth: false,
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final targetSeries = knownChapterCount != null && knownChapterCount > 0
+          ? series.copyWith(totalChapters: knownChapterCount)
+          : series;
+      await ref
+          .read(downloadManagerViewModelProvider.notifier)
+          .startDownload(targetSeries);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã thêm vào hàng đợi tải về')),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteDownload(
+    BuildContext context,
+    Series series,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Xóa bản tải?'),
+        content: Text(
+          'Bạn có chắc chắn muốn xóa bản tải ngoại tuyến của tác phẩm "${series.title}" khỏi bộ nhớ thiết bị?',
+        ),
+        actions: [
+          JoyleeButton(
+            label: 'Hủy',
+            variant: JoyleeButtonVariant.ghost,
+            isFullWidth: false,
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+          ),
+          JoyleeButton(
+            label: 'Xóa bản tải',
+            variant: JoyleeButtonVariant.danger,
+            isFullWidth: false,
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await ref
+          .read(downloadedSeriesViewModelProvider.notifier)
+          .deleteSeries(series.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Đã xóa bản tải của "${series.title}"')),
+        );
+      }
+    }
+  }
+
   /// Tab 1: Thông tin tóm tắt & giới thiệu nội dung truyện
   Widget _buildOverviewTab(AppColors colors, Series series) {
     return RefreshIndicator(
@@ -476,6 +841,9 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         await Future.wait([
           ref.read(seriesDetailViewModelProvider(series.id).notifier).refresh(),
           ref.read(chapterListViewModelProvider(series.id).notifier).refresh(),
+          ref
+              .read(storyDonationsViewModelProvider(series.id).notifier)
+              .refresh(),
         ]);
       },
       child: SingleChildScrollView(
@@ -684,10 +1052,156 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                 return success;
               },
             ),
+            const SizedBox(height: AppDimensions.space4),
+            StoryDonationsSection(
+              seriesId: series.id,
+              onDonateTap: () => _handleDonatePress(context, series),
+            ),
+
+            // Khối truyện tương tự (AI Vector Match - US-64)
+            _buildSimilarSeriesSection(colors, series.id),
+
             const SizedBox(height: AppDimensions.space6),
           ],
         ),
       ),
+    );
+  }
+
+  /// Khối Tác phẩm tương tự do AI gợi ý
+  Widget _buildSimilarSeriesSection(AppColors colors, String seriesId) {
+    final similarAsync = ref.watch(similarSeriesProvider(seriesId));
+
+    return similarAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (items) {
+        if (items.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: colors.bgBrandSubtle,
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                  ),
+                  child: Icon(
+                    Icons.auto_awesome,
+                    size: 16,
+                    color: colors.primaryBrand,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Tác phẩm tương tự (AI đề xuất)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: colors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimensions.space3),
+            SizedBox(
+              height: 200,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: items.length,
+                separatorBuilder: (_, _) =>
+                    const SizedBox(width: AppDimensions.space3),
+                itemBuilder: (context, index) {
+                  final rec = items[index];
+                  final s = rec.series;
+                  return SizedBox(
+                    width: 110,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusMd,
+                      ),
+                      onTap: () {
+                        context.push(AppPaths.seriesDetail(s.id), extra: s);
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Stack(
+                            children: [
+                              Container(
+                                width: 110,
+                                height: 145,
+                                decoration: BoxDecoration(
+                                  color: colors.bgSurfaceSubtle,
+                                  borderRadius: BorderRadius.circular(
+                                    AppDimensions.radiusMd,
+                                  ),
+                                  border: Border.all(
+                                    color: colors.borderDefault,
+                                  ),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: s.coverImageUrl.isNotEmpty
+                                    ? Image.network(
+                                        s.coverImageUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, _, _) =>
+                                            _buildCoverPlaceholder(colors),
+                                      )
+                                    : _buildCoverPlaceholder(colors),
+                              ),
+                              if (rec.matchPercentage > 0)
+                                Positioned(
+                                  top: 6,
+                                  left: 6,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 5,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colors.primaryBrandDark,
+                                      borderRadius: BorderRadius.circular(
+                                        AppDimensions.radiusSm,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '${rec.matchPercentage}%',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            s.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: colors.textPrimary,
+                              height: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -762,41 +1276,39 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
         ),
 
         // Trạng thái Error
-        error: (err, _) => Center(
-          child: JoyleeErrorView(
-            message: 'Không thể tải danh sách chương',
-            onRetry: () => ref
-                .read(chapterListViewModelProvider(series.id).notifier)
-                .refresh(),
+        error: (err, _) => LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: JoyleeErrorView(
+                message: 'Không thể tải danh sách chương',
+                onRetry: () => ref
+                    .read(chapterListViewModelProvider(series.id).notifier)
+                    .refresh(),
+              ),
+            ),
           ),
         ),
 
         // Trạng thái Data / Empty
         data: (allChapters) {
           if (allChapters.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.menu_book_rounded,
-                    size: 48,
-                    color: colors.textDisabled,
-                  ),
-                  const SizedBox(height: AppDimensions.space2),
-                  Text(
-                    'Tác giả hiện chưa xuất bản chương nào.',
-                    style: TextStyle(color: colors.textSecondary, fontSize: 14),
-                  ),
-                  const SizedBox(height: AppDimensions.space3),
-                  TextButton.icon(
-                    onPressed: () => ref
+            return LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: JoyleeEmptyState(
+                    iconData: Icons.menu_book_rounded,
+                    title: 'Chưa có chương nào',
+                    message: 'Tác giả hiện chưa xuất bản chương nào cho tác phẩm này.',
+                    actionLabel: 'Tải lại',
+                    onAction: () => ref
                         .read(chapterListViewModelProvider(series.id).notifier)
                         .refresh(),
-                    icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text('Tải lại'),
                   ),
-                ],
+                ),
               ),
             );
           }
@@ -894,10 +1406,43 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
   }
 
   /// Hiển thị Dialog yêu cầu Đăng nhập khi người dùng chưa đăng nhập thực hiện đánh giá
+  Future<void> _handleDonatePress(BuildContext context, Series series) async {
+    final session = ref.read(authSessionProvider).value;
+    if (session == null) {
+      await _showLoginRequiredDialog(
+        context,
+        series,
+        title: 'Đăng nhập để tặng xu',
+        actionLabel: 'tặng xu ủng hộ tác giả cho',
+      );
+      return;
+    }
+
+    if (series.authorId.isNotEmpty && session.userId == series.authorId) {
+      final colors = context.colors;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Bạn không thể tự ủng hộ truyện của chính mình.'),
+          backgroundColor: colors.danger,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    await DonateBottomSheet.show(
+      context,
+      storyId: series.id,
+      storyTitle: series.title,
+    );
+  }
+
   Future<void> _showLoginRequiredDialog(
     BuildContext context,
-    Series series,
-  ) async {
+    Series series, {
+    String title = 'Đăng nhập để đánh giá',
+    String actionLabel = 'gửi đánh giá cho',
+  }) async {
     final colors = context.colors;
     await showDialog<void>(
       context: context,
@@ -913,7 +1458,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
             color: colors.primaryBrand,
           ),
           title: Text(
-            'Đăng nhập để đánh giá',
+            title,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -922,7 +1467,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
             textAlign: TextAlign.center,
           ),
           content: Text(
-            'Bạn cần đăng nhập tài khoản JoyleeBook để gửi đánh giá cho tác phẩm "${series.title}".',
+            'Bạn cần đăng nhập tài khoản JoyleeBook để $actionLabel tác phẩm "${series.title}".',
             style: TextStyle(
               fontSize: 14,
               color: colors.textSecondary,

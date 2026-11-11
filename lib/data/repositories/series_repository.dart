@@ -1,10 +1,14 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/api_endpoints.dart';
+import '../../domain/models/ai_recommendation.dart';
 import '../../domain/models/reading_history.dart';
 import '../../domain/models/reading_progress.dart';
 import '../../domain/models/series.dart';
+import '../dtos/ai_recommendation_dto.dart';
 import '../dtos/bookmark_dto.dart';
 import '../dtos/reading_history_dto.dart';
 import '../dtos/reading_progress_dto.dart';
@@ -12,6 +16,7 @@ import '../dtos/series_dto.dart';
 import '../dtos/upsert_reading_progress_dto.dart';
 import '../services/api_client.dart';
 import '../services/api_exceptions.dart';
+import '../services/offline_database_service.dart';
 import '../services/search_utils.dart';
 
 /// REPOSITORY - Kho lưu trữ dữ liệu
@@ -19,8 +24,9 @@ import '../services/search_utils.dart';
 /// Là lớp trung gian DUY NHẤT kết nối giữa Data Service (Dio/Mạng) và Giao diện (ViewModel).
 class SeriesRepository {
   final Dio _dio;
+  final OfflineDatabaseService? _offlineDb;
 
-  SeriesRepository(this._dio);
+  SeriesRepository(this._dio, {this._offlineDb});
 
   /// 1. Lấy danh sách truyện từ Gateway
   /// Có hỗ trợ tham số tìm kiếm [searchQuery] nếu người dùng gõ từ khóa
@@ -84,6 +90,34 @@ class SeriesRepository {
       if (e is AppException) rethrow;
       throw AppException(
         message: 'Không thể xử lý dữ liệu danh sách truyện: $e',
+      );
+    }
+  }
+
+  /// Lấy danh sách tất cả tác phẩm thuộc quyền sở hữu của tác giả [authorId].
+  Future<List<Series>> getSeriesByAuthorId(String authorId) async {
+    try {
+      final response = await _dio.get<List<dynamic>>(
+        ApiEndpoints.seriesByAuthor(authorId),
+      );
+      final rawList = response.data ?? const [];
+      return rawList
+          .whereType<Map<String, dynamic>>()
+          .map((json) => Series.fromDto(SeriesDto.fromJson(json)))
+          .toList(growable: false);
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 403 || status == 404) {
+        final allSeries = await getSeriesList();
+        return allSeries
+            .where((s) => s.authorId == authorId)
+            .toList(growable: false);
+      }
+      throw AppException.fromDio(e);
+    } catch (e) {
+      if (e is AppException) rethrow;
+      throw AppException(
+        message: 'Không thể tải danh sách tác phẩm của tác giả: $e',
       );
     }
   }
@@ -162,8 +196,8 @@ class SeriesRepository {
               final details = await getSeriesById(bookmark.seriesId);
               series.add(details.copyWith(isBookmarked: true));
               continue;
-            } on AppException catch (error) {
-              if (error.statusCode != 404) rethrow;
+            } catch (_) {
+              // Nếu lấy chi tiết thất bại hoặc timeout, vẫn giữ lại thông tin cơ bản
             }
           }
           series.add(parsedSeries);
@@ -171,8 +205,8 @@ class SeriesRepository {
           try {
             final details = await getSeriesById(bookmark.seriesId);
             series.add(details.copyWith(isBookmarked: true));
-          } on AppException catch (error) {
-            if (error.statusCode != 404) rethrow;
+          } catch (_) {
+            // Không lấy được chi tiết bổ sung
           }
         }
       }
@@ -221,8 +255,8 @@ class SeriesRepository {
               progress: entry.progress,
               lastReadAt: entry.lastReadAt,
             );
-          } on AppException catch (error) {
-            if (error.statusCode != 404) rethrow;
+          } catch (_) {
+            // Nếu lấy chi tiết thất bại hoặc timeout, vẫn giữ lại entry hiện có
           }
         }
         entries.add(entry);
@@ -497,6 +531,33 @@ class SeriesRepository {
         clearUserRating: userRating == null,
       );
     } on DioException catch (e) {
+      if (_offlineDb != null) {
+        final offlineRow = await _offlineDb.getDownloadedSeriesRaw(seriesId);
+        if (offlineRow != null) {
+          List<String> genres = const [];
+          final genresStr = offlineRow['genres_json'] as String?;
+          if (genresStr != null && genresStr.isNotEmpty) {
+            try {
+              final decoded = jsonDecode(genresStr);
+              if (decoded is List) {
+                genres = decoded.map((e) => e.toString()).toList();
+              }
+            } catch (_) {}
+          }
+          return Series(
+            id: offlineRow['id'] as String,
+            title: offlineRow['title'] as String,
+            authorName: offlineRow['author_name'] as String,
+            description:
+                (offlineRow['description'] as String?) ??
+                'Chưa có tóm tắt cho tác phẩm này.',
+            coverImageUrl: (offlineRow['cover_image_url'] as String?) ?? '',
+            status: SeriesStatus.fromInt((offlineRow['status'] as int?) ?? 1),
+            genres: genres,
+            totalChapters: (offlineRow['total_chapters'] as int?) ?? 0,
+          );
+        }
+      }
       throw AppException.fromDio(e);
     } catch (e) {
       if (e is AppException) rethrow;
@@ -527,10 +588,93 @@ class SeriesRepository {
       throw AppException(message: 'Không thể gửi đánh giá tác phẩm: $e');
     }
   }
+
+  /// 5. Gợi ý các bộ truyện tương tự bằng AI Vector Search (US-64)
+  /// Kết nối endpoint: GET /api/series/{seriesId}/similar?limit={limit}
+  Future<List<AiRecommendation>> getSimilarSeries(
+    String seriesId, {
+    int limit = 6,
+  }) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        ApiEndpoints.seriesSimilar(seriesId),
+        queryParameters: {'limit': limit},
+      );
+
+      final data = response.data;
+      if (data == null) return const [];
+
+      final dto = SimilarSeriesListResponseDto.fromJson(data);
+      return dto.items
+          .map((item) {
+            final score = item.similarityScore ?? 0.0;
+            final rationale = item.similarityScore != null
+                ? '${(score * 100).round()}% tương đồng'
+                : (dto.isFallbackByGenre ? 'Cùng thể loại' : 'AI đề xuất');
+
+            return AiRecommendation(
+              series: Series.fromDto(item.series),
+              score: score,
+              rationale: rationale,
+              isFallback: dto.isFallbackByGenre,
+            );
+          })
+          .toList(growable: false);
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    } catch (e) {
+      if (e is AppException) rethrow;
+      throw AppException(message: 'Không thể tải truyện tương tự từ AI: $e');
+    }
+  }
+
+  /// 6. Tìm kiếm và gợi ý truyện bằng Ngữ nghĩa Ngôn ngữ tự nhiên với AI (US-65)
+  /// Kết nối endpoint: GET /api/series/semantic-search?q={query}&limit={limit}
+  Future<List<AiRecommendation>> getSemanticSearchSeries(
+    String query, {
+    int limit = 10,
+    String? genreId,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{'q': query.trim(), 'limit': limit};
+      if (genreId != null && genreId.isNotEmpty) {
+        queryParams['genreId'] = genreId;
+      }
+
+      final response = await _dio.get<Map<String, dynamic>>(
+        ApiEndpoints.seriesSemanticSearch,
+        queryParameters: queryParams,
+      );
+
+      final data = response.data;
+      if (data == null) return const [];
+
+      final dto = SemanticSearchResponseDto.fromJson(data);
+      return dto.items
+          .map((item) {
+            final pct = (item.relevanceScore * 100).round();
+            final rationale = pct > 0 ? '$pct% phù hợp' : 'AI Đề xuất';
+
+            return AiRecommendation(
+              series: Series.fromDto(item.series),
+              score: item.relevanceScore,
+              rationale: rationale,
+              isFallback: false,
+            );
+          })
+          .toList(growable: false);
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    } catch (e) {
+      if (e is AppException) rethrow;
+      throw AppException(message: 'Không thể tìm kiếm truyện bằng AI: $e');
+    }
+  }
 }
 
 /// RIVERPOD PROVIDER: Đăng ký SeriesRepository để các ViewModel có thể dùng lại dễ dàng
 final seriesRepositoryProvider = Provider<SeriesRepository>((ref) {
   final dio = ref.watch(apiClientProvider);
-  return SeriesRepository(dio);
+  final offlineDb = ref.watch(offlineDatabaseServiceProvider);
+  return SeriesRepository(dio, offlineDb: offlineDb);
 });

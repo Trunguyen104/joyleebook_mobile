@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../domain/models/downloaded_series.dart';
 import '../domain/models/series.dart';
 import '../ui/auth/view_models/auth_session_view_model.dart';
 import '../ui/auth/widgets/forgot_password_screen.dart';
@@ -12,6 +13,8 @@ import '../ui/auth/widgets/sign_up_screen.dart';
 import '../ui/bookmark/widgets/bookmark_screen.dart';
 import '../ui/bookmark/widgets/bookmark_list_screen.dart';
 import '../ui/bookmark/widgets/reading_history_screen.dart';
+import '../ui/download/widgets/downloaded_series_screen.dart';
+import '../ui/download/widgets/offline_series_detail_screen.dart';
 import '../ui/chapter/widgets/chapter_detail_screen.dart';
 import '../ui/chapter/widgets/chapter_list_screen.dart';
 import '../ui/gateway_test/widgets/gateway_test_screen.dart';
@@ -19,6 +22,7 @@ import '../ui/notifications/widgets/notification_screen.dart';
 import '../ui/profile/widgets/edit_profile_screen.dart';
 import '../ui/profile/widgets/profile_screen.dart';
 import '../ui/profile/widgets/settings_screen.dart';
+import '../ui/wallet/widgets/wallet_screen.dart';
 import '../ui/search/widgets/search_screen.dart';
 import '../ui/series/widgets/series_detail_screen.dart';
 import '../ui/series/widgets/series_list_screen.dart';
@@ -116,6 +120,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                               seriesId: state.pathParameters['seriesId']!,
                               chapterId: state.pathParameters['chapterId']!,
                               seriesTitle: state.extra as String? ?? '',
+                              isOfflineMode:
+                                  state.uri.queryParameters['offline'] == '1',
                             ),
                           ),
                         ],
@@ -160,22 +166,33 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       onExplore: () => context.go(AppPaths.series),
                     ),
                   ),
+                  GoRoute(
+                    path: 'downloads',
+                    builder: (context, state) => DownloadedSeriesScreen(
+                      onExplore: () => context.go(AppPaths.series),
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: ':seriesId',
+                        builder: (context, state) {
+                          final seriesId = state.pathParameters['seriesId']!;
+                          final extra = state.extra;
+                          return OfflineSeriesDetailScreen(
+                            seriesId: seriesId,
+                            initialSeries: extra is DownloadedSeries
+                                ? extra
+                                : null,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ],
           ),
 
-          // TAB 3: THÔNG BÁO (NOTIFICATIONS)
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: AppPaths.notifications,
-                builder: (context, state) => const NotificationScreen(),
-              ),
-            ],
-          ),
-
-          // TAB 4: TRANG CÁ NHÂN (PROFILE)
+          // TAB 3: TRANG CÁ NHÂN (PROFILE)
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -185,6 +202,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: AppPaths.notifications,
+        builder: (context, state) => const NotificationScreen(),
       ),
       GoRoute(
         path: AppPaths.gateway,
@@ -202,6 +223,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppPaths.changePassword,
         builder: (context, state) => const ChangePasswordScreen(),
+      ),
+      GoRoute(
+        path: AppPaths.wallet,
+        builder: (context, state) => const WalletScreen(),
       ),
       GoRoute(
         path: AppPaths.settings,

@@ -31,11 +31,39 @@ abstract final class AppTheme {
           side: BorderSide(color: colors.borderDefault, width: 1),
         ),
       ),
+      navigationBarTheme: NavigationBarThemeData(
+        height: 50, // Chiều cao mong muốn (56 - 60)
+        indicatorColor: Colors.transparent,
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return IconThemeData(color: colors.primaryBrand, size: 24);
+          }
+          return IconThemeData(color: colors.textSecondary, size: 24);
+        }),
+      ),
       appBarTheme: AppBarTheme(
-        backgroundColor: colors.bgCanvas,
+        backgroundColor: colors.bgSurface,
         foregroundColor: colors.textPrimary,
         elevation: 0,
+        scrolledUnderElevation: 1.5,
+        shadowColor: Colors.black.withValues(alpha: 0.12),
+        surfaceTintColor: Colors.transparent,
         centerTitle: false,
+        iconTheme: IconThemeData(color: colors.textPrimary),
+        actionsIconTheme: IconThemeData(color: colors.textPrimary),
+        titleTextStyle: TextStyle(
+          color: colors.textPrimary,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          letterSpacing: -0.2,
+        ),
+
+        shape: Border(
+          bottom: BorderSide(
+            color: colors.borderDefault.withValues(alpha: 0.7),
+            width: 1,
+          ),
+        ),
       ),
       extensions: [colors],
     );
