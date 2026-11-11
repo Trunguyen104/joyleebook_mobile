@@ -41,7 +41,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   bool _isGenreExpanded = false;
-  bool _isFocused = false;
+  bool _showSearchOverlay = false;
 
   @override
   void initState() {
@@ -57,8 +57,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _handleFocusChange() {
-    if (_isFocused != _searchFocusNode.hasFocus) {
-      setState(() => _isFocused = _searchFocusNode.hasFocus);
+    final hasFocus = _searchFocusNode.hasFocus;
+    if (hasFocus != _showSearchOverlay) {
+      setState(() => _showSearchOverlay = hasFocus);
+    }
+  }
+
+  void _dismissSearchOverlay({bool unfocus = false}) {
+    if (unfocus) {
+      _searchFocusNode.unfocus();
+    }
+    if (_showSearchOverlay) {
+      setState(() => _showSearchOverlay = false);
     }
   }
 
@@ -87,6 +97,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    ref.listen<AsyncValue<List<Series>>>(searchViewModelProvider, (prev, next) {
+      if ((prev?.isLoading ?? false) &&
+          !next.isLoading &&
+          _showSearchOverlay &&
+          _searchController.text.trim().isNotEmpty) {
+        setState(() => _showSearchOverlay = false);
+      }
+    });
     final seriesState = ref.watch(searchViewModelProvider);
     final searchVm = ref.watch(searchViewModelProvider.notifier);
     final genresState = ref.watch(genreListViewModelProvider);
@@ -167,6 +185,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             ? 'Xóa bộ lọc'
                             : 'Tải lại toàn bộ'),
                   onAction: () {
+                    _dismissSearchOverlay(unfocus: true);
                     if (hasGenreFilter && hasQuery) {
                       ref
                           .read(searchViewModelProvider.notifier)
@@ -221,24 +240,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             },
           ),
 
-          // LỚP PHỦ TÌM KIẾM GẦN ĐÂY HOẶC GỢI Ý KHI ĐANG GÕ
-          if (_isFocused ||
-              (_searchController.text.trim().isEmpty &&
-                  !searchVm.isFiltered &&
-                  seriesState.hasValue)) ...[
+          // LỚP PHỦ TÌM KIẾM GẦN ĐÂY HOẶC GỢI Ý KHI ĐANG FOCUS / ĐANG GÕ
+          if (_showSearchOverlay) ...[
             Positioned.fill(
-              child: Container(
+              child: Material(
                 color: colors.bgCanvas,
                 child: _searchController.text.trim().isEmpty
                     ? SearchRecentKeywords(
                         recentSearches: searchVm.recentSearches,
                         onKeywordSelected: (keyword) {
                           _searchController.text = keyword;
-                          _searchFocusNode.unfocus();
+                          _dismissSearchOverlay(unfocus: true);
                           ref
                               .read(searchViewModelProvider.notifier)
                               .search(keyword, immediate: true);
-                          setState(() {});
                         },
                         onKeywordDeleted: (keyword) {
                           ref
@@ -260,7 +275,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           genreNames: availableGenreNames,
                         ),
                         onSuggestionSelected: (suggestion) {
-                          _searchFocusNode.unfocus();
+                          _dismissSearchOverlay(unfocus: true);
                           final viewModel = ref.read(
                             searchViewModelProvider.notifier,
                           );
@@ -277,7 +292,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 suggestion.text,
                                 immediate: true,
                               );
-                              setState(() {});
                               break;
                             case SearchSuggestionType.genre:
                               viewModel.filterByGenre(suggestion.text);
@@ -285,7 +299,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             case SearchSuggestionType.aiSemantic:
                               _searchController.text = suggestion.text;
                               viewModel.searchSemantically(suggestion.text);
-                              setState(() {});
                               break;
                           }
                         },
@@ -339,12 +352,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       controller: _searchController,
       focusNode: _searchFocusNode,
       textInputAction: TextInputAction.search,
+      onTap: () {
+        if (!_showSearchOverlay) {
+          setState(() => _showSearchOverlay = true);
+        }
+      },
       onChanged: (value) {
         ref.read(searchViewModelProvider.notifier).search(value);
-        setState(() {});
+        setState(() => _showSearchOverlay = true);
       },
       onSubmitted: (value) {
-        _searchFocusNode.unfocus();
+        _dismissSearchOverlay(unfocus: true);
         ref
             .read(searchViewModelProvider.notifier)
             .search(value, immediate: true);
@@ -361,10 +379,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 icon: const Icon(Icons.clear_rounded, size: 18),
                 onPressed: () {
                   _searchController.clear();
+                  _dismissSearchOverlay(unfocus: true);
                   ref
                       .read(searchViewModelProvider.notifier)
                       .search('', immediate: true);
-                  setState(() {});
                 },
               )
             : null,
@@ -429,6 +447,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       isSelected: selectedGenre == null,
                       colors: colors,
                       onTap: () {
+                        _dismissSearchOverlay(unfocus: true);
                         if (_isGenreExpanded) {
                           setState(() => _isGenreExpanded = false);
                         }
@@ -445,6 +464,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         isSelected: isSelected,
                         colors: colors,
                         onTap: () {
+                          _dismissSearchOverlay(unfocus: true);
                           if (_isGenreExpanded) {
                             setState(() => _isGenreExpanded = false);
                           }
@@ -558,6 +578,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       isSelected: selectedGenre == null,
                       colors: colors,
                       onTap: () {
+                        _dismissSearchOverlay(unfocus: true);
                         ref
                             .read(searchViewModelProvider.notifier)
                             .filterByGenre(null);
@@ -572,6 +593,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         isSelected: isSelected,
                         colors: colors,
                         onTap: () {
+                          _dismissSearchOverlay(unfocus: true);
                           ref
                               .read(searchViewModelProvider.notifier)
                               .filterByGenre(g.name);

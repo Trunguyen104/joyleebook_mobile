@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../data/services/api_exceptions.dart';
+import '../../../domain/models/search_sort_option.dart';
 import '../../../domain/models/series.dart';
 import '../../../routing/app_paths.dart';
 import '../../core/themes/app_colors.dart';
@@ -10,6 +11,7 @@ import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_empty_state.dart';
 import '../../core/widgets/joylee_error_view.dart';
 import '../../notifications/widgets/notification_bell_button.dart';
+import '../../search/view_models/search_view_model.dart';
 import '../view_models/ai_recommendation_view_model.dart';
 import '../view_models/series_list_view_model.dart';
 import 'ai_recommendation_section.dart';
@@ -29,6 +31,15 @@ class SeriesListScreen extends ConsumerStatefulWidget {
 }
 
 class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
+  static const int _maxSectionItems = 10;
+
+  void _openSearchTab({SearchSortOption? sortOption}) {
+    if (sortOption != null) {
+      ref.read(searchViewModelProvider.notifier).setSortOption(sortOption);
+    }
+    context.go(AppPaths.search);
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -160,6 +171,8 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
                   title: 'Truyện tiếp theo bạn đọc',
                   seriesList: nextToReadList,
                   colors: colors,
+                  onSeeMore: () =>
+                      _openSearchTab(sortOption: SearchSortOption.relevance),
                 ),
 
                 if (!isSingleItem) ...[
@@ -169,6 +182,8 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
                     title: 'Chúng tôi tin bạn sẽ thích',
                     seriesList: topRatedList,
                     colors: colors,
+                    onSeeMore: () =>
+                        _openSearchTab(sortOption: SearchSortOption.topRated),
                   ),
 
                   const SizedBox(height: AppDimensions.space4),
@@ -177,6 +192,8 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
                     title: 'Thử đọc Truyện Mới',
                     seriesList: newestList,
                     colors: colors,
+                    onSeeMore: () =>
+                        _openSearchTab(sortOption: SearchSortOption.newest),
                   ),
                 ],
 
@@ -189,25 +206,65 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
     );
   }
 
-  /// Khung hiển thị một Section cuộn ngang
+  /// Khung hiển thị một Section cuộn ngang (tối đa 10 truyện, kèm nút Xem thêm sang Khám phá)
   Widget _buildSection({
     required String title,
     required List<Series> seriesList,
     required AppColors colors,
+    VoidCallback? onSeeMore,
   }) {
+    final displayedSeries = seriesList
+        .take(_maxSectionItems)
+        .toList(growable: false);
+    final showSeeMore = onSeeMore != null && seriesList.length > 1;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppDimensions.space4),
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: colors.textPrimary,
-              letterSpacing: -0.2,
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colors.textPrimary,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ),
+              if (showSeeMore)
+                TextButton.icon(
+                  onPressed: onSeeMore,
+                  iconAlignment: IconAlignment.end,
+                  icon: Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 16,
+                    color: colors.primaryBrand,
+                  ),
+                  label: Text(
+                    'Xem thêm',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: colors.primaryBrand,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimensions.space2,
+                      vertical: 4,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: AppDimensions.space3),
@@ -218,11 +275,11 @@ class _SeriesListScreenState extends ConsumerState<SeriesListScreen> {
             padding: const EdgeInsets.symmetric(
               horizontal: AppDimensions.space4,
             ),
-            itemCount: seriesList.length,
+            itemCount: displayedSeries.length,
             separatorBuilder: (_, _) =>
                 const SizedBox(width: AppDimensions.space3),
             itemBuilder: (context, index) {
-              final series = seriesList[index];
+              final series = displayedSeries[index];
               return _buildBookCard(series, colors);
             },
           ),

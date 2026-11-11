@@ -8,7 +8,9 @@ import 'package:joyleebook_mobile/domain/models/series.dart';
 import 'package:joyleebook_mobile/ui/core/themes/app_theme.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_empty_state.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_error_view.dart';
+import 'package:joyleebook_mobile/ui/search/widgets/search_recent_keywords.dart';
 import 'package:joyleebook_mobile/ui/search/widgets/search_screen.dart';
+import 'package:joyleebook_mobile/ui/search/widgets/search_suggestions_view.dart';
 
 import '../../testing/fakes/fake_genre_repository.dart';
 import '../../testing/fakes/fake_series_repository.dart';
@@ -89,9 +91,16 @@ void main() {
         expect(find.text('Hành Động'), findsOneWidget);
         expect(find.text('Kỳ Ảo'), findsOneWidget);
 
-        // Kiểm tra hiển thị cả 2 tác phẩm ban đầu dạng xếp hạng
+        // Kiểm tra hiển thị cả 2 tác phẩm ban đầu dạng xếp hạng và không bị lớp phủ che
+        expect(find.byType(SearchRecentKeywords), findsNothing);
+        expect(find.byType(SearchSuggestionsView), findsNothing);
         expect(find.text('Đấu Phá Thương Khung'), findsOneWidget);
         expect(find.text('Sát Thủ Về Hưu'), findsOneWidget);
+
+        // Khi chạm vào ô tìm kiếm mới hiện lớp phủ tìm kiếm gần đây / xu hướng
+        await tester.tap(find.byType(TextField));
+        await tester.pumpAndSettle();
+        expect(find.byType(SearchRecentKeywords), findsOneWidget);
       },
     );
 

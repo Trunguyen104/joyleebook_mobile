@@ -204,6 +204,8 @@ class FakeSeriesRepository implements SeriesRepository {
     }
     return _items.where((s) => s.authorId == authorId).toList(growable: false);
   }
+
+  @override
   Future<List<AiRecommendation>> getSimilarSeries(
     String seriesId, {
     int limit = 6,

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:joyleebook_mobile/data/repositories/auth_repository.dart';
 import 'package:joyleebook_mobile/data/repositories/series_repository.dart';
 import 'package:joyleebook_mobile/domain/models/series.dart';
+import 'package:joyleebook_mobile/routing/app_paths.dart';
 import 'package:joyleebook_mobile/ui/core/themes/app_theme.dart';
 import 'package:joyleebook_mobile/ui/core/widgets/joylee_empty_state.dart';
 import 'package:joyleebook_mobile/ui/series/widgets/series_list_screen.dart';
@@ -143,4 +145,82 @@ void main() {
     expect(find.text('Kho Truyện JoyleeBook'), findsOneWidget);
     expect(find.byTooltip('Tìm kiếm & Khám phá'), findsOneWidget);
   });
+
+  testWidgets(
+    'Mỗi section trên Home giới hạn tối đa 10 truyện và nút Xem thêm sang Khám phá',
+    (tester) async {
+      final manySeries = List.generate(
+        15,
+        (i) => Series(
+          id: 's-${i + 1}',
+          title: 'Truyện Mẫu ${i + 1}',
+          authorName: 'Tác Giả',
+          description: 'Mô tả',
+          coverImageUrl: '',
+          status: SeriesStatus.ongoing,
+        ),
+      );
+      final router = GoRouter(
+        initialLocation: AppPaths.series,
+        routes: [
+          GoRoute(
+            path: AppPaths.series,
+            builder: (_, _) => const SeriesListScreen(),
+          ),
+          GoRoute(
+            path: AppPaths.search,
+            builder: (_, _) => const Scaffold(body: Text('Trang Khám Phá')),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            seriesRepositoryProvider.overrideWithValue(
+              FakeSeriesRepository(manySeries),
+            ),
+            authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+          ],
+          child: MaterialApp.router(
+            theme: AppTheme.light,
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Kiểm tra các ListView cuộn ngang trong các section có itemCount = 10
+      // (ListView.separated tạo 10 * 2 - 1 = 19 children gồm card + separator, chứ không phải 15 * 2 - 1 = 29)
+      await tester.scrollUntilVisible(
+        find.text('Thử đọc Truyện Mới'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      final horizontalLists = tester
+          .widgetList<ListView>(find.byType(ListView))
+          .where((lv) => lv.scrollDirection == Axis.horizontal)
+          .toList();
+      final standardSectionLists = horizontalLists
+          .where((lv) => lv.childrenDelegate.estimatedChildCount == 19)
+          .toList();
+      expect(standardSectionLists, isNotEmpty);
+      expect(
+        horizontalLists.any(
+          (lv) => lv.childrenDelegate.estimatedChildCount == 29,
+        ),
+        isFalse,
+      );
+
+      // Bấm "Xem thêm" chuyển sang tab Khám phá
+      expect(find.text('Xem thêm'), findsAtLeastNWidgets(1));
+      await tester.ensureVisible(find.text('Xem thêm').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Xem thêm').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Trang Khám Phá'), findsOneWidget);
+    },
+  );
 }
