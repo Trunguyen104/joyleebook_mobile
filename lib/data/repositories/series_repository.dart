@@ -4,9 +4,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/api_endpoints.dart';
+import '../../domain/models/ai_recommendation.dart';
 import '../../domain/models/reading_history.dart';
 import '../../domain/models/reading_progress.dart';
 import '../../domain/models/series.dart';
+import '../dtos/ai_recommendation_dto.dart';
 import '../dtos/bookmark_dto.dart';
 import '../dtos/reading_history_dto.dart';
 import '../dtos/reading_progress_dto.dart';
@@ -556,6 +558,88 @@ class SeriesRepository {
     } catch (e) {
       if (e is AppException) rethrow;
       throw AppException(message: 'Không thể gửi đánh giá tác phẩm: $e');
+    }
+  }
+
+  /// 5. Gợi ý các bộ truyện tương tự bằng AI Vector Search (US-64)
+  /// Kết nối endpoint: GET /api/series/{seriesId}/similar?limit={limit}
+  Future<List<AiRecommendation>> getSimilarSeries(
+    String seriesId, {
+    int limit = 6,
+  }) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        ApiEndpoints.seriesSimilar(seriesId),
+        queryParameters: {'limit': limit},
+      );
+
+      final data = response.data;
+      if (data == null) return const [];
+
+      final dto = SimilarSeriesListResponseDto.fromJson(data);
+      return dto.items
+          .map((item) {
+            final score = item.similarityScore ?? 0.0;
+            final rationale = item.similarityScore != null
+                ? '${(score * 100).round()}% tương đồng'
+                : (dto.isFallbackByGenre ? 'Cùng thể loại' : 'AI đề xuất');
+
+            return AiRecommendation(
+              series: Series.fromDto(item.series),
+              score: score,
+              rationale: rationale,
+              isFallback: dto.isFallbackByGenre,
+            );
+          })
+          .toList(growable: false);
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    } catch (e) {
+      if (e is AppException) rethrow;
+      throw AppException(message: 'Không thể tải truyện tương tự từ AI: $e');
+    }
+  }
+
+  /// 6. Tìm kiếm và gợi ý truyện bằng Ngữ nghĩa Ngôn ngữ tự nhiên với AI (US-65)
+  /// Kết nối endpoint: GET /api/series/semantic-search?q={query}&limit={limit}
+  Future<List<AiRecommendation>> getSemanticSearchSeries(
+    String query, {
+    int limit = 10,
+    String? genreId,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{'q': query.trim(), 'limit': limit};
+      if (genreId != null && genreId.isNotEmpty) {
+        queryParams['genreId'] = genreId;
+      }
+
+      final response = await _dio.get<Map<String, dynamic>>(
+        ApiEndpoints.seriesSemanticSearch,
+        queryParameters: queryParams,
+      );
+
+      final data = response.data;
+      if (data == null) return const [];
+
+      final dto = SemanticSearchResponseDto.fromJson(data);
+      return dto.items
+          .map((item) {
+            final pct = (item.relevanceScore * 100).round();
+            final rationale = pct > 0 ? '$pct% phù hợp' : 'AI Đề xuất';
+
+            return AiRecommendation(
+              series: Series.fromDto(item.series),
+              score: item.relevanceScore,
+              rationale: rationale,
+              isFallback: false,
+            );
+          })
+          .toList(growable: false);
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    } catch (e) {
+      if (e is AppException) rethrow;
+      throw AppException(message: 'Không thể tìm kiếm truyện bằng AI: $e');
     }
   }
 }

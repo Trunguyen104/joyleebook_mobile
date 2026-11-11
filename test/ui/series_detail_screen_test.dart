@@ -245,7 +245,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Kho Truyện -> bấm vào truyện -> mở chi tiết, vẫn thấy thanh tab
-      await tester.tap(find.text(mockSeries.title));
+      await tester.tap(find.text(mockSeries.title).first);
       await tester.pumpAndSettle();
       expect(find.byType(SeriesDetailScreen), findsOneWidget);
       expect(find.byType(NavigationBar), findsOneWidget);
