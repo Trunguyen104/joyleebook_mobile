@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../data/services/api_exceptions.dart';
 import '../../../domain/models/genre.dart';
+import '../../../domain/models/search_sort_option.dart';
 import '../../../domain/models/series.dart';
 import '../../../routing/app_paths.dart';
 import '../../core/themes/app_colors.dart';
@@ -13,6 +14,9 @@ import '../../core/widgets/joylee_error_view.dart';
 import '../../series/view_models/genre_list_view_model.dart';
 import '../../notifications/widgets/notification_bell_button.dart';
 import '../view_models/search_view_model.dart';
+import 'search_recent_keywords.dart';
+import 'search_sort_bottom_sheet.dart';
+import 'search_suggestions_view.dart';
 
 /// MÀN HÌNH KHÁM PHÁ & TÌM KIẾM (SearchScreen)
 /// Thiết kế giao diện xếp hạng theo chuẩn Wattpad (Image 2):
@@ -35,17 +39,26 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   bool _isGenreExpanded = false;
+  bool _isFocused = false;
 
   @override
   void initState() {
     super.initState();
+    _searchFocusNode.addListener(_handleFocusChange);
     if (widget.initialGenre != null && widget.initialGenre!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref
             .read(searchViewModelProvider.notifier)
             .filterByGenre(widget.initialGenre);
       });
+    }
+  }
+
+  void _handleFocusChange() {
+    if (_isFocused != _searchFocusNode.hasFocus) {
+      setState(() => _isFocused = _searchFocusNode.hasFocus);
     }
   }
 
@@ -65,6 +78,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   void dispose() {
+    _searchFocusNode.removeListener(_handleFocusChange);
+    _searchFocusNode.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -76,6 +91,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final searchVm = ref.watch(searchViewModelProvider.notifier);
     final genresState = ref.watch(genreListViewModelProvider);
     final selectedGenre = searchVm.selectedGenre;
+    final availableGenreNames = genresState.maybeWhen(
+      data: (genres) => genres.map((genre) => genre.name).toList(),
+      orElse: () => const <String>[],
+    );
 
     // Đồng bộ nếu query bị xóa từ ViewModel
     if (searchVm.currentQuery.isEmpty && _searchController.text.isNotEmpty) {
@@ -87,9 +106,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       appBar: AppBar(
         titleSpacing: AppDimensions.space3,
         title: _buildSearchBar(colors),
-        actions: const [
-          NotificationBellButton(),
-        ],
+        actions: const [NotificationBellButton()],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(44),
           child: _buildGenreTabBar(genresState, selectedGenre, colors),
@@ -174,8 +191,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     vertical: AppDimensions.space2,
                   ),
                   children: [
-                    // Dòng thống kê số lượng + Nút [Lọc]
-                    _buildResultsHeader(seriesList.length, colors),
+                    // Dòng thống kê số lượng + Nút [Sắp xếp]
+                    _buildResultsHeader(
+                      seriesList.length,
+                      colors,
+                      searchVm.sortOption,
+                      searchVm,
+                    ),
 
                     const SizedBox(height: AppDimensions.space3),
 
@@ -198,6 +220,79 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               );
             },
           ),
+
+          // LỚP PHỦ TÌM KIẾM GẦN ĐÂY HOẶC GỢI Ý KHI ĐANG GÕ
+          if (_isFocused ||
+              (_searchController.text.trim().isEmpty &&
+                  !searchVm.isFiltered &&
+                  seriesState.hasValue)) ...[
+            Positioned.fill(
+              child: Container(
+                color: colors.bgCanvas,
+                child: _searchController.text.trim().isEmpty
+                    ? SearchRecentKeywords(
+                        recentSearches: searchVm.recentSearches,
+                        onKeywordSelected: (keyword) {
+                          _searchController.text = keyword;
+                          _searchFocusNode.unfocus();
+                          ref
+                              .read(searchViewModelProvider.notifier)
+                              .search(keyword, immediate: true);
+                          setState(() {});
+                        },
+                        onKeywordDeleted: (keyword) {
+                          ref
+                              .read(searchViewModelProvider.notifier)
+                              .removeRecentSearch(keyword);
+                          setState(() {});
+                        },
+                        onClearAll: () {
+                          ref
+                              .read(searchViewModelProvider.notifier)
+                              .clearRecentSearches();
+                          setState(() {});
+                        },
+                      )
+                    : SearchSuggestionsView(
+                        query: _searchController.text,
+                        suggestions: searchVm.getSuggestions(
+                          _searchController.text,
+                          genreNames: availableGenreNames,
+                        ),
+                        onSuggestionSelected: (suggestion) {
+                          _searchFocusNode.unfocus();
+                          final viewModel = ref.read(
+                            searchViewModelProvider.notifier,
+                          );
+                          switch (suggestion.type) {
+                            case SearchSuggestionType.series:
+                              final seriesId = suggestion.seriesId;
+                              if (seriesId != null) {
+                                context.push(AppPaths.seriesDetail(seriesId));
+                              }
+                              break;
+                            case SearchSuggestionType.author:
+                              _searchController.text = suggestion.text;
+                              viewModel.search(
+                                suggestion.text,
+                                immediate: true,
+                              );
+                              setState(() {});
+                              break;
+                            case SearchSuggestionType.genre:
+                              viewModel.filterByGenre(suggestion.text);
+                              break;
+                            case SearchSuggestionType.aiSemantic:
+                              _searchController.text = suggestion.text;
+                              viewModel.searchSemantically(suggestion.text);
+                              setState(() {});
+                              break;
+                          }
+                        },
+                      ),
+              ),
+            ),
+          ],
 
           // LỚP PHỦ MỜ (DIMMED BACKDROP) KHI MỞ RỘNG THỂ LOẠI
           if (_isGenreExpanded) ...[
@@ -242,12 +337,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget _buildSearchBar(AppColors colors) {
     return TextField(
       controller: _searchController,
+      focusNode: _searchFocusNode,
       textInputAction: TextInputAction.search,
       onChanged: (value) {
         ref.read(searchViewModelProvider.notifier).search(value);
         setState(() {});
       },
       onSubmitted: (value) {
+        _searchFocusNode.unfocus();
         ref
             .read(searchViewModelProvider.notifier)
             .search(value, immediate: true);
@@ -544,20 +641,66 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  /// 3. Dòng thống kê số lượng truyện
-  Widget _buildResultsHeader(int totalCount, AppColors colors) {
+  /// 3. Dòng thống kê số lượng truyện + Nút chọn sắp xếp
+  Widget _buildResultsHeader(
+    int totalCount,
+    AppColors colors,
+    SearchSortOption sortOption,
+    SearchViewModel searchVm,
+  ) {
     final countText = _formatCount(totalCount);
 
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        '$countText Truyện',
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: colors.textPrimary,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          '$countText Truyện',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: colors.textPrimary,
+          ),
         ),
-      ),
+        InkWell(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+          onTap: () {
+            SearchSortBottomSheet.show(
+              context,
+              currentOption: sortOption,
+              onOptionSelected: (opt) => searchVm.setSortOption(opt),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: colors.bgSurfaceSubtle,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+              border: Border.all(color: colors.borderDefault),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(sortOption.icon, size: 14, color: colors.primaryBrand),
+                const SizedBox(width: 4),
+                Text(
+                  sortOption.label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 16,
+                  color: colors.textSecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

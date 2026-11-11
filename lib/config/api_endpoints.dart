@@ -6,6 +6,9 @@ abstract final class ApiEndpoints {
   static const String series = '/api/series';
   static String seriesByAuthor(String authorId) => '$series/author/$authorId';
   static const String genres = '/api/genres';
+  static const String seriesSemanticSearch = '/api/series/semantic-search';
+  static String seriesSimilar(String seriesId) =>
+      '/api/series/$seriesId/similar';
 
   // Ratings & Comments (Community Microservice via Gateway)
   static const String ratings = '/api/ratings';

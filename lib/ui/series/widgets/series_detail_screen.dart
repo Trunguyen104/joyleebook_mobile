@@ -22,6 +22,7 @@ import '../../comments/widgets/comments_list_view.dart';
 import '../../donation/view_models/story_donations_view_model.dart';
 import '../../donation/widgets/donate_bottom_sheet.dart';
 import '../../donation/widgets/story_donations_section.dart';
+import '../view_models/ai_recommendation_view_model.dart';
 import '../../download/view_models/download_manager_view_model.dart';
 import '../../download/view_models/downloaded_series_view_model.dart';
 import 'series_rating_card.dart';
@@ -1056,10 +1057,151 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
               seriesId: series.id,
               onDonateTap: () => _handleDonatePress(context, series),
             ),
+
+            // Khối truyện tương tự (AI Vector Match - US-64)
+            _buildSimilarSeriesSection(colors, series.id),
+
             const SizedBox(height: AppDimensions.space6),
           ],
         ),
       ),
+    );
+  }
+
+  /// Khối Tác phẩm tương tự do AI gợi ý
+  Widget _buildSimilarSeriesSection(AppColors colors, String seriesId) {
+    final similarAsync = ref.watch(similarSeriesProvider(seriesId));
+
+    return similarAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (items) {
+        if (items.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: colors.bgBrandSubtle,
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                  ),
+                  child: Icon(
+                    Icons.auto_awesome,
+                    size: 16,
+                    color: colors.primaryBrand,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Tác phẩm tương tự (AI đề xuất)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: colors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimensions.space3),
+            SizedBox(
+              height: 200,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: items.length,
+                separatorBuilder: (_, _) =>
+                    const SizedBox(width: AppDimensions.space3),
+                itemBuilder: (context, index) {
+                  final rec = items[index];
+                  final s = rec.series;
+                  return SizedBox(
+                    width: 110,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusMd,
+                      ),
+                      onTap: () {
+                        context.push(AppPaths.seriesDetail(s.id), extra: s);
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Stack(
+                            children: [
+                              Container(
+                                width: 110,
+                                height: 145,
+                                decoration: BoxDecoration(
+                                  color: colors.bgSurfaceSubtle,
+                                  borderRadius: BorderRadius.circular(
+                                    AppDimensions.radiusMd,
+                                  ),
+                                  border: Border.all(
+                                    color: colors.borderDefault,
+                                  ),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: s.coverImageUrl.isNotEmpty
+                                    ? Image.network(
+                                        s.coverImageUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, _, _) =>
+                                            _buildCoverPlaceholder(colors),
+                                      )
+                                    : _buildCoverPlaceholder(colors),
+                              ),
+                              if (rec.matchPercentage > 0)
+                                Positioned(
+                                  top: 6,
+                                  left: 6,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 5,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colors.primaryBrandDark,
+                                      borderRadius: BorderRadius.circular(
+                                        AppDimensions.radiusSm,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '${rec.matchPercentage}%',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            s.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: colors.textPrimary,
+                              height: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
