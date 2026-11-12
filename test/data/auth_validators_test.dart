@@ -47,6 +47,23 @@ void main() {
   });
 
   group('validateEmail', () {
+    test('Chặn dấu chấm và nhãn tên miền sai, kiểm tra giới hạn độ dài', () {
+      for (final email in [
+        '.reader@example.com',
+        'reader.@example.com',
+        'read..er@example.com',
+        'reader@-example.com',
+        'reader@example-.com',
+        '${'a' * 65}@example.com',
+        'reader@${'a' * 64}.com',
+      ]) {
+        expect(validateEmail(email), isNotNull, reason: email);
+      }
+      expect(validateEmail('${'a' * 64}@example.com'), isNull);
+      expect(validateEmail("o'reader@example.com"), isNull);
+      expect(validateEmail('reader@${'a' * 63}.com'), isNull);
+    });
+
     test('Bỏ trống hoặc chỉ có khoảng trắng', () {
       expect(validateEmail(''), 'Vui lòng nhập địa chỉ email');
       expect(validateEmail('   '), 'Vui lòng nhập địa chỉ email');

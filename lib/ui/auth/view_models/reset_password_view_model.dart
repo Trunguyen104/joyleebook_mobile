@@ -44,8 +44,10 @@ class ResetPasswordViewModel extends Notifier<ResetPasswordState> {
     if (state.isLoading || state.step != ResetPasswordStep.credentials) return;
     // Cho phép dán cả liên kết trong email thay vì tách mã thủ công.
     final Map<String, String> parameters;
+    var isLink = false;
     try {
       final link = Uri.tryParse(token.trim());
+      isLink = link?.hasScheme == true || link?.hasQuery == true;
       parameters = link?.hasQuery == true
           ? link!.queryParameters
           : Uri.tryParse(link?.fragment ?? '')?.queryParameters ??
@@ -56,8 +58,8 @@ class ResetPasswordViewModel extends Notifier<ResetPasswordState> {
       );
       return;
     }
-    final resolvedEmail = parameters['email'] ?? email.trim();
-    final resolvedToken = parameters['token'] ?? token.trim();
+    final resolvedEmail = (parameters['email'] ?? email).trim();
+    final resolvedToken = (parameters['token'] ?? (isLink ? '' : token)).trim();
     final emailError = validateEmail(resolvedEmail);
     final tokenError = resolvedToken.isEmpty
         ? 'Vui lòng nhập mã khôi phục trong email'

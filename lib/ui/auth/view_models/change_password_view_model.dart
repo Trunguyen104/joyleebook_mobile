@@ -39,7 +39,7 @@ class ChangePasswordViewModel extends Notifier<ChangePasswordState> {
     required String confirmNewPassword,
   }) async {
     if (state.isLoading || state.isSuccess) return false;
-    final currentError = currentPassword.isEmpty
+    final currentError = currentPassword.trim().isEmpty
         ? 'Vui lòng nhập mật khẩu hiện tại'
         : currentPassword.length > 128
         ? 'Mật khẩu hiện tại không quá 128 ký tự'

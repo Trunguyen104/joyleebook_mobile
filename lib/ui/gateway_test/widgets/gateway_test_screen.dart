@@ -7,6 +7,7 @@ import '../../core/themes/app_dimensions.dart';
 import '../../core/widgets/joylee_button.dart';
 import '../models/gateway_check_result.dart';
 import '../view_models/gateway_test_view_model.dart';
+import '../view_models/gateway_url_validator.dart';
 
 class GatewayTestScreen extends ConsumerStatefulWidget {
   const GatewayTestScreen({super.key});
@@ -17,6 +18,7 @@ class GatewayTestScreen extends ConsumerStatefulWidget {
 
 class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
   late final TextEditingController _urlController;
+  String? _urlError;
 
   @override
   void initState() {
@@ -32,6 +34,10 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
   }
 
   void _applyUrl(String url) {
+    final error = validateGatewayUrl(url);
+    setState(() => _urlError = error);
+    if (error != null) return;
+    url = url.trim();
     _urlController.text = url;
     ref.read(gatewayTestViewModelProvider.notifier).updateBaseUrl(url);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -188,7 +194,20 @@ class _GatewayTestScreenState extends ConsumerState<GatewayTestScreen> {
                 Expanded(
                   child: TextField(
                     controller: _urlController,
+                    keyboardType: TextInputType.url,
+                    autocorrect: false,
+                    onChanged: (_) {
+                      if (_urlError != null) {
+                        setState(
+                          () => _urlError = validateGatewayUrl(
+                            _urlController.text,
+                          ),
+                        );
+                      }
+                    },
                     decoration: InputDecoration(
+                      errorText: _urlError,
+                      errorMaxLines: 4,
                       labelText: 'Gateway Base URL',
                       hintText: Environment.hostedBaseUrl,
                       isDense: true,
