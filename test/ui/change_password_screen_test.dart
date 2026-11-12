@@ -43,6 +43,17 @@ Future<void> _submit(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('Mật khẩu hiện tại chỉ có khoảng trắng không gọi API', (
+    tester,
+  ) async {
+    final fake = FakeAuthRepository(savedSession: fakeSession);
+    await _pump(tester, fake);
+    await _fill(tester, '   ', 'newPassword123', 'newPassword123');
+    await _submit(tester);
+    expect(find.text('Vui lòng nhập mật khẩu hiện tại'), findsOneWidget);
+    expect(fake.changePasswordCallCount, 0);
+  });
+
   testWidgets('Form trống không gọi API', (tester) async {
     final fake = FakeAuthRepository(savedSession: fakeSession);
     await _pump(tester, fake);

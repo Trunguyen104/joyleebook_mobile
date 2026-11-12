@@ -29,6 +29,16 @@ class CommentInputBox extends StatefulWidget {
 class _CommentInputBoxState extends State<CommentInputBox> {
   late final TextEditingController _controller;
   bool _isSending = false;
+  bool _hasInteracted = false;
+
+  String? get _contentError {
+    if (!_hasInteracted) return null;
+    if (_controller.text.isEmpty) return 'Vui lòng nhập nội dung bình luận.';
+    if (_controller.text.trim().isEmpty) {
+      return 'Vui lòng nhập nội dung bình luận, không chỉ khoảng trắng hoặc xuống dòng.';
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -40,6 +50,7 @@ class _CommentInputBoxState extends State<CommentInputBox> {
   void didUpdateWidget(covariant CommentInputBox oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.initialText != oldWidget.initialText) {
+      _hasInteracted = false;
       _controller.text = widget.initialText ?? '';
       _controller.selection = TextSelection.fromPosition(
         TextPosition(offset: _controller.text.length),
@@ -64,6 +75,7 @@ class _CommentInputBoxState extends State<CommentInputBox> {
     setState(() => _isSending = false);
     if (success) {
       _controller.clear();
+      setState(() => _hasInteracted = false);
       FocusScope.of(context).unfocus();
     }
   }
@@ -176,11 +188,14 @@ class _CommentInputBoxState extends State<CommentInputBox> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
+                    enabled: !_isSending,
                     minLines: 1,
                     maxLines: 4,
                     textInputAction: TextInputAction.newline,
                     style: TextStyle(color: colors.textPrimary, fontSize: 14),
                     decoration: InputDecoration(
+                      errorText: _contentError,
+                      errorMaxLines: 4,
                       hintText: widget.isEditing
                           ? 'Cập nhật bình luận của bạn...'
                           : 'Viết bình luận cảm nghĩ...',
@@ -216,7 +231,7 @@ class _CommentInputBoxState extends State<CommentInputBox> {
                         ),
                       ),
                     ),
-                    onChanged: (_) => setState(() {}),
+                    onChanged: (_) => setState(() => _hasInteracted = true),
                   ),
                 ),
                 const SizedBox(width: AppDimensions.space2),

@@ -44,6 +44,34 @@ Future<void> _fillPasswords(
 }
 
 void main() {
+  testWidgets('Liên kết thiếu mã không gửi cả URL làm mã khôi phục', (
+    tester,
+  ) async {
+    final fake = FakeAuthRepository();
+    await _pump(tester, fake);
+    await tester.enterText(
+      find.byType(TextField).at(1),
+      'https://example.com/reset-password?email=reader@example.com',
+    );
+    await _tap(tester, 'Tiếp tục');
+    expect(find.text('Vui lòng nhập mã khôi phục trong email'), findsOneWidget);
+    expect(fake.validateResetTokenCallCount, 0);
+  });
+
+  testWidgets('Mã chỉ có khoảng trắng trong liên kết không gọi API', (
+    tester,
+  ) async {
+    final fake = FakeAuthRepository();
+    await _pump(tester, fake);
+    await tester.enterText(
+      find.byType(TextField).at(1),
+      'https://example.com/reset-password?token=%20%20',
+    );
+    await _tap(tester, 'Tiếp tục');
+    expect(find.text('Vui lòng nhập mã khôi phục trong email'), findsOneWidget);
+    expect(fake.validateResetTokenCallCount, 0);
+  });
+
   testWidgets('Liên kết có mã hóa lỗi không làm văng màn hình', (tester) async {
     final fake = FakeAuthRepository();
     await _pump(tester, fake);

@@ -7,6 +7,7 @@ import '../../../config/api_endpoints.dart';
 import '../../../config/environment.dart';
 import '../../../data/services/api_client.dart';
 import '../models/gateway_check_result.dart';
+import 'gateway_url_validator.dart';
 
 class GatewayTestState {
   const GatewayTestState({
@@ -75,6 +76,7 @@ class GatewayTestViewModel extends Notifier<GatewayTestState> {
   }
 
   void updateBaseUrl(String newUrl) {
+    if (validateGatewayUrl(newUrl) != null) return;
     state = state.copyWith(
       baseUrl: newUrl.trim(),
       results: state.results

@@ -4,7 +4,7 @@ library;
 
 final _usernamePattern = RegExp(r'^[A-Za-z0-9._-]+$');
 final _emailPattern = RegExp(
-  r'^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$',
+  r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$",
 );
 final _hasLetter = RegExp(r'[A-Za-z]');
 final _hasDigit = RegExp(r'[0-9]');
@@ -29,8 +29,8 @@ String? validateUsername(String value) {
 /// Mật khẩu: 8-128 ký tự, có ít nhất 1 chữ cái và 1 chữ số
 String? validatePassword(String value) {
   if (value.isEmpty) return 'Vui lòng nhập mật khẩu';
+  if (value.length > 128) return 'Mật khẩu tối đa 128 ký tự';
   if (!passwordHasMinLength(value) ||
-      value.length > 128 ||
       !passwordHasLetter(value) ||
       !passwordHasDigit(value)) {
     return 'Mật khẩu tối thiểu 8 ký tự, bao gồm cả chữ và số';
@@ -54,6 +54,20 @@ String? validateEmail(String value) {
   final email = value.trim();
   if (email.isEmpty) return 'Vui lòng nhập địa chỉ email';
   if (!_emailPattern.hasMatch(email)) {
+    return 'Địa chỉ email không đúng định dạng';
+  }
+  final parts = email.split('@');
+  final local = parts.first;
+  final labels = parts.last.split('.');
+  if (email.length > 254 ||
+      local.length > 64 ||
+      local.startsWith('.') ||
+      local.endsWith('.') ||
+      local.contains('..') ||
+      labels.any(
+        (label) =>
+            label.length > 63 || label.startsWith('-') || label.endsWith('-'),
+      )) {
     return 'Địa chỉ email không đúng định dạng';
   }
   return null;
